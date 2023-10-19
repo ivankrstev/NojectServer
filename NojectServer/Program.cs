@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using NojectServer.Data;
+
 namespace NojectServer
 {
     public class Program
@@ -7,15 +10,16 @@ namespace NojectServer
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
+            builder.Services.AddDbContext<DataContext>(options =>
+                options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
+            );
+            builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -25,7 +29,6 @@ namespace NojectServer
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
