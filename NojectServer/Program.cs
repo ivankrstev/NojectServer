@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
 
@@ -17,6 +18,25 @@ namespace NojectServer
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            builder.Services.Configure<ApiBehaviorOptions>(options =>
+            {
+                options.InvalidModelStateResponseFactory = actionContext =>
+                {
+                    if (actionContext.ModelState.ErrorCount > 0)
+                    {
+                        var errorMessages = actionContext.ModelState.Values
+                            .SelectMany(v => v.Errors)
+                            .Select(e => e.ErrorMessage)
+                            .ToList();
+                        return new BadRequestObjectResult(new { errors = errorMessages });
+                    }
+                    else
+                    {
+                        return new BadRequestResult();
+                    }
+                };
+            });
 
             var app = builder.Build();
 
