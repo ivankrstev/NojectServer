@@ -21,10 +21,10 @@ namespace NojectServer.Controllers
             {
                 return Conflict("User already exists");
             }
-            List<string> requestErrors = request.Validate();
-            if (requestErrors.Any())
+            var requestError = request.Validate();
+            if (requestError != null)
             {
-                return BadRequest(new { errors = requestErrors });
+                return BadRequest(requestError);
             }
             CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
             User user = new()
