@@ -9,9 +9,12 @@ namespace NojectServer.Models
     public class RefreshToken
     {
         [Column("user_id")]
+        [ForeignKey("User")]
         [Required]
         [StringLength(62)]
         public string Email { get; set; } = string.Empty;
+
+        public virtual User? User { get; set; }
 
         [Column("token")]
         [Required]
