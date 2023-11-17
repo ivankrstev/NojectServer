@@ -70,7 +70,15 @@ namespace NojectServer.Controllers
                     message = "The provided username and password combination is incorrect."
                 });
             }
-            Response.Cookies.Append("refresh_token", CreateRefreshToken(user), new CookieOptions
+            string token = CreateRefreshToken(user);
+            RefreshToken refreshToken = new()
+            {
+                Email = user.Email,
+                Token = token
+            };
+            _dataContext.Add(refreshToken);
+            await _dataContext.SaveChangesAsync();
+            Response.Cookies.Append("refresh_token", token, new CookieOptions
             {
                 HttpOnly = true,
                 Expires = DateTime.Now.AddDays(14)
