@@ -53,7 +53,7 @@ namespace NojectServer.Controllers
         [HttpPost("login", Name = "Login user")]
         public async Task<IActionResult> Login(UserLoginRequest request)
         {
-            var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email != request.Email);
+            var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user == null)
             {
                 return BadRequest("User doesn't exist");
