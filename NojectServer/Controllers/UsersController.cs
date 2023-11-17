@@ -1,7 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using NojectServer.Data;
 using NojectServer.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace NojectServer.Controllers
 {
@@ -11,8 +15,13 @@ namespace NojectServer.Controllers
     public class UsersController : ControllerBase
     {
         private readonly DataContext _dataContext;
+        private readonly IConfiguration _configuration;
 
-        public UsersController(DataContext dataContext) => _dataContext = dataContext;
+        public UsersController(DataContext dataContext, IConfiguration configuration)
+        {
+            _dataContext = dataContext;
+            _configuration = configuration;
+        }
 
         [HttpPost("register", Name = "Register user")]
         public async Task<IActionResult> Register(UserRegisterRequest request)
@@ -38,6 +47,38 @@ namespace NojectServer.Controllers
             _dataContext.Add(user);
             await _dataContext.SaveChangesAsync();
             return Created(nameof(User), new { email = user.Email });
+        }
+
+        private string CreateRefreshToken(User user)
+        {
+            List<Claim> claims = new() {
+                new Claim(ClaimTypes.Name, user.Email)
+            };
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("JWTSecrets:RefreshToken").Value!));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+            var token = new JwtSecurityToken(
+                claims: claims,
+                signingCredentials: creds,
+                expires: DateTime.Now.AddDays(14)
+                );
+            var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+            return jwt;
+        }
+
+        private string CreateAccessToken(User user)
+        {
+            List<Claim> claims = new() {
+                new Claim(ClaimTypes.Name, user.Email)
+            };
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("JWTSecrets:AccessToken").Value!));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+            var token = new JwtSecurityToken(
+                claims: claims,
+                signingCredentials: creds,
+                expires: DateTime.Now.AddMinutes(10)
+                );
+            var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+            return jwt;
         }
 
         private static void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
