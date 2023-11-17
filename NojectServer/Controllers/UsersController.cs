@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using NojectServer.Data;
 using NojectServer.Models;
@@ -47,6 +48,37 @@ namespace NojectServer.Controllers
             _dataContext.Add(user);
             await _dataContext.SaveChangesAsync();
             return Created(nameof(User), new { email = user.Email });
+        }
+
+        [HttpPost("login", Name = "Login user")]
+        public async Task<IActionResult> Login(UserLoginRequest request)
+        {
+            var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email != request.Email);
+            if (user == null)
+            {
+                return BadRequest("User doesn't exist");
+            }
+            if (user.VerifiedAt == null)
+            {
+                return BadRequest("Your email address has not been verified");
+            }
+            if (!VerifyPasswordHash(request.Password, user.Password, user.PasswordSalt))
+            {
+                return Unauthorized(new
+                {
+                    error = "Invalid credentials",
+                    message = "The provided username and password combination is incorrect."
+                });
+            }
+            Response.Cookies.Append("refresh_token", CreateRefreshToken(user), new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.Now.AddDays(14)
+            });
+            return Ok(new
+            {
+                access_token = CreateAccessToken(user)
+            });
         }
 
         private string CreateRefreshToken(User user)
