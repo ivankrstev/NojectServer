@@ -25,6 +25,9 @@ namespace NojectServer.Controllers
         }
 
         [HttpPost("register", Name = "Register user")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> Register(UserRegisterRequest request)
         {
             if (_dataContext.Users.Any(u => u.Email == request.Email))
@@ -50,6 +53,9 @@ namespace NojectServer.Controllers
             return Created(nameof(User), new { email = user.Email });
         }
 
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [HttpPost("login", Name = "Login user")]
         public async Task<IActionResult> Login(UserLoginRequest request)
         {
