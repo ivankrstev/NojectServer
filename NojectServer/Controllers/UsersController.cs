@@ -16,12 +16,12 @@ namespace NojectServer.Controllers
     public class UsersController : ControllerBase
     {
         private readonly DataContext _dataContext;
-        private readonly IConfiguration _configuration;
+        private readonly IConfiguration _config;
 
         public UsersController(DataContext dataContext, IConfiguration configuration)
         {
             _dataContext = dataContext;
-            _configuration = configuration;
+            _config = configuration;
         }
 
         [HttpPost("register", Name = "Register user")]
@@ -94,7 +94,7 @@ namespace NojectServer.Controllers
             List<Claim> claims = new() {
                 new Claim(ClaimTypes.Name, user.Email)
             };
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("JWTSecrets:RefreshToken").Value!));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWTSecrets:RefreshToken"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
             var token = new JwtSecurityToken(
                 claims: claims,
@@ -110,7 +110,7 @@ namespace NojectServer.Controllers
             List<Claim> claims = new() {
                 new Claim(ClaimTypes.Name, user.Email)
             };
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("JWTSecrets:AccessToken").Value!));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWTSecrets:AccessToken"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
             var token = new JwtSecurityToken(
                 claims: claims,
@@ -125,13 +125,13 @@ namespace NojectServer.Controllers
         {
             using HMACSHA512 hmac = new();
             passwordSalt = hmac.Key;
-            passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+            passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
         }
 
         private static bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt)
         {
             using HMACSHA512 hmac = new(passwordSalt);
-            byte[] computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+            byte[] computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
             return computedHash.SequenceEqual(passwordHash);
         }
 
