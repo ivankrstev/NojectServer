@@ -47,6 +47,13 @@ namespace NojectServer.Controllers
             passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
         }
 
+        private static bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt)
+        {
+            using HMACSHA512 hmac = new(passwordSalt);
+            byte[] computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+            return computedHash.SequenceEqual(passwordHash);
+        }
+
         private static string GenerateRandomToken()
         {
             byte[] randomBytes = RandomNumberGenerator.GetBytes(100);
