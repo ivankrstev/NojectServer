@@ -13,12 +13,12 @@ namespace NojectServer.Controllers
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
-    public class UsersController : ControllerBase
+    public class AuthController : ControllerBase
     {
         private readonly DataContext _dataContext;
         private readonly IConfiguration _config;
 
-        public UsersController(DataContext dataContext, IConfiguration configuration)
+        public AuthController(DataContext dataContext, IConfiguration configuration)
         {
             _dataContext = dataContext;
             _config = configuration;
