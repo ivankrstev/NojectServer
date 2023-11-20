@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
+using NojectServer.OptionsSetup;
 
 namespace NojectServer
 {
@@ -38,6 +40,9 @@ namespace NojectServer
                 };
             });
 
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+.AddJwtBearer(options => new JwtBearerOptionsSetup().GetOptions(builder.Configuration, options));
+
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
@@ -48,6 +53,7 @@ namespace NojectServer
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
