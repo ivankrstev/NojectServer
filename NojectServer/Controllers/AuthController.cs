@@ -95,6 +95,33 @@ namespace NojectServer.Controllers
             });
         }
 
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [HttpPost("refresh-token", Name = "Refresh Token")]
+        public async Task<ActionResult<object>> RefreshToken()
+        {
+            var refreshToken = Request.Cookies["refresh_token"];
+            var user = await _dataContext.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+            if (user == null)
+            {
+                return Unauthorized(new
+                {
+                    error = "Unauthorized",
+                    message = "Invalid refresh token"
+                });
+            }
+            else if (user.ExpireDate < DateTime.UtcNow)
+            {
+                return Unauthorized(new
+                {
+                    error = "Unauthorized",
+                    message = "Token expired"
+                });
+            }
+            string accessToken = CreateAccessToken(new User { Email = user.Email });
+            return new { accessToken };
+        }
+
         private string CreateRefreshToken(User user)
         {
             List<Claim> claims = new() {
