@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
+using NojectServer.Middlewares;
 using NojectServer.Models;
 using System.Security.Claims;
 
@@ -34,6 +36,15 @@ namespace NojectServer.Controllers
             _dataContext.Add(project);
             await _dataContext.SaveChangesAsync();
             return Created(nameof(Project), project);
+        }
+
+        [HttpDelete("{id}", Name = "DeleteById")]
+        [Authorize]
+        [ServiceFilter(typeof(VerifyProjectOwnership))]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            await _dataContext.Projects.Where(p => p.Id == id).ExecuteDeleteAsync();
+            return Ok(new { message = $"Project with ID {id} successfully deleted" });
         }
 
         private static void GenerateColors(out string color, out string backgroundColor)
