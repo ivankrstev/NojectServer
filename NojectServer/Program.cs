@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
+using NojectServer.Middlewares;
 using NojectServer.OptionsSetup;
 
 namespace NojectServer
@@ -13,6 +14,7 @@ namespace NojectServer
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
+            builder.Services.AddScoped<VerifyProjectOwnership>();
             builder.Services.AddDbContext<DataContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
             );
