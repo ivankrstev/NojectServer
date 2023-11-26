@@ -13,6 +13,7 @@ namespace NojectServer.Controllers
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
+    [ServiceFilter(typeof(VerifyProjectOwnership))]
     public class CollaboratorsController : ControllerBase
     {
         private readonly DataContext _dataContext;
@@ -23,7 +24,6 @@ namespace NojectServer.Controllers
         }
 
         [HttpPost("{id}")]
-        [ServiceFilter(typeof(VerifyProjectOwnership))]
         [ProducesResponseType(typeof(SuccessMessage), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status404NotFound)]
