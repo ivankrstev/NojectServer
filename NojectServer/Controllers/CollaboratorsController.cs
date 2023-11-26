@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
 using NojectServer.Middlewares;
@@ -58,6 +59,23 @@ namespace NojectServer.Controllers
             await _dataContext.AddAsync(new Collaborator { ProjectId = id, CollaboratorId = UserEmailToAdd });
             await _dataContext.SaveChangesAsync();
             return Ok(new { message = $"Successfully added {UserEmailToAdd} as a collaborator" });
+        }
+
+        [HttpGet("search/{id}")]
+        public async Task<ActionResult<List<string>>> Search(Guid id, [FromQuery, BindRequired] string userToFind)
+        {
+            string ProjectOwnerEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var query = from user in _dataContext.Users
+                        join collaborator in _dataContext.Collaborators
+                        on new { UserId = user.Email, ProjectId = id } equals new
+                        {
+                            UserId = collaborator.CollaboratorId,
+                            collaborator.ProjectId
+                        } into gj
+                        from subCollaborator in gj.DefaultIfEmpty()
+                        where subCollaborator == null && user.Email != ProjectOwnerEmail && user.Email.StartsWith(userToFind)
+                        select user.Email;
+            return Ok(new { users = await query.ToListAsync() });
         }
     }
 }
