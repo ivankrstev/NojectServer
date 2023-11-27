@@ -84,5 +84,22 @@ namespace NojectServer.Controllers
             List<string> collaborators = await _dataContext.Collaborators.Where(c => c.ProjectId == id).Select(c => c.CollaboratorId).ToListAsync();
             return Ok(new { collaborators });
         }
+
+        [ProducesResponseType(typeof(SuccessMessage), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status404NotFound)]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Remove(Guid id, [FromQuery, BindRequired] string userToRemove)
+        {
+            var deletedRows = await _dataContext.Collaborators.Where(c => c.ProjectId == id && c.CollaboratorId == userToRemove).ExecuteDeleteAsync();
+            if (deletedRows == 0)
+            {
+                return NotFound(new
+                {
+                    error = "Collaborator not found",
+                    message = "The specified collaborator doesn't exist"
+                });
+            }
+            return Ok(new { message = $"Successfully removed {userToRemove} as a collaborator" });
+        }
     }
 }
