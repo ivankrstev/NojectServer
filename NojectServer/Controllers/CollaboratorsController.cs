@@ -77,5 +77,12 @@ namespace NojectServer.Controllers
                         select user.Email;
             return Ok(new { users = await query.ToListAsync() });
         }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<List<string>>> GetAll(Guid id)
+        {
+            List<string> collaborators = await _dataContext.Collaborators.Where(c => c.ProjectId == id).Select(c => c.CollaboratorId).ToListAsync();
+            return Ok(new { collaborators });
+        }
     }
 }
