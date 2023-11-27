@@ -22,7 +22,7 @@ namespace NojectServer.Controllers
         }
 
         [HttpPost("", Name = "Create a Project")]
-        public async Task<ActionResult<Project>> Create(CreateProjectRequest request)
+        public async Task<ActionResult<Project>> Create(AddUpdateProjectRequest request)
         {
             GenerateColors(out string color, out string backgroundColor);
             Project project = new()

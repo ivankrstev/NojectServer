@@ -2,7 +2,7 @@
 
 namespace NojectServer.Models
 {
-    public class CreateProjectRequest
+    public class AddUpdateProjectRequest
     {
         [Required]
         [StringLength(50, ErrorMessage = "The Project Name must be a string with a maximum length of 50")]
