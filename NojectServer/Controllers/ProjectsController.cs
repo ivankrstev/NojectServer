@@ -22,7 +22,6 @@ namespace NojectServer.Controllers
         }
 
         [HttpPost("", Name = "Create a Project")]
-        [Authorize]
         public async Task<ActionResult<Project>> Create(CreateProjectRequest request)
         {
             GenerateColors(out string color, out string backgroundColor);
@@ -39,7 +38,6 @@ namespace NojectServer.Controllers
         }
 
         [HttpDelete("{id}", Name = "DeleteById")]
-        [Authorize]
         [ServiceFilter(typeof(VerifyProjectOwnership))]
         public async Task<IActionResult> Delete(Guid id)
         {
