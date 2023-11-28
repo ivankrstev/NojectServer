@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
 using NojectServer.Middlewares;
 using NojectServer.Models;
+using NojectServer.Models.Requests;
 using NojectServer.ResponseMessages;
 using System.Security.Claims;
 

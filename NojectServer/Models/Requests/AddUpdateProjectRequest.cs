@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace NojectServer.Models
+namespace NojectServer.Models.Requests
 {
     public class AddUpdateProjectRequest
     {
