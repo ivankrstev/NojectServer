@@ -37,6 +37,15 @@ namespace NojectServer.Controllers
             return Created(nameof(Project), project);
         }
 
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateProjectName(Guid id, AddUpdateProjectRequest request)
+        {
+            var project = await _dataContext.Projects.Where(p => p.Id == id).SingleOrDefaultAsync();
+            project!.Name = request.Name;
+            await _dataContext.SaveChangesAsync();
+            return Ok(new { message = $"Project with ID {id} successfully updated" });
+        }
+
         [HttpDelete("{id}", Name = "DeleteById")]
         [ServiceFilter(typeof(VerifyProjectOwnership))]
         public async Task<IActionResult> Delete(Guid id)
