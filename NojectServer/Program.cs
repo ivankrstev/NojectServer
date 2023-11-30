@@ -5,6 +5,7 @@ using Microsoft.OpenApi.Models;
 using NojectServer.Data;
 using NojectServer.Middlewares;
 using NojectServer.OptionsSetup;
+using NojectServer.Services.Email;
 
 namespace NojectServer
 {
@@ -16,6 +17,7 @@ namespace NojectServer
 
             // Add services to the container.
             builder.Services.AddScoped<VerifyProjectOwnership>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddDbContext<DataContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
             );
