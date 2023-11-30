@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using NojectServer.Data;
 using NojectServer.Models;
 using NojectServer.Models.Requests;
+using NojectServer.Services.Email;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -18,11 +19,13 @@ namespace NojectServer.Controllers
     {
         private readonly DataContext _dataContext;
         private readonly IConfiguration _config;
+        private readonly IEmailService _emailService;
 
-        public AuthController(DataContext dataContext, IConfiguration configuration)
+        public AuthController(DataContext dataContext, IConfiguration configuration, IEmailService emailService)
         {
             _dataContext = dataContext;
             _config = configuration;
+            _emailService = emailService;
         }
 
         [HttpPost("register", Name = "Register user")]
@@ -51,6 +54,7 @@ namespace NojectServer.Controllers
             };
             _dataContext.Add(user);
             await _dataContext.SaveChangesAsync();
+            _emailService.SendVerificationLink(user);
             return Created(nameof(User), new { email = user.Email });
         }
 
