@@ -71,11 +71,19 @@ namespace NojectServer.Controllers
             var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user == null)
             {
-                return BadRequest("User doesn't exist");
+                return Unauthorized(new
+                {
+                    error = "Invalid credentials",
+                    message = "The provided username and password combination is incorrect."
+                });
             }
             if (user.VerifiedAt == null)
             {
-                return BadRequest("Your email address has not been verified");
+                return Unauthorized(new
+                {
+                    error = "Email not verified",
+                    message = "Please verify your email before proceeding."
+                });
             }
             if (!VerifyPasswordHash(request.Password, user.Password, user.PasswordSalt))
             {
