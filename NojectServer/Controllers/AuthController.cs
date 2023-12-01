@@ -127,6 +127,32 @@ namespace NojectServer.Controllers
             return new { accessToken };
         }
 
+        [HttpGet("verify-email")]
+        public async Task<ActionResult<object>> VerifyEmail([FromQuery] string email, [FromQuery] string token)
+        {
+            var foundUser = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email == email && u.VerificationToken == token);
+            if (foundUser == null)
+            {
+                return BadRequest(new
+                {
+                    error = "Invalid Verification Information",
+                    message = "The verification token or email you provided is not valid"
+                });
+            }
+            else if (foundUser.VerifiedAt != null)
+            {
+                return BadRequest(new
+                {
+                    error = "Email Already Verified",
+                    message = "The email associated with this account has already been verified"
+                });
+            }
+            foundUser.VerifiedAt = DateTime.UtcNow;
+            _dataContext.Update(foundUser);
+            await _dataContext.SaveChangesAsync();
+            return Ok(new { message = "Email Successfully Verified" });
+        }
+
         private string CreateRefreshToken(User user)
         {
             List<Claim> claims = new() {
