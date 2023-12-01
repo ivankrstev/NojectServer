@@ -153,6 +153,25 @@ namespace NojectServer.Controllers
             return Ok(new { message = "Email Successfully Verified" });
         }
 
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult> ForgotPassword(EmailOnlyRequest request)
+        {
+            var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    error = "User not found",
+                    message = "User with the specified email was not found"
+                });
+            }
+            user.PasswordResetToken = GenerateRandomToken();
+            user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
+            await _dataContext.SaveChangesAsync();
+            _emailService.SendResetPasswordLink(user);
+            return Ok(new { message = "Reset link was sent to your email" });
+        }
+
         private string CreateRefreshToken(User user)
         {
             List<Claim> claims = new() {
