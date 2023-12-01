@@ -175,10 +175,10 @@ namespace NojectServer.Controllers
 
         private static string GenerateRandomToken()
         {
-            byte[] randomBytes = RandomNumberGenerator.GetBytes(100);
+            byte[] randomBytes = RandomNumberGenerator.GetBytes(128);
             string token = Convert.ToBase64String(randomBytes);
             token = token.Replace("+", "").Replace("/", "").Replace("=", "");
-            return token[..100];
+            return token[..128];
         }
     }
 }
