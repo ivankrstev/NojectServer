@@ -34,9 +34,13 @@ namespace NojectServer.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> Register(UserRegisterRequest request)
         {
-            if (_dataContext.Users.Any(u => u.Email == request.Email))
+            if (await _dataContext.Users.AnyAsync(u => u.Email == request.Email))
             {
-                return Conflict("User already exists");
+                return Conflict(new
+                {
+                    error = "User already exists",
+                    message = "A user with the provided email already exists"
+                });
             }
             var requestError = request.Validate();
             if (requestError != null)
