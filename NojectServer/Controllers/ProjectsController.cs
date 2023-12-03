@@ -38,6 +38,14 @@ namespace NojectServer.Controllers
             return Created(nameof(Project), project);
         }
 
+        [HttpGet("", Name = "Get all own projects")]
+        public async Task<ActionResult<List<Project>>> GetOwnProjects()
+        {
+            var user = User.FindFirst(ClaimTypes.Name)?.Value!;
+            List<Project> projects = await _dataContext.Projects.Where(p => p.CreatedBy == user).ToListAsync();
+            return Ok(new { projects });
+        }
+
         [HttpPut("{id}")]
         public async Task<ActionResult> UpdateProjectName(Guid id, AddUpdateProjectRequest request)
         {
