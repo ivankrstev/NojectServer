@@ -46,6 +46,21 @@ namespace NojectServer.Controllers
             return Ok(new { projects });
         }
 
+        [HttpGet("shared", Name = "Get all shared projects")]
+        public async Task<ActionResult<List<Project>>> GetSharedProjects()
+        {
+            var user = User.FindFirst(ClaimTypes.Name)?.Value!;
+            List<Project> sharedProjects = await _dataContext.Projects
+                .Join(
+                _dataContext.Collaborators,
+                p => p.Id,
+                c => c.ProjectId,
+                (p, c) => new { Project = p, Collaborator = c })
+                .Where(joinedResult => joinedResult.Collaborator.CollaboratorId == user)
+                .Select(joinedResult => joinedResult.Project).ToListAsync();
+            return Ok(new { sharedProjects });
+        }
+
         [HttpPut("{id}")]
         [ServiceFilter(typeof(VerifyProjectOwnership))]
         public async Task<ActionResult> UpdateProjectName(Guid id, AddUpdateProjectRequest request)
