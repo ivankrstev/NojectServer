@@ -47,6 +47,7 @@ namespace NojectServer.Controllers
         }
 
         [HttpPut("{id}")]
+        [ServiceFilter(typeof(VerifyProjectOwnership))]
         public async Task<ActionResult> UpdateProjectName(Guid id, AddUpdateProjectRequest request)
         {
             var project = await _dataContext.Projects.Where(p => p.Id == id).SingleOrDefaultAsync();
