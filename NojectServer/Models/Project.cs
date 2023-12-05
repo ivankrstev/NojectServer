@@ -35,5 +35,11 @@ namespace NojectServer.Models
         [Column("background_color", TypeName = "char(7)")]
         [Required]
         public string BackgroundColor { get; set; } = string.Empty;
+
+        [Column("first_task")]
+        public int? FirstTask { get; set; }
+
+        [JsonIgnore]
+        public virtual Task? Task { get; set; }
     }
 }
