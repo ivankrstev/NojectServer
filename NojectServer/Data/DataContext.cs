@@ -17,20 +17,15 @@ namespace NojectServer.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Add only Task.Id as foreign key to the Next task, instead of both primary keys
             modelBuilder.Entity<Models.Task>()
                 .HasOne(t => t.NextTask)
                 .WithMany()
-                .HasForeignKey(t => t.Next)
-                .HasPrincipalKey(t => t.Id)
-                .OnDelete(DeleteBehavior.SetNull);
+                .HasForeignKey(t => new { t.Next, t.ProjectId });
 
             modelBuilder.Entity<Project>()
                 .HasOne(p => p.Task)
                 .WithMany()
-                .HasForeignKey(p => p.FirstTask)
-                .HasPrincipalKey(t => t.Id)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(p => new { p.FirstTask, p.Id });
         }
     }
 }
