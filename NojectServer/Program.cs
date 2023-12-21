@@ -17,6 +17,7 @@ namespace NojectServer
 
             // Add services to the container.
             builder.Services.AddScoped<VerifyProjectOwnership>();
+            builder.Services.AddScoped<VerifyProjectAccess>();
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddDbContext<DataContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
