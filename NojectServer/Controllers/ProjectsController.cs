@@ -79,6 +79,26 @@ namespace NojectServer.Controllers
             return Ok(new { message = $"Project with ID {id} successfully deleted" });
         }
 
+        [HttpPut("{id}/share", Name = "ToggleProjectSharingOn")]
+        [ServiceFilter(typeof(VerifyProjectOwnership))]
+        public async Task<IActionResult> ToggleSharingOn(Guid id)
+        {
+            var project = await _dataContext.Projects.Where(p => p.Id == id).FirstOrDefaultAsync();
+            project!.IsPublic = true;
+            await _dataContext.SaveChangesAsync();
+            return Ok(new { message = "Project sharing is enabled" });
+        }
+
+        [HttpDelete("{id}/share", Name = "ToggleProjectSharingOff")]
+        [ServiceFilter(typeof(VerifyProjectOwnership))]
+        public async Task<IActionResult> ToggleSharingOff(Guid id)
+        {
+            var project = await _dataContext.Projects.Where(p => p.Id == id).FirstOrDefaultAsync();
+            project!.IsPublic = false;
+            await _dataContext.SaveChangesAsync();
+            return Ok(new { message = "Project sharing is disabled" });
+        }
+
         private static void GenerateColors(out string color, out string backgroundColor)
         {
             string letters = "0123456789ABCDEF";
