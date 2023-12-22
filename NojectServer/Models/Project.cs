@@ -41,5 +41,8 @@ namespace NojectServer.Models
 
         [JsonIgnore]
         public virtual Task? Task { get; set; }
+
+        [Column("is_public")]
+        public bool IsPublic { get; set; } = false;
     }
 }
