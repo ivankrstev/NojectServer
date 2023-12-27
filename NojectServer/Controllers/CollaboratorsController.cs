@@ -1,12 +1,15 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
+using NojectServer.Hubs;
 using NojectServer.Middlewares;
 using NojectServer.Models;
 using NojectServer.Models.Requests;
 using NojectServer.ResponseMessages;
+using StackExchange.Redis;
 using System.Security.Claims;
 
 namespace NojectServer.Controllers
@@ -19,10 +22,14 @@ namespace NojectServer.Controllers
     public class CollaboratorsController : ControllerBase
     {
         private readonly DataContext _dataContext;
+        private readonly IHubContext<SharedProjectsHub> _hubContext;
+        private readonly IDatabase _redisDb;
 
-        public CollaboratorsController(DataContext dataContext)
+        public CollaboratorsController(DataContext dataContext, IHubContext<SharedProjectsHub> hubContext, IConnectionMultiplexer connectionMultiplexer)
         {
             _dataContext = dataContext;
+            _hubContext = hubContext;
+            _redisDb = connectionMultiplexer.GetDatabase();
         }
 
         [HttpPost("{id}")]
@@ -59,6 +66,8 @@ namespace NojectServer.Controllers
             }
             await _dataContext.AddAsync(new Collaborator { ProjectId = id, CollaboratorId = UserEmailToAdd });
             await _dataContext.SaveChangesAsync();
+            List<string> conns = _redisDb.SetMembersAsync($"sharedprojects:{UserEmailToAdd}").GetAwaiter().GetResult().Select(rv => (string)rv!).ToList();
+            await _hubContext.Clients.Clients(conns).SendAsync("NewSharedProject", $"You were added as collabarotor to the project {id}");
             return Ok(new { message = $"Successfully added {UserEmailToAdd} as a collaborator" });
         }
 
@@ -100,6 +109,8 @@ namespace NojectServer.Controllers
                     message = "The specified collaborator doesn't exist"
                 });
             }
+            List<string> conns = _redisDb.SetMembersAsync($"sharedprojects:{userToRemove}").GetAwaiter().GetResult().Select(rv => (string)rv!).ToList();
+            await _hubContext.Clients.Clients(conns).SendAsync("RemovedSharedProject", $"You were removed as collaborator from the project {id}");
             return Ok(new { message = $"Successfully removed {userToRemove} as a collaborator" });
         }
     }
