@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using NojectServer.Data;
+using NojectServer.Hubs;
 using NojectServer.Middlewares;
 using NojectServer.OptionsSetup;
 using NojectServer.Services.Email;
+using StackExchange.Redis;
 
 namespace NojectServer
 {
@@ -14,11 +16,14 @@ namespace NojectServer
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            var connectionMultiplexer = ConnectionMultiplexer.Connect("localhost");
 
             // Add services to the container.
             builder.Services.AddScoped<VerifyProjectOwnership>();
             builder.Services.AddScoped<VerifyProjectAccess>();
             builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
+            builder.Services.AddSignalR();
             builder.Services.AddDbContext<DataContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
             );
@@ -84,6 +89,7 @@ namespace NojectServer
             app.UseAuthorization();
 
             app.MapControllers();
+            app.MapHub<SharedProjectsHub>("/SharedProjects");
 
             app.Run();
         }
