@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
 using NojectServer.Middlewares;
 using NojectServer.Models.Requests;
+using NojectServer.Utils;
 using System.Security.Claims;
 
 namespace NojectServer.Controllers
@@ -67,6 +68,15 @@ namespace NojectServer.Controllers
                 await transaction.RollbackAsync();
                 return StatusCode(500, ex.InnerException);
             }
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult> GetTasks(Guid id)
+        {
+            int? first_task = await _dataContext.Projects.Where(p => p.Id == id).Select(p => p.FirstTask).FirstOrDefaultAsync();
+            var unorderedTasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).ToArrayAsync();
+            List<Models.Task> tasks = TasksHandler.OrderTasks(unorderedTasks, first_task);
+            return Ok(new { tasks });
         }
     }
 }
