@@ -51,6 +51,7 @@ namespace NojectServer.Models
 
         [Column("project_id")]
         [ForeignKey("Project")]
+        [JsonIgnore]
         [Required]
         public Guid ProjectId { get; set; }
 

@@ -9,7 +9,7 @@ namespace NojectServer.Models
     {
         [Column("project_id")]
         [Key, Required]
-        public Guid Id { get; set; } = new Guid();
+        public Guid Id { get; set; } = Guid.NewGuid();
 
         [Column("name")]
         [Required]
