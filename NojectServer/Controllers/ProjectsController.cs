@@ -5,6 +5,7 @@ using NojectServer.Data;
 using NojectServer.Middlewares;
 using NojectServer.Models;
 using NojectServer.Models.Requests;
+using NojectServer.Utils;
 using System.Security.Claims;
 
 namespace NojectServer.Controllers
@@ -97,6 +98,23 @@ namespace NojectServer.Controllers
             project!.IsPublic = false;
             await _dataContext.SaveChangesAsync();
             return Ok(new { message = "Project sharing is disabled" });
+        }
+
+        [HttpGet("{id}/share", Name = "GetSharedProjectTasks")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetSharedProject(Guid id)
+        {
+            var project = await _dataContext.Projects.Where(p => p.Id == id && p.IsPublic).FirstOrDefaultAsync();
+            if (project == null)
+                return NotFound(new
+                {
+                    error = "Access denied",
+                    message = "You do not have permission to access this project"
+                });
+            int? first_task = await _dataContext.Projects.Where(p => p.Id == id).Select(p => p.FirstTask).FirstOrDefaultAsync();
+            var unorderedTasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).ToArrayAsync();
+            List<Models.Task> tasks = TasksHandler.OrderTasks(unorderedTasks, first_task);
+            return Ok(new { tasks });
         }
 
         private static void GenerateColors(out string color, out string backgroundColor)
