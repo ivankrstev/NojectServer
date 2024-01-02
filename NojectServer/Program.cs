@@ -30,6 +30,15 @@ namespace NojectServer
             builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddCors(options => options.AddPolicy("CorsPolicy",
+                builder =>
+                {
+                    builder.AllowAnyHeader()
+                           .AllowAnyMethod()
+                           .WithOrigins("http://localhost:3000")
+                           .AllowCredentials();
+                }));
+
             builder.Services.AddSwaggerGen(c =>
             {
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -62,8 +71,8 @@ namespace NojectServer
                         var errorMessages = actionContext.ModelState.Values
                             .SelectMany(v => v.Errors)
                             .Select(e => e.ErrorMessage)
-                            .ToList();
-                        return new BadRequestObjectResult(new { errors = errorMessages });
+                            .ToArray();
+                        return new BadRequestObjectResult(new { error = "Validation Failed", message = errorMessages[0] });
                     }
                     else
                     {
@@ -82,6 +91,7 @@ namespace NojectServer
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+            app.UseCors("CorsPolicy");
 
             app.UseHttpsRedirection();
 
