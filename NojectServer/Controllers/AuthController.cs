@@ -104,7 +104,9 @@ namespace NojectServer.Controllers
             Response.Cookies.Append("refresh_token", token, new CookieOptions
             {
                 HttpOnly = true,
-                Expires = DateTime.Now.AddDays(14)
+                Expires = DateTime.Now.AddDays(14),
+                Secure = true,
+                SameSite = SameSiteMode.None
             });
             return Ok(new
             {
