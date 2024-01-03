@@ -59,7 +59,7 @@ namespace NojectServer.Controllers
             _dataContext.Add(user);
             await _dataContext.SaveChangesAsync();
             _emailService.SendVerificationLink(user);
-            return Created(nameof(User), new { email = user.Email });
+            return Created(nameof(User), new { message = "Registration successful. Please check your email to verify your account" });
         }
 
         [ProducesResponseType(StatusCodes.Status200OK)]
