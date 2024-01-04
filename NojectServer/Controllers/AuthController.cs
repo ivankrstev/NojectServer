@@ -232,12 +232,12 @@ namespace NojectServer.Controllers
             return computedHash.SequenceEqual(passwordHash);
         }
 
-        private static string GenerateRandomToken()
+        private static string GenerateRandomToken(int length = 128)
         {
-            byte[] randomBytes = RandomNumberGenerator.GetBytes(128);
+            byte[] randomBytes = RandomNumberGenerator.GetBytes(length);
             string token = Convert.ToBase64String(randomBytes);
             token = token.Replace("+", "").Replace("/", "").Replace("=", "");
-            return token[..128];
+            return token[..length];
         }
     }
 }
