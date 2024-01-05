@@ -102,7 +102,7 @@ namespace NojectServer.Controllers
                     tfaToken = CreateTfaToken(user.Email)
                 });
             }
-            string token = CreateRefreshToken(user);
+            string token = CreateRefreshToken(user.Email);
             RefreshToken refreshToken = new()
             {
                 Email = user.Email,
@@ -119,7 +119,7 @@ namespace NojectServer.Controllers
             });
             return Ok(new
             {
-                access_token = CreateAccessToken(user)
+                access_token = CreateAccessToken(user.Email)
             });
         }
 
@@ -146,7 +146,7 @@ namespace NojectServer.Controllers
                     message = "Token expired"
                 });
             }
-            string accessToken = CreateAccessToken(new User { Email = user.Email });
+            string accessToken = CreateAccessToken(user.Email);
             return new { accessToken };
         }
 
@@ -211,10 +211,10 @@ namespace NojectServer.Controllers
             return jwt;
         }
 
-        private string CreateRefreshToken(User user)
+        private string CreateRefreshToken(string email)
         {
             List<Claim> claims = new() {
-                new Claim(ClaimTypes.Name, user.Email)
+                new Claim(ClaimTypes.Name, email)
             };
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWTSecrets:RefreshToken"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
@@ -227,10 +227,10 @@ namespace NojectServer.Controllers
             return jwt;
         }
 
-        private string CreateAccessToken(User user)
+        private string CreateAccessToken(string email)
         {
             List<Claim> claims = new() {
-                new Claim(ClaimTypes.Name, user.Email)
+                new Claim(ClaimTypes.Name, email)
             };
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWTSecrets:AccessToken"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
