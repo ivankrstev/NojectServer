@@ -186,6 +186,22 @@ namespace NojectServer.Controllers
             return Ok(new { message = "Reset link was sent to your email" });
         }
 
+        private string CreateTfaToken(string email)
+        {
+            List<Claim> claims = new() {
+                new Claim(ClaimTypes.Name, email)
+            };
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWTSecrets:TfaToken"]!));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+            var token = new JwtSecurityToken(
+                claims: claims,
+                signingCredentials: creds,
+                expires: DateTime.UtcNow.AddMinutes(2)
+                );
+            var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+            return jwt;
+        }
+
         private string CreateRefreshToken(User user)
         {
             List<Claim> claims = new() {
