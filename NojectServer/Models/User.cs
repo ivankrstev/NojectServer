@@ -33,5 +33,11 @@ namespace NojectServer.Models
 
         [Column("reset_token_expires")]
         public DateTime? ResetTokenExpires { get; set; }
+
+        [Column("tfa_enabled")]
+        public bool TwoFactorEnabled { get; set; } = false;
+
+        [Column("tfa_secret_key", TypeName = "char(32)")]
+        public string? TwoFactorSecretKey { get; set; }
     }
 }
