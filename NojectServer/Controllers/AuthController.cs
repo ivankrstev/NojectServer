@@ -93,6 +93,15 @@ namespace NojectServer.Controllers
                     message = "The provided username and password combination is incorrect."
                 });
             }
+            if (user.TwoFactorEnabled)
+            {
+                return Unauthorized(new
+                {
+                    error = "2FA required",
+                    message = "Two-factor authentication code is required to complete login",
+                    tfaToken = CreateTfaToken(user.Email)
+                });
+            }
             string token = CreateRefreshToken(user);
             RefreshToken refreshToken = new()
             {
