@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Google.Authenticator;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using NojectServer.Data;
@@ -121,6 +122,72 @@ namespace NojectServer.Controllers
             {
                 access_token = CreateAccessToken(user.Email)
             });
+        }
+
+        [HttpPost("tfa/verify", Name = "Verify the two-factor code to login")]
+        public async Task<ActionResult> VerifyTfa(UserVerifyTfaRequest request)
+        {
+            TokenValidationParameters validationParameters = new()
+            {
+                ValidateIssuerSigningKey = true,
+                ValidateLifetime = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWTSecrets:TfaToken"]!)),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ClockSkew = TimeSpan.Zero
+            };
+            try
+            {
+                var principal = new JwtSecurityTokenHandler().ValidateToken(request.JwtToken, validationParameters, out SecurityToken validatedToken);
+                string userEmail = principal.FindFirst(ClaimTypes.Name)?.Value!;
+                TwoFactorAuthenticator tfa = new();
+                var userSecretKey = await _dataContext.Users.Where(u => u.Email == userEmail).Select(u => u.TwoFactorSecretKey).FirstOrDefaultAsync();
+                // Check the TFA code(pin)
+                if (!tfa.ValidateTwoFactorPIN(userSecretKey, request.TwoFactorCode.Trim(), TimeSpan.FromSeconds(30)))
+                {
+                    return BadRequest(new
+                    {
+                        error = "Invalid security code",
+                        message = "The security code is invalid or expired"
+                    });
+                }
+                // Successful two factor authentication
+                string token = CreateRefreshToken(userEmail);
+                RefreshToken refreshToken = new()
+                {
+                    Email = userEmail,
+                    Token = token
+                };
+                _dataContext.Add(refreshToken);
+                await _dataContext.SaveChangesAsync();
+                Response.Cookies.Append("refresh_token", token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Expires = DateTime.Now.AddDays(14),
+                    Secure = true,
+                    SameSite = SameSiteMode.None
+                });
+                return Ok(new
+                {
+                    access_token = CreateAccessToken(userEmail)
+                });
+            }
+            catch (SecurityTokenExpiredException)
+            {
+                return BadRequest(new
+                {
+                    error = "Token expired",
+                    message = "Please, enter your login credentials again"
+                });
+            }
+            catch (SecurityTokenException)
+            {
+                return BadRequest(new
+                {
+                    error = "Token invalid",
+                    message = "An error occurred while decrypting the security token"
+                });
+            }
         }
 
         [ProducesResponseType(StatusCodes.Status200OK)]
