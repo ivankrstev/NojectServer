@@ -17,6 +17,7 @@ namespace NojectServer
         {
             var builder = WebApplication.CreateBuilder(args);
             var connectionMultiplexer = ConnectionMultiplexer.Connect("localhost");
+            connectionMultiplexer.GetDatabase().Execute("FLUSHDB");
 
             // Add services to the container.
             builder.Services.AddScoped<VerifyProjectOwnership>();
