@@ -66,8 +66,12 @@ namespace NojectServer.Controllers
             }
             await _dataContext.AddAsync(new Collaborator { ProjectId = id, CollaboratorId = UserEmailToAdd });
             await _dataContext.SaveChangesAsync();
+            var project = await _dataContext.Projects.Where(p => p.Id == id).FirstOrDefaultAsync();
             List<string> conns = _redisDb.SetMembersAsync($"sharedprojects:{UserEmailToAdd}").GetAwaiter().GetResult().Select(rv => (string)rv!).ToList();
-            await _hubContext.Clients.Clients(conns).SendAsync("NewSharedProject", $"You were added as collabarotor to the project {id}");
+            await _hubContext.Clients.Clients(conns).SendAsync(
+                "NewSharedProject",
+                new { message = $"You were added as collaborator to the project {id}" },
+                new { project });
             return Ok(new { message = $"Successfully added {UserEmailToAdd} as a collaborator" });
         }
 
