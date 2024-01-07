@@ -100,7 +100,7 @@ namespace NojectServer
             app.UseAuthorization();
 
             app.MapControllers();
-            app.MapHub<SharedProjectsHub>("/SharedProjects");
+            app.MapHub<SharedProjectsHub>("/SharedProjectsHub");
 
             app.Run();
         }

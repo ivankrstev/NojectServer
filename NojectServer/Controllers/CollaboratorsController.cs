@@ -114,7 +114,10 @@ namespace NojectServer.Controllers
                 });
             }
             List<string> conns = _redisDb.SetMembersAsync($"sharedprojects:{userToRemove}").GetAwaiter().GetResult().Select(rv => (string)rv!).ToList();
-            await _hubContext.Clients.Clients(conns).SendAsync("RemovedSharedProject", $"You were removed as collaborator from the project {id}");
+            await _hubContext.Clients.Clients(conns).SendAsync(
+                "RemovedSharedProject",
+                new { message = $"You were removed as collaborator from the project {id}" },
+                new { idToDelete = id });
             return Ok(new { message = $"Successfully removed {userToRemove} as a collaborator" });
         }
     }
