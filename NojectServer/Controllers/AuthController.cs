@@ -1,4 +1,5 @@
 ﻿using Google.Authenticator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -188,6 +189,32 @@ namespace NojectServer.Controllers
                     message = "An error occurred while decrypting the security token"
                 });
             }
+        }
+
+        [HttpPost("tfa/generate")]
+        [Authorize]
+        public async Task<ActionResult> Generate2FASetup()
+        {
+            string userEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var user = await _dataContext.Users.Where(u => u.Email == userEmail).FirstOrDefaultAsync();
+            if (user!.TwoFactorEnabled)
+            {
+                return BadRequest(new
+                {
+                    error = "2FA is enabled",
+                    message = "Two-factor authentication is already enabled"
+                });
+            }
+            string twoFactorSecretKey = GenerateRandomToken(32);
+            TwoFactorAuthenticator tfa = new();
+            SetupCode setupCode = tfa.GenerateSetupCode("Noject", userEmail, twoFactorSecretKey, false, 3);
+            user.TwoFactorSecretKey = twoFactorSecretKey;
+            await _dataContext.SaveChangesAsync();
+            return Ok(new
+            {
+                manualKey = setupCode.ManualEntryKey,
+                qrCodeImage = setupCode.QrCodeSetupImageUrl
+            });
         }
 
         [ProducesResponseType(StatusCodes.Status200OK)]
