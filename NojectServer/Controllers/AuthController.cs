@@ -217,6 +217,45 @@ namespace NojectServer.Controllers
             });
         }
 
+        [HttpPut("tfa/enable")]
+        [Authorize]
+        public async Task<ActionResult> Enable2FA(UserToggleTfaRequest request)
+        {
+            string userEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var user = await _dataContext.Users.Where(u => u.Email == userEmail).FirstOrDefaultAsync();
+            if (!user!.TwoFactorEnabled && user.TwoFactorSecretKey == null)
+            {
+                return BadRequest(new
+                {
+                    error = "2FA setup needed",
+                    message = "Please, generate two-factor authenticaton setup first"
+                });
+            }
+            if (user!.TwoFactorEnabled)
+            {
+                return BadRequest(new
+                {
+                    error = "2FA is enabled",
+                    message = "Two-factor authentication is already enabled"
+                });
+            }
+            TwoFactorAuthenticator tfa = new();
+            if (!tfa.ValidateTwoFactorPIN(user.TwoFactorSecretKey, request.TwoFactorCode.Trim(), TimeSpan.FromSeconds(30)))
+            {
+                return BadRequest(new
+                {
+                    error = "Invalid security code",
+                    message = "The security code is invalid or expired"
+                });
+            }
+            user.TwoFactorEnabled = true;
+            await _dataContext.SaveChangesAsync();
+            return Ok(new
+            {
+                message = "Two-factor authentication has been successfully enabled"
+            });
+        }
+
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [HttpPost("refresh-token", Name = "Refresh Token")]
