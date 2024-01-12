@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using NojectServer.Data;
@@ -24,7 +25,10 @@ namespace NojectServer
             builder.Services.AddScoped<VerifyProjectAccess>();
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
-            builder.Services.AddSignalR();
+            builder.Services.AddSignalR().AddHubOptions<TasksHub>(options =>
+            {
+                options.AddFilter<VerifyProjectAccessHub>();
+            });
             builder.Services.AddDbContext<DataContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
             );
