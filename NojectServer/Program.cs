@@ -101,6 +101,7 @@ namespace NojectServer
 
             app.MapControllers();
             app.MapHub<SharedProjectsHub>("/SharedProjectsHub");
+            app.MapHub<TasksHub>("/TasksHub");
 
             app.Run();
         }
