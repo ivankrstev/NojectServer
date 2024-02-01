@@ -11,16 +11,16 @@ namespace NojectServer.Hubs
             await Clients.Caller.SendAsync("ConnectionInit", "Successfully connected to tasks hub");
         }
 
-        public async Task ProjectJoin(string projectId)
+        public async Task<string> ProjectJoin(string projectId)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, projectId);
-            await Clients.Caller.SendAsync($"Joined the {projectId} project group");
+            return $"Joined the {projectId} project group";
         }
 
-        public async Task ProjectLeave(string projectId)
+        public async Task<string> ProjectLeave(string projectId)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, projectId);
-            await Clients.Caller.SendAsync($"Left the {projectId} project group");
+            return $"Left the {projectId} project group";
         }
     }
 }
