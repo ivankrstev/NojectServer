@@ -82,5 +82,25 @@ namespace NojectServer.Hubs
                 _semaphore.Release();
             }
         }
+
+        public async Task<object> ChangeValue(string projectId, int taskId, string newValue)
+        {
+            try
+            {
+                var user = Context.User?.Identity?.Name!;
+                Guid id = new(projectId);
+                var task = await _dataContext.Tasks
+                    .Where(t => t.ProjectId == id && t.Id == taskId).FirstOrDefaultAsync() ?? throw new HubException($"Error changing value of task {taskId} of project {projectId}");
+                task.Value = newValue;
+                task.LastModifiedOn = DateTime.UtcNow;
+                await _dataContext.SaveChangesAsync();
+                await Clients.OthersInGroup(projectId).SendAsync("ChangedValue", new { task = new { id = taskId, newValue } });
+                return new { task = new { id = taskId, newValue } };
+            }
+            catch (Exception)
+            {
+                throw new HubException($"Error changing value of task {taskId} of project {projectId}");
+            }
+        }
     }
 }
