@@ -1,19 +1,17 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
-using NojectServer.Hubs;
 using System.Security.Claims;
 
 namespace NojectServer.Middlewares
 {
     public class VerifyProjectAccessHub : IHubFilter
     {
-        private readonly IHubContext<TasksHub> _hubContext;
         private readonly DataContext _dataContext;
+        private readonly List<string> _methodsRequiringMiddleware = new() { "ProjectJoin", "AddTask" };
 
-        public VerifyProjectAccessHub(IHubContext<TasksHub> hubContext, DataContext dataContext)
+        public VerifyProjectAccessHub(DataContext dataContext)
         {
-            _hubContext = hubContext;
             _dataContext = dataContext;
         }
 
@@ -22,27 +20,23 @@ namespace NojectServer.Middlewares
             Func<HubInvocationContext, ValueTask<object?>> next)
         {
             // Before the method execution
-            if (invocationContext.HubMethodName == "ProjectJoin")
+            if (_methodsRequiringMiddleware.Contains(invocationContext.HubMethodName))
             {
                 var arguments = invocationContext.HubMethodArguments;
-                var projectIdArgument = arguments.First() as string;
-                var userConnId = invocationContext.Context.ConnectionId;
-                // Check if the user can access the project with id = firstArgument
-                if (!await CheckProjectAccess(projectIdArgument!, invocationContext.Context.User?.FindFirst(ClaimTypes.Name)?.Value!))
-                {
-                    await _hubContext.Clients.Clients(userConnId).SendAsync("AccessDenied", "You do not have permission to access this project");
-                    return Task.CompletedTask;
-                }
+                if (!Guid.TryParse(arguments[0] as string, out var projectId))
+                    throw new HubException("The provided project id is not a valid GUID");
+                // Check if the user can access the project with id = projectId
+                if (!await CheckProjectAccess(projectId, invocationContext.Context.User?.FindFirst(ClaimTypes.Name)?.Value!))
+                    throw new HubException("You do not have permission to access this project");
             }
             // Calling the actual hub method
             return await next(invocationContext);
         }
 
-        private async Task<bool> CheckProjectAccess(string projectId, string userEmail)
+        private async Task<bool> CheckProjectAccess(Guid projectId, string userEmail)
         {
-            bool isAllowed = await _dataContext.Projects.AnyAsync(p => p.Id == new Guid(projectId) && p.CreatedBy == userEmail) ||
-                await _dataContext.Collaborators.AnyAsync(c => c.ProjectId == new Guid(projectId) && c.CollaboratorId == userEmail);
-            return isAllowed;
+            return await _dataContext.Projects.AnyAsync(p => p.Id == projectId && p.CreatedBy == userEmail) ||
+                await _dataContext.Collaborators.AnyAsync(c => c.ProjectId == projectId && c.CollaboratorId == userEmail);
         }
     }
 }
