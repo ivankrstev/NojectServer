@@ -6,27 +6,20 @@
         {
             if (unorderedTasks.Length == 0 || first_task == null) return new List<Models.Task>();
             if (unorderedTasks.Length == 1) return new List<Models.Task>() { unorderedTasks[0] };
-            int? current_next = null;
+            var taskMap = new Dictionary<int, Models.Task>();
+            foreach (var task in unorderedTasks)
+                taskMap[task.Id] = task;
             List<Models.Task> orderedTasks = new();
-            for (int i = 0; i < unorderedTasks.Length; i++)
+            int? currentId = first_task;
+            while (currentId != null)
             {
-                int id = unorderedTasks[i].Id;
-                int? next = unorderedTasks[i].Next;
-                if (orderedTasks.Count == 0 && id == first_task)
+                if (taskMap.TryGetValue(currentId.Value, out var currentTask))
                 {
-                    orderedTasks.Add(unorderedTasks[i]);
-                    unorderedTasks = unorderedTasks.Where(x => x.Id != id).ToArray();
-                    current_next = next;
-                    i = -1;
+                    orderedTasks.Add(currentTask);
+                    currentId = currentTask.Next;
                 }
-                else if (current_next == id)
-                {
-                    orderedTasks.Add(unorderedTasks[i]);
-                    unorderedTasks = unorderedTasks.Where(x => x.Id != id).ToArray();
-                    current_next = next; // Set the pointer for the next element to be searched and added to the array
-                    i = -1;
-                    if (next == null) break;
-                }
+                else
+                    break;
             }
             return orderedTasks;
         }
