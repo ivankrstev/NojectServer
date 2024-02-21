@@ -61,11 +61,19 @@ namespace NojectServer.Hubs
                 project.FirstTask ??= task.Id;
                 // Change prev, next task pointers
                 task.Next = prevTask?.Next;
-                if (prevTask != null) prevTask!.Next = task.Id;
+                if (prevTask != null)
+                {
+                    prevTask.Next = task.Id;
+                    task.Level = prevTask.Level;
+                }
                 else
                 {
                     var lastTask = await _dataContext.Tasks.Where(t => t.Id != task.Id && t.Next == null && t.ProjectId == id).FirstOrDefaultAsync();
-                    if (lastTask != null) lastTask!.Next = task.Id;
+                    if (lastTask != null)
+                    {
+                        lastTask.Next = task.Id;
+                        task.Level = lastTask.Level;
+                    }
                 }
                 await _dataContext.SaveChangesAsync();
                 await transaction.CommitAsync();
