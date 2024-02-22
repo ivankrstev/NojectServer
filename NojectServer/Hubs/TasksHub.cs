@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using NojectServer.Data;
-using Task = System.Threading.Tasks.Task;
+using NojectServer.Middlewares;
 
 namespace NojectServer.Hubs
 {
@@ -11,16 +11,10 @@ namespace NojectServer.Hubs
     public class TasksHub : Hub
     {
         private readonly DataContext _dataContext;
-        private static readonly SemaphoreSlim _semaphore = new(1, 1);
 
         public TasksHub(DataContext dataContext)
         {
             _dataContext = dataContext;
-        }
-
-        public override async Task OnConnectedAsync()
-        {
-            await Clients.Caller.SendAsync("ConnectionInit", "Successfully connected to tasks hub");
         }
 
         public async Task<string> ProjectJoin(string projectId)
@@ -40,12 +34,10 @@ namespace NojectServer.Hubs
             IDbContextTransaction? transaction = null;
             try
             {
-                await _semaphore.WaitAsync();
                 var user = Context.User?.Identity?.Name!;
                 Guid id = new(projectId);
                 transaction = await _dataContext.Database.BeginTransactionAsync();
-                var project = await _dataContext.Projects
-                    .Where(p => p.Id == id).FirstAsync();
+                var project = await _dataContext.Projects.FromSqlInterpolated($"SELECT * FROM projects WHERE project_id = {id} FOR UPDATE").FirstAsync();
                 var maxId = await _dataContext.Tasks
                     .Where(t => t.ProjectId == id)
                     .Select(t => (int?)t.Id)
@@ -83,11 +75,11 @@ namespace NojectServer.Hubs
             catch (Exception)
             {
                 if (transaction != null) await transaction.RollbackAsync();
-                throw new HubException($"Error adding task to project {projectId}");
+                throw new HubException($"Error adding task to Project {projectId}");
             }
             finally
             {
-                _semaphore.Release();
+                VerifyProjectAccessHub._semaphore.Release();
             }
         }
 
