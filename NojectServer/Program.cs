@@ -8,7 +8,6 @@ using NojectServer.Hubs;
 using NojectServer.Middlewares;
 using NojectServer.OptionsSetup;
 using NojectServer.Services.Email;
-using StackExchange.Redis;
 
 namespace NojectServer
 {
@@ -17,14 +16,11 @@ namespace NojectServer
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-            var connectionMultiplexer = ConnectionMultiplexer.Connect("localhost");
-            connectionMultiplexer.GetDatabase().Execute("FLUSHDB");
 
             // Add services to the container.
             builder.Services.AddScoped<VerifyProjectOwnership>();
             builder.Services.AddScoped<VerifyProjectAccess>();
             builder.Services.AddScoped<IEmailService, EmailService>();
-            builder.Services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
             builder.Services.AddSignalR().AddHubOptions<TasksHub>(options =>
             {
                 options.AddFilter<VerifyProjectAccessHub>();
