@@ -92,6 +92,11 @@ namespace NojectServer
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+            if (app.Environment.IsProduction())
+            {
+                // Make sure the database is set up, on production start
+                app.Services.CreateScope().ServiceProvider.GetRequiredService<DataContext>().Database.Migrate();
+            }
             app.UseCors("CorsPolicy");
 
             app.UseHttpsRedirection();
