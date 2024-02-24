@@ -89,17 +89,21 @@ namespace NojectServer.Hubs
             {
                 var user = Context.User?.Identity?.Name!;
                 Guid id = new(projectId);
-                var task = await _dataContext.Tasks
-                    .Where(t => t.ProjectId == id && t.Id == taskId).FirstOrDefaultAsync() ?? throw new HubException($"Error changing value of task {taskId} of project {projectId}");
-                task.Value = newValue;
-                task.LastModifiedOn = DateTime.UtcNow;
+                var taskToUpdate = await _dataContext.Tasks
+                    .Where(t => t.ProjectId == id && t.Id == taskId).FirstOrDefaultAsync() ?? throw new HubException($"Task ID {taskId} of project {projectId} not found.");
+                taskToUpdate.Value = newValue;
+                taskToUpdate.LastModifiedOn = DateTime.UtcNow;
                 await _dataContext.SaveChangesAsync();
                 await Clients.OthersInGroup(projectId).SendAsync("ChangedValue", new { task = new { id = taskId, newValue } });
                 return new { task = new { id = taskId, newValue } };
             }
             catch (Exception)
             {
-                throw new HubException($"Error changing value of task {taskId} of project {projectId}");
+                throw new HubException($"Error changing value of Task {taskId} of Project {projectId}");
+            }
+            finally
+            {
+                VerifyProjectAccessHub._semaphore.Release();
             }
         }
     }
