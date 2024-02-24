@@ -32,7 +32,7 @@ namespace NojectServer
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
 
-            string[] origins = builder.Configuration["Cors:Originss"]?.Split(",") ?? Array.Empty<string>();
+            string[] origins = builder.Configuration["Cors:Origins"]?.Split(",") ?? Array.Empty<string>();
             builder.Services.AddCors(options => options.AddPolicy("CorsPolicy",
                 builder =>
                 {
@@ -85,7 +85,7 @@ namespace NojectServer
             });
 
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-.AddJwtBearer(options => new JwtBearerOptionsSetup().GetOptions(builder.Configuration, options));
+                .AddJwtBearer(options => new JwtBearerOptionsSetup().GetOptions(builder.Configuration, options));
 
             var app = builder.Build();
 

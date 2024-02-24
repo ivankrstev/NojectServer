@@ -97,6 +97,10 @@ namespace NojectServer.Hubs
                 await Clients.OthersInGroup(projectId).SendAsync("ChangedValue", new { task = new { id = taskId, newValue } });
                 return new { task = new { id = taskId, newValue } };
             }
+            catch (HubException)
+            {
+                throw;
+            }
             catch (Exception)
             {
                 throw new HubException($"Error changing value of Task {taskId} of Project {projectId}");
