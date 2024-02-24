@@ -31,12 +31,14 @@ namespace NojectServer
             builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
+
+            string[] origins = builder.Configuration["Cors:Originss"]?.Split(",") ?? Array.Empty<string>();
             builder.Services.AddCors(options => options.AddPolicy("CorsPolicy",
                 builder =>
                 {
                     builder.AllowAnyHeader()
                            .AllowAnyMethod()
-                           .WithOrigins("http://localhost:3000")
+                           .WithOrigins(origins)
                            .AllowCredentials();
                 }));
 
