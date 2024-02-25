@@ -1,23 +1,44 @@
-name: .NET Core CI/CD
+name: Deploy .NET Core API to DigitalOcean
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-    - name: Deploy to DigitalOcean Droplet
+    - uses: actions/checkout@v2
+
+    - name: Set up .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0'
+
+    - name: Build with dotnet
+      run: dotnet build --configuration Release
+
+    - name: Publish
+      run: dotnet publish -c Release -o published
+
+    - name: Copy files to Droplet
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.DROPLET_IP }}
+        username: ${{ secrets.DROPLET_USER }}
+        key: ${{ secrets.DROPLET_SSH_KEY }}
+        port: 22
+        source: "published/*"
+        target: "/var/www/NojectServer"
+
+    - name: Restart Web API
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.SSH_HOST }}
-        username: ${{ secrets.SSH_USERNAME }}
-        key: ${{ secrets.SSH_KEY }}
-      
+        host: ${{ secrets.DROPLET_IP }}
+        username: ${{ secrets.DROPLET_USER }}
+        key: ${{ secrets.DROPLET_SSH_KEY }}
+        port: 22
         script: |
-          mkdir noject
-          cd noject
-          git clone git@github.com:ivankrstev/NojectServer.git
-          echo "Cloned the NojectServer repo"
-        
+          cd /var/www/NojectServer
+          dotnet NojectServer.dll
