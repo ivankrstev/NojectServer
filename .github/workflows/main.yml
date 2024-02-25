@@ -20,7 +20,7 @@ jobs:
       run: dotnet build --configuration Release
 
     - name: Publish
-      run: dotnet publish -c Release -o published
+      run: dotnet publish -c Release -o ./publish
 
     - name: Copy files to Droplet
       uses: appleboy/scp-action@master
@@ -29,7 +29,7 @@ jobs:
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_KEY }}
         port: 22
-        source: "published/*"
+        source: "publish/*"
         target: "/var/www/NojectServer"
 
     - name: Restart Web API
@@ -40,5 +40,5 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
-          cd /var/www/NojectServer
+          cd /var/www/NojectServer/publish
           dotnet NojectServer.dll
