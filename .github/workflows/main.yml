@@ -7,28 +7,19 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: '6.0'
-    
-    - name: Restore dependencies
-      run: dotnet restore
-      
-    - name: Build
-      run: dotnet build --configuration Release
-      
-    - name: Run
-      run: dotnet NojectServer.dll
-    
     - name: Deploy to DigitalOcean Droplet
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_KEY }}
+      
+        script: |
+          mkdir noject
+          cd noject
+          git clone git@github.com:ivankrstev/NojectServer.git
+          echo "Cloned the NojectServer repo"
+        
