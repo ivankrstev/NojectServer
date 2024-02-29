@@ -110,5 +110,54 @@ namespace NojectServer.Hubs
                 VerifyProjectAccessHub._semaphore.Release();
             }
         }
+
+        public async Task DeleteTask(string projectId, int taskId)
+        {
+            IDbContextTransaction? transaction = null;
+            try
+            {
+                Guid id = new(projectId);
+                transaction = await _dataContext.Database.BeginTransactionAsync();
+                var project = await _dataContext.Projects.FromSqlInterpolated($"SELECT * FROM projects WHERE project_id = {id} FOR UPDATE").FirstAsync();
+                var taskToDelete = await _dataContext.Tasks
+                    .Where(t => t.ProjectId == id && t.Id == taskId).FirstOrDefaultAsync() ?? throw new HubException($"Task ID {taskId} of project {projectId} not found.");
+                var unorderedTasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).ToArrayAsync();
+                Models.Task[] tasks = TasksHandler.OrderTasks(unorderedTasks, project.FirstTask).ToArray();
+                // Find the target task index in the sorted tasks array
+                int targetTaskIndex = Array.FindIndex(tasks, item => item.Id == taskId);
+                int targetTaskLevel = tasks[targetTaskIndex].Level;
+                // Decrease the levels of all subtasks of the task to be deleted by 1, if there are any
+                while (targetTaskIndex != tasks.Length - 1 && targetTaskLevel < tasks[++targetTaskIndex].Level)
+                    tasks[targetTaskIndex].Level--;
+                // Adjust the pointers
+                if (taskId == project.FirstTask)
+                    project.FirstTask = taskToDelete.Next; // Change the first task pointer, if the task to be deleted is the first task
+                else
+                {
+                    var prevTask = await _dataContext.Tasks.Where(t => t.ProjectId == id && t.Next == taskId).FirstOrDefaultAsync();
+                    if (prevTask != null)
+                        prevTask.Next = taskToDelete.Next; // Change the next task pointer of the previous task
+                }
+                // Finally, delete the task
+                _dataContext.Remove(taskToDelete);
+                await _dataContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                await Clients.OthersInGroup(projectId).SendAsync("DeletedTask", new { task = new { id = taskId } });
+            }
+            catch (HubException)
+            {
+                if (transaction != null) await transaction.RollbackAsync();
+                throw;
+            }
+            catch (Exception)
+            {
+                if (transaction != null) await transaction.RollbackAsync();
+                throw new HubException($"Error deleting Task {taskId} of Project {projectId}");
+            }
+            finally
+            {
+                VerifyProjectAccessHub._semaphore.Release();
+            }
+        }
     }
 }
