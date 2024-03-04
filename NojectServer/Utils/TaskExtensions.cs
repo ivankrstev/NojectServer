@@ -23,5 +23,29 @@
                 currentIndex++; // Increment the position for the next task
             }
         }
+
+        public static int GetTaskParentIndex(this Models.Task[] orderedTasks, int targetTaskIndex)
+        {
+            if (orderedTasks[targetTaskIndex].Level == 0)
+                return -1;
+            for (int i = targetTaskIndex - 1; i >= 0; i--)
+                if (orderedTasks[i].Level < orderedTasks[targetTaskIndex].Level)
+                    return i;
+            return -1;
+        }
+
+        public static Models.Task[] GetTaskChildren(this Models.Task[] orderedTasks, int parentTaskIndex)
+        {
+            List<Models.Task> childTasks = new();
+            int parentTaskLevel = orderedTasks[parentTaskIndex].Level;
+            int currentTaskIndex = parentTaskIndex + 1;
+            while (currentTaskIndex != orderedTasks.Length - 1 && parentTaskLevel != orderedTasks[currentTaskIndex].Level)
+            {
+                if (orderedTasks[parentTaskIndex].Level + 1 == orderedTasks[currentTaskIndex].Level)
+                    childTasks.Add(orderedTasks[currentTaskIndex]);
+                currentTaskIndex++;
+            }
+            return childTasks.ToArray();
+        }
     }
 }
