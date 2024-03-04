@@ -74,8 +74,8 @@ namespace NojectServer.Controllers
         public async Task<ActionResult> GetTasks(Guid id)
         {
             int? first_task = await _dataContext.Projects.Where(p => p.Id == id).Select(p => p.FirstTask).FirstOrDefaultAsync();
-            var unorderedTasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).ToArrayAsync();
-            List<Models.Task> tasks = TasksHandler.OrderTasks(unorderedTasks, first_task);
+            var tasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).OrderBy(t => t.CreatedOn).ToArrayAsync();
+            tasks.OrderTasks(first_task);
             return Ok(new { tasks });
         }
     }

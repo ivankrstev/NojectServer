@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using NojectServer.Data;
 using NojectServer.Middlewares;
+using NojectServer.Utils;
 
 namespace NojectServer.Hubs
 {
@@ -121,8 +122,8 @@ namespace NojectServer.Hubs
                 var project = await _dataContext.Projects.FromSqlInterpolated($"SELECT * FROM projects WHERE project_id = {id} FOR UPDATE").FirstAsync();
                 var taskToDelete = await _dataContext.Tasks
                     .Where(t => t.ProjectId == id && t.Id == taskId).FirstOrDefaultAsync() ?? throw new HubException($"Task ID {taskId} of project {projectId} not found.");
-                var unorderedTasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).ToArrayAsync();
-                Models.Task[] tasks = TasksHandler.OrderTasks(unorderedTasks, project.FirstTask).ToArray();
+                var tasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).ToArrayAsync();
+                tasks.OrderTasks(project.FirstTask);
                 // Find the target task index in the sorted tasks array
                 int targetTaskIndex = Array.FindIndex(tasks, item => item.Id == taskId);
                 int targetTaskLevel = tasks[targetTaskIndex].Level;
