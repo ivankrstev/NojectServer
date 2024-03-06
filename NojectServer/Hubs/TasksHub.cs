@@ -39,11 +39,11 @@ namespace NojectServer.Hubs
                 Guid id = new(projectId);
                 transaction = await _dataContext.Database.BeginTransactionAsync();
                 var project = await _dataContext.Projects.FromSqlInterpolated($"SELECT * FROM projects WHERE project_id = {id} FOR UPDATE").FirstAsync();
-                var maxId = await _dataContext.Tasks
-                    .Where(t => t.ProjectId == id)
-                    .Select(t => (int?)t.Id)
-                    .MaxAsync() ?? 0;
-                var prevTask = prevTaskId != null ? await _dataContext.Tasks.Where(t => t.Id == prevTaskId && t.ProjectId == id).FirstOrDefaultAsync() : null;
+                var tasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).ToArrayAsync();
+                tasks.OrderTasks(project.FirstTask);
+                var maxId = tasks.Select(t => (int?)t.Id).Max() ?? 0; // Check the sorted tasks array for the maximum task id
+                var prevTaskIndex = Array.FindIndex(tasks, t => t.Id == prevTaskId); // Find the index of the previous task in the sorted tasks array
+                var targetForNewTask = prevTaskId != null ? tasks.GetLastSubtaskOrDefaultTask(prevTaskIndex) : null; // Find the last subtask of the previous task, if there is any
                 Models.Task task = new()
                 {
                     Id = maxId + 1,
@@ -51,13 +51,24 @@ namespace NojectServer.Hubs
                     CreatedBy = user
                 };
                 await _dataContext.AddAsync(task);
-                project.FirstTask ??= task.Id;
-                // Change prev, next task pointers
-                task.Next = prevTask?.Next;
-                if (prevTask != null)
+                project.FirstTask ??= task.Id; // If no first task, set the new task as the first task
+                if (targetForNewTask != null)
                 {
-                    prevTask.Next = task.Id;
-                    task.Level = prevTask.Level;
+                    // Change prev, next task pointers
+                    task.Next = targetForNewTask.Next;
+                    task.Level = tasks[prevTaskIndex].Level;
+                    targetForNewTask.Next = task.Id;
+                    // Set the parent task to be incomplete, due to adding a new incomplete subtask.
+                    int parentTaskIndex = tasks.GetTaskParentIndex(prevTaskIndex);
+                    while (parentTaskIndex != -1)
+                    {
+                        var parentTask = tasks[parentTaskIndex]; // Get the parent task
+                        if (!parentTask.Completed)
+                            break; // If the parent task is already uncompleted, stop
+                        parentTask.Completed = false;
+                        // Find and check the parent of the parent task, and so on
+                        parentTaskIndex = tasks.GetTaskParentIndex(parentTaskIndex);
+                    }
                 }
                 else
                 {
@@ -67,6 +78,8 @@ namespace NojectServer.Hubs
                         lastTask.Next = task.Id;
                         task.Level = lastTask.Level;
                     }
+                    // Adjust the completness of the parent task, if there is any. Or delete the
+                    // adding task with null prevTask
                 }
                 await _dataContext.SaveChangesAsync();
                 await transaction.CommitAsync();
