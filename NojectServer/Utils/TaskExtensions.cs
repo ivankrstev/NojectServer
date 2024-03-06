@@ -47,5 +47,14 @@
             }
             return childTasks.ToArray();
         }
+
+        public static Models.Task GetLastSubtaskOrDefaultTask(this Models.Task[] orderedTasks, int targetTaskIndex)
+        {
+            int targetTaskLevel = orderedTasks[targetTaskIndex].Level;
+            Models.Task? foundTask = orderedTasks[targetTaskIndex];
+            while (targetTaskIndex != orderedTasks.Length - 1 && targetTaskLevel < orderedTasks[++targetTaskIndex].Level)
+                foundTask = orderedTasks[targetTaskIndex];
+            return foundTask;
+        }
     }
 }
