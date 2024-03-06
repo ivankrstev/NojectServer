@@ -174,6 +174,61 @@ namespace NojectServer.Hubs
             }
         }
 
+        public async Task CompleteTask(string projectId, int taskId)
+        {
+            IDbContextTransaction? transaction = null;
+            try
+            {
+                Guid id = new(projectId);
+                transaction = await _dataContext.Database.BeginTransactionAsync();
+                var project = await _dataContext.Projects.FromSqlInterpolated($"SELECT * FROM projects WHERE project_id = {id} FOR UPDATE").FirstAsync();
+                var tasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).ToArrayAsync();
+                tasks.OrderTasks(project.FirstTask); // Sort the tasks
+                // Find the target task index in the sorted tasks array
+                var targetTaskIndex = Array.FindIndex(tasks, task => task.Id == taskId);
+                if (targetTaskIndex == -1)
+                    throw new HubException($"Task ID {taskId} of project {projectId} not found.");
+                var targetTask = tasks[targetTaskIndex];
+                int targetTaskLevel = tasks[targetTaskIndex].Level;
+                // Complete all subtasks of the target task
+                int nextTaskIndex = targetTaskIndex;
+                while (nextTaskIndex != tasks.Length - 1 && targetTaskLevel < tasks[++nextTaskIndex].Level)
+                    tasks[nextTaskIndex].Completed = true;
+                tasks[targetTaskIndex].Completed = true; // Complete the target task
+                // Check if the parent task of the target task can be completed, recursively check
+                // its parent, and so on
+                int parentTaskIndex = tasks.GetTaskParentIndex(targetTaskIndex);
+                while (parentTaskIndex != -1)
+                {
+                    // Get the parent task and its children
+                    var parentTask = tasks[parentTaskIndex];
+                    var childrenOfParentTask = tasks.GetTaskChildren(parentTaskIndex);
+                    // If all children of the parent task are completed, complete the parent task
+                    if (childrenOfParentTask.All(task => task.Completed == true))
+                        parentTask.Completed = true;
+                    else break;
+                    parentTaskIndex = tasks.GetTaskParentIndex(parentTaskIndex); // Find the parent of the parent task
+                }
+                await _dataContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                await Clients.OthersInGroup(projectId).SendAsync("CompletedTask", new { id = taskId });
+            }
+            catch (HubException)
+            {
+                if (transaction != null) await transaction.RollbackAsync();
+                throw;
+            }
+            catch (Exception)
+            {
+                if (transaction != null) await transaction.RollbackAsync();
+                throw new HubException($"Error completing task {taskId} of Project {projectId}");
+            }
+            finally
+            {
+                VerifyProjectAccessHub._semaphore.Release();
+            }
+        }
+
         public async Task UncompleteTask(string projectId, int taskId)
         {
             IDbContextTransaction? transaction = null;
