@@ -111,9 +111,9 @@ namespace NojectServer.Controllers
                     error = "Access denied",
                     message = "You do not have permission to access this project"
                 });
-            int? first_task = await _dataContext.Projects.Where(p => p.Id == id).Select(p => p.FirstTask).FirstOrDefaultAsync();
-            var unorderedTasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).ToArrayAsync();
-            List<Models.Task> tasks = TasksHandler.OrderTasks(unorderedTasks, first_task);
+            int? first_task = await _dataContext.Projects.Where(p => p.Id == id).AsNoTracking().Select(p => p.FirstTask).FirstOrDefaultAsync();
+            var tasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).AsNoTrackingWithIdentityResolution().ToArrayAsync();
+            tasks.OrderTasks(first_task);
             return Ok(new { tasks });
         }
 
