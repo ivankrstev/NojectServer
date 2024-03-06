@@ -173,5 +173,57 @@ namespace NojectServer.Hubs
                 VerifyProjectAccessHub._semaphore.Release();
             }
         }
+
+        public async Task UncompleteTask(string projectId, int taskId)
+        {
+            IDbContextTransaction? transaction = null;
+            try
+            {
+                Guid id = new(projectId);
+                transaction = await _dataContext.Database.BeginTransactionAsync();
+                var project = await _dataContext.Projects.FromSqlInterpolated($"SELECT * FROM projects WHERE project_id = {id} FOR UPDATE").FirstAsync();
+                var tasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).ToArrayAsync();
+                tasks.OrderTasks(project.FirstTask); // Sort the tasks
+                // Find the target task index in the sorted tasks array
+                var targetTaskIndex = Array.FindIndex(tasks, task => task.Id == taskId);
+                if (targetTaskIndex == -1)
+                    throw new HubException($"Task ID {taskId} of project {projectId} not found.");
+                var targetTask = tasks[targetTaskIndex];
+                int targetTaskLevel = tasks[targetTaskIndex].Level;
+                // Uncomplete all subtasks of the target task
+                int nextTaskIndex = targetTaskIndex;
+                while (nextTaskIndex != tasks.Length - 1 && targetTaskLevel < tasks[++nextTaskIndex].Level)
+                    tasks[nextTaskIndex].Completed = false;
+                tasks[targetTaskIndex].Completed = false; // Uncomplete the target task
+                // Check if the parent task of the target task was completed, recursively check its
+                // parent, and so on
+                int parentTaskIndex = tasks.GetTaskParentIndex(targetTaskIndex);
+                while (parentTaskIndex != -1)
+                {
+                    var parentTask = tasks[parentTaskIndex]; // Get the parent task
+                    if (!parentTask.Completed)
+                        break; // If the parent task is already uncompleted, stop
+                    parentTask.Completed = false;
+                    parentTaskIndex = tasks.GetTaskParentIndex(parentTaskIndex); // Find the parent of the parent task
+                }
+                await _dataContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                await Clients.OthersInGroup(projectId).SendAsync("UncompletedTask", new { id = taskId });
+            }
+            catch (HubException)
+            {
+                if (transaction != null) await transaction.RollbackAsync();
+                throw;
+            }
+            catch (Exception)
+            {
+                if (transaction != null) await transaction.RollbackAsync();
+                throw new HubException($"Error undo completing task {taskId} of Project {projectId}");
+            }
+            finally
+            {
+                VerifyProjectAccessHub._semaphore.Release();
+            }
+        }
     }
 }
