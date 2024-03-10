@@ -8,7 +8,7 @@ namespace NojectServer.Middlewares
     public class VerifyProjectAccessHub : IHubFilter
     {
         private readonly DataContext _dataContext;
-        private readonly List<string> _methodsRequiringMiddleware = new() { "ProjectJoin", "AddTask", "ChangeValue", "DeleteTask", "CompleteTask", "UncompleteTask" };
+        private readonly List<string> _methodsRequiringMiddleware = new() { "ProjectJoin", "AddTask", "ChangeValue", "DeleteTask", "CompleteTask", "UncompleteTask", "IncreaseLevel" };
         public static readonly SemaphoreSlim _semaphore = new(90, 90); // Count of concurrent users that can use task operations, so requests can wait if max pool is on limit
 
         public VerifyProjectAccessHub(DataContext dataContext)
