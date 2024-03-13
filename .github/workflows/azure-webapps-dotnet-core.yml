@@ -24,17 +24,6 @@ env:
   AZURE_RESOURCE_GROUP_NAME: g_noject_server
   AZURE_WEBAPP_PACKAGE_PATH: '.'     # set this to the path to your web app project, defaults to the repository root
   DOTNET_VERSION: 6.x                # set this to the .NET Core version to use
-  JWTSecrets__TfaToken: ${{ secrets.JWTSecrets__TfaToken }}
-  JWTSecrets__RefreshToken: ${{ secrets.JWTSecrets__RefreshToken }}
-  JWTSecrets__AccessToken: ${{ secrets.JWTSecrets__AccessToken }}
-  JWTSecrets__Issuer: ${{ secrets.JWTSecrets__Issuer }}
-  JWTSecrets__Audience: ${{ secrets.JWTSecrets__Audience }}
-  EmailUsername: ${{ secrets.EmailUsername }}
-  EmailPassword: ${{ secrets.EmailPassword }}
-  EmailHost: ${{ secrets.EmailHost }}
-  EmailFrom: ${{ secrets.EmailFrom }}
-  EmailClientUrl: ${{ secrets.EmailClientUrl }}
-  ConnectionStrings__DBConnection: ${{ secrets.ConnectionStrings__DBConnection }}
 
 on:
   push:
@@ -90,21 +79,6 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: .net-app
-
-      - name: Set environment variables for runtime
-        run: |
-          az webapp config appsettings set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP_NAME }} --settings \
-            "JWTSecrets__TfaToken=${{ secrets.JWTSecrets__TfaToken }}" \
-            "JWTSecrets__RefreshToken=${{ secrets.JWTSecrets__RefreshToken }}" \
-            "JWTSecrets__AccessToken=${{ secrets.JWTSecrets__AccessToken }}" \
-            "JWTSecrets__Issuer=${{ secrets.JWTSecrets__Issuer }}" \
-            "JWTSecrets__Audience=${{ secrets.JWTSecrets__Audience }}" \
-            "EmailUsername=${{ secrets.EmailUsername }}" \
-            "EmailPassword=${{ secrets.EmailPassword }}" \
-            "EmailHost=${{ secrets.EmailHost }}" \
-            "EmailFrom=${{ secrets.EmailFrom }}" \
-            "EmailClientUrl=${{ secrets.EmailClientUrl }}" \
-            "ConnectionStrings__DBConnection=${{ secrets.ConnectionStrings__DBConnection }}"
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
