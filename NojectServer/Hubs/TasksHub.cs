@@ -229,6 +229,52 @@ namespace NojectServer.Hubs
             }
         }
 
+        public async Task DecreaseLevel(string projectId, int taskId)
+        {
+            IDbContextTransaction? transaction = null;
+            try
+            {
+                Guid id = new(projectId);
+                transaction = await _dataContext.Database.BeginTransactionAsync();
+                var project = await _dataContext.Projects.FromSqlInterpolated($"SELECT * FROM projects WHERE project_id = {id} FOR UPDATE").FirstAsync();
+                var tasks = await _dataContext.Tasks.Where(t => t.ProjectId == id).ToArrayAsync();
+                tasks.OrderTasks(project.FirstTask); // Sort the tasks
+                // Find the target task index in the sorted tasks array
+                int targetTaskIndex = Array.FindIndex(tasks, item => item.Id == taskId);
+                int targetTaskLevel = tasks[targetTaskIndex].Level;
+                if (targetTaskLevel == 0)
+                    throw new HubException($"Minimum level reached for Task {taskId} of Project {projectId}");
+                int oldParentTaskIndex = tasks.GetTaskParentIndex(targetTaskIndex); // Find the old parent task index of the target task(before level decreasing)
+                int nextTaskIndex = targetTaskIndex;
+                // Decrease the levels of all subtasks of the target task
+                while (nextTaskIndex != tasks.Length - 1 && targetTaskLevel < tasks[++nextTaskIndex].Level)
+                    tasks[nextTaskIndex].Level--;
+                // Decrease level of the target task
+                tasks[targetTaskIndex].Level--;
+                var childrenOfParentTask = tasks.GetTaskChildren(oldParentTaskIndex); // Get the children of the old parent task
+                // If all children of the parent task are completed, complete the parent task
+                if (childrenOfParentTask.Length != 0 && childrenOfParentTask.All(task => task.Completed == true))
+                    tasks[oldParentTaskIndex].Completed = true;
+                await _dataContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                await Clients.OthersInGroup(projectId.ToString()).SendAsync("DecreasedLevel", new { id = taskId });
+            }
+            catch (HubException)
+            {
+                if (transaction != null) await transaction.RollbackAsync();
+                throw;
+            }
+            catch (Exception)
+            {
+                if (transaction != null) await transaction.RollbackAsync();
+                throw new HubException($"Error decreasing level of task {taskId} of Project {projectId}");
+            }
+            finally
+            {
+                VerifyProjectAccessHub._semaphore.Release();
+            }
+        }
+
         public async Task CompleteTask(string projectId, int taskId)
         {
             IDbContextTransaction? transaction = null;
