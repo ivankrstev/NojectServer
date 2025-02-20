@@ -1,7 +1,7 @@
-﻿using MimeKit;
-using NojectServer.Models;
+﻿using MailKit.Net.Smtp;
 using MailKit.Security;
-using MailKit.Net.Smtp;
+using MimeKit;
+using NojectServer.Models;
 
 namespace NojectServer.Services.Email
 {
