@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
-namespace NojectServer.Models.Requests
+namespace NojectServer.Models.Requests;
+
+public class AddCollaboratorRequest
 {
-    public class AddCollaboratorRequest
-    {
-        [FromBody, Required]
-        public string UserId { get; set; } = string.Empty;
-    }
+    [FromBody]
+    [Required]
+    public string UserId { get; set; } = string.Empty;
 }

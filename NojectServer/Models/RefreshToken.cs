@@ -2,25 +2,24 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace NojectServer.Models
+namespace NojectServer.Models;
+
+[Table("refresh_tokens")]
+[PrimaryKey(nameof(Email), nameof(Token))]
+public class RefreshToken
 {
-    [Table("refresh_tokens")]
-    [PrimaryKey(nameof(Email), nameof(Token))]
-    public class RefreshToken
-    {
-        [Column("user_id")]
-        [ForeignKey("User")]
-        [Required]
-        [StringLength(62)]
-        public string Email { get; set; } = string.Empty;
+    [Column("user_id")]
+    [ForeignKey("User")]
+    [Required]
+    [StringLength(62)]
+    public string Email { get; set; } = string.Empty;
 
-        public virtual User? User { get; set; }
+    public virtual User? User { get; set; }
 
-        [Column("token")]
-        [Required]
-        public string Token { get; set; } = string.Empty;
+    [Column("token")]
+    [Required]
+    public string Token { get; set; } = string.Empty;
 
-        [Column("valid_until")]
-        public DateTime ExpireDate { get; set; } = DateTime.UtcNow.AddDays(14);
-    }
+    [Column("valid_until")]
+    public DateTime ExpireDate { get; set; } = DateTime.UtcNow.AddDays(14);
 }

@@ -1,45 +1,82 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Text.RegularExpressions;
+using static System.Text.RegularExpressions.Regex;
 
-namespace NojectServer.Models
+namespace NojectServer.Models.Requests;
+
+public class UserRegisterRequest
 {
-    public class UserRegisterRequest
+    [Required]
+    [MaxLength(62)]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(50)]
+    public string FullName { get; set; } = string.Empty;
+
+    [Required]
+    [MinLength(8, ErrorMessage = "Password must be at least 8 characters long")]
+    public string Password { get; set; } = string.Empty;
+
+    [Required]
+    public string ConfirmPassword { get; set; } = string.Empty;
+
+    public ValidationError? Validate()
     {
-        [Required, EmailAddress, MaxLength(62)]
-        public string Email { get; set; } = string.Empty;
-
-        [Required, MaxLength(50)]
-        public string FullName { get; set; } = string.Empty;
-
-        [Required, MinLength(8, ErrorMessage = "Password must be at least 8 characters long")]
-        public string Password { get; set; } = string.Empty;
-
-        [Required]
-        public string ConfirmPassword { get; set; } = string.Empty;
-
-        public object? Validate()
+        if (!IsMatch(Password, "(?=.*[A-Z])") && !IsMatch(Password, "(?=.*[a-z])") &&
+            !IsMatch(Password, "(?=.*\\d)"))
         {
-            if (!Regex.IsMatch(Password, "(?=.*[A-Z])") && !Regex.IsMatch(Password, "(?=.*[a-z])") && !Regex.IsMatch(Password, "(?=.*\\d)"))
-                return (new { error = "Password Requirements Not Met", message = "Password must include at least one uppercase letter, one lowercase letter and one number" });
-            else
-            {
-                if (!Regex.IsMatch(Password, "(?=.*[A-Z])") && !Regex.IsMatch(Password, "(?=.*[a-z])") && Regex.IsMatch(Password, "(?=.*\\d)"))
-                    return (new { error = "Password Requirements Not Met", message = "Password must include at least one uppercase letter and one lowercase letter" });
-                else if (!Regex.IsMatch(Password, "(?=.*[A-Z])") && Regex.IsMatch(Password, "(?=.*[a-z])") && !Regex.IsMatch(Password, "(?=.*\\d)"))
-                    return (new { error = "Password Requirements Not Met", message = "Password must include at least one uppercase letter and one number" });
-                else if (Regex.IsMatch(Password, "(?=.*[A-Z])") && !Regex.IsMatch(Password, "(?=.*[a-z])") && !Regex.IsMatch(Password, "(?=.*\\d)"))
-                    return (new { error = "Password Requirements Not Met", message = "Password must include at least one lowercase letter and one number" });
-                else if (!Regex.IsMatch(Password, "(?=.*[A-Z])"))
-                    return (new { error = "Password Requirements Not Met", message = "Password must include at least one uppercase letter" });
-                else if (!Regex.IsMatch(Password, "(?=.*[a-z])"))
-                    return (new { error = "Password Requirements Not Met", message = "Password must include at least one lowercase letter" });
-                else if (!Regex.IsMatch(Password, "(?=.*\\d)")) return (new { error = "Password Requirements Not Met", message = "Password must include at least one number" });
-            }
-            if (!Password.Equals(ConfirmPassword))
-            {
-                return (new { error = "Password Requirements Not Met", message = "Passwords must match" });
-            }
-            return null;
+            return new ValidationError("Password Requirements Not Met",
+                "Password must include at least one uppercase letter, one lowercase letter and one number");
         }
+
+        if (!IsMatch(Password, "(?=.*[A-Z])") && !IsMatch(Password, "(?=.*[a-z])") &&
+            IsMatch(Password, "(?=.*\\d)"))
+        {
+            return new ValidationError("Password Requirements Not Met",
+                "Password must include at least one uppercase letter and one lowercase letter");
+        }
+
+        if (!IsMatch(Password, "(?=.*[A-Z])") && IsMatch(Password, "(?=.*[a-z])") &&
+            !IsMatch(Password, "(?=.*\\d)"))
+        {
+            return new ValidationError("Password Requirements Not Met",
+                "Password must include at least one uppercase letter and one number");
+        }
+
+        if (IsMatch(Password, "(?=.*[A-Z])") && !IsMatch(Password, "(?=.*[a-z])") &&
+            !IsMatch(Password, "(?=.*\\d)"))
+        {
+            return new ValidationError("Password Requirements Not Met",
+                "Password must include at least one lowercase letter and one number");
+        }
+
+        if (!IsMatch(Password, "(?=.*[A-Z])"))
+        {
+            return new ValidationError("Password Requirements Not Met",
+                "Password must include at least one uppercase letter");
+        }
+
+        if (!IsMatch(Password, "(?=.*[a-z])"))
+        {
+            return new ValidationError("Password Requirements Not Met",
+                "Password must include at least one lowercase letter");
+        }
+
+        if (!IsMatch(Password, "(?=.*\\d)"))
+        {
+            return new ValidationError("Password Requirements Not Met",
+                "Password must include at least one number");
+        }
+
+        return !Password.Equals(ConfirmPassword)
+            ? new ValidationError("Password Requirements Not Met", "Passwords must match")
+            : null;
     }
+}
+
+public class ValidationError(string error, string message)
+{
+    public string Error { get; } = error;
+    public string Message { get; } = message;
 }
