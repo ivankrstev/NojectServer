@@ -48,47 +48,14 @@ namespace NojectServer;
                            .AllowCredentials();
                 }));
 
-            builder.Services.AddSwaggerGen(c =>
-            {
-                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-                {
-                    Type = SecuritySchemeType.Http,
-                    Scheme = "bearer"
-                });
-                c.AddSecurityRequirement(new OpenApiSecurityRequirement
-            {
-                {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Bearer"
-                        }
-                    },
-                    Array.Empty<string>()
-                }
-            });
-            });
-
-            builder.Services.Configure<ApiBehaviorOptions>(options =>
-            {
-                options.InvalidModelStateResponseFactory = actionContext =>
-                {
-                    if (actionContext.ModelState.ErrorCount > 0)
-                    {
-                        var errorMessages = actionContext.ModelState.Values
-                            .SelectMany(v => v.Errors)
-                            .Select(e => e.ErrorMessage)
-                            .ToArray();
-                        return new BadRequestObjectResult(new { error = "Validation Failed", message = errorMessages[0] });
-                    }
-                    else
-                    {
-                        return new BadRequestResult();
-                    }
-                };
-            });
+        // Add CORS services
+        builder.Services.AddCors();
+        // Register the configuration class for CORS
+        builder.Services.ConfigureOptions<ConfigureCorsOptions>();
+        // Configure the SwaggerGen options
+        builder.Services.ConfigureOptions<ConfigureSwaggerGenOptions>();
+        // Configure the API behavior options
+        builder.Services.ConfigureOptions<ApiBehaviorOptionsSetup>();
 
         // Register the JWT bearer authentication scheme
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
