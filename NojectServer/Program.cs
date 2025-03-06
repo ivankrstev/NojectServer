@@ -1,34 +1,40 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using NojectServer.Configurations;
 using NojectServer.Data;
+using NojectServer.DependencyInjection;
 using NojectServer.Hubs;
 using NojectServer.Middlewares;
 using NojectServer.OptionsSetup;
-using NojectServer.Services.Email;
 
-namespace NojectServer
-{
+namespace NojectServer;
+
     public class Program
     {
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-            builder.Services.AddScoped<VerifyProjectOwnership>();
-            builder.Services.AddScoped<VerifyProjectAccess>();
-            builder.Services.AddScoped<IEmailService, EmailService>();
+        // Configure the EmailSettings and RouteOptions from the environment configuration
+        builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+        builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
+
+        // Register the database context
+        builder.Services.AddDbContext<DataContext>(options =>
+            options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
+        );
+
+        // Add application services using the extension methods
+        builder.Services.AddServices();
+
+        // Add filter for verifying project access to the Tasks SignalR hub
             builder.Services.AddSignalR().AddHubOptions<TasksHub>(options =>
             {
                 options.AddFilter<VerifyProjectAccessHub>();
             });
-            builder.Services.AddDbContext<DataContext>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
-            );
-            builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
+
+        // Add a controller and the API explorer
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
 
@@ -84,6 +90,7 @@ namespace NojectServer
                 };
             });
 
+        // Register the JWT bearer authentication scheme
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options => new JwtBearerOptionsSetup().GetOptions(builder.Configuration, options));
 
@@ -113,4 +120,3 @@ namespace NojectServer
             app.Run();
         }
     }
-}
