@@ -1,73 +1,86 @@
 ﻿using MailKit.Net.Smtp;
-using MailKit.Security;
+using Microsoft.Extensions.Options;
 using MimeKit;
+using NojectServer.Configurations;
 using NojectServer.Models;
+using Task = System.Threading.Tasks.Task;
 
-namespace NojectServer.Services.Email
+namespace NojectServer.Services.Email;
+
+public class EmailService(IOptions<EmailSettings> options) : IEmailService
 {
-    public class EmailService : IEmailService
+    private readonly EmailSettings _emailSettings = options.Value;
+
+    public async Task SendVerificationLinkAsync(User user)
     {
-        private readonly IConfiguration _config;
-        private readonly SmtpClient _smtp;
+        if (user.VerificationToken == null) throw new Exception("Verification token is null");
 
-        public EmailService(IConfiguration config)
+        var verificationLink = BuildLink("verify-email", ("email", user.Email), ("token", user.VerificationToken));
+        await SendEmail(
+            user,
+            "Email Verification",
+            "verify your email",
+            verificationLink
+        );
+    }
+
+    public async Task SendResetPasswordLinkAsync(User user)
+    {
+        if (user.PasswordResetToken == null) throw new Exception("Password reset token is null");
+
+        var resetLink = BuildLink("reset-password", ("token", user.PasswordResetToken));
+        await SendEmail(
+            user,
+            "Password Reset Request",
+            "reset your password",
+            resetLink
+        );
+    }
+
+
+    private async Task SendEmail(User user, string subject, string action, string link)
+    {
+        var emailMessage = new MimeMessage();
+        // Set sender and recipient
+        var emailFrom = new MailboxAddress(_emailSettings.Name, _emailSettings.EmailId);
+        emailMessage.From.Add(emailFrom);
+        var emailTo = new MailboxAddress(user.FullName, user.Email);
+        emailMessage.To.Add(emailTo);
+        emailMessage.Subject = subject;
+        // Create both plain text and HTML parts
+        var textPart = CreateTextPart(user.FullName, action, link);
+        var htmlPart = CreateHtmlPart(user.FullName, action, link);
+        emailMessage.Body = new Multipart("alternative") { textPart, htmlPart };
+        using var smtp = new SmtpClient();
+        await smtp.ConnectAsync(_emailSettings.Host, _emailSettings.Port, _emailSettings.UseSsl);
+        await smtp.AuthenticateAsync(_emailSettings.UserName, _emailSettings.Password);
+        await smtp.SendAsync(emailMessage);
+        await smtp.DisconnectAsync(true);
+    }
+
+    private string BuildLink(string path, params (string Key, string Value)[] parameters)
+    {
+        var query = string.Join("&", parameters.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}"));
+        return $"{_emailSettings.ClientUrl}/{path}?{query}";
+    }
+
+    private static TextPart CreateTextPart(string fullName, string action, string link)
+    {
+        return new TextPart("plain")
         {
-            _config = config;
-            _smtp = new();
-            _smtp.Connect(_config.GetSection("EmailHost").Value, 587, SecureSocketOptions.StartTls);
-            _smtp.Authenticate(_config.GetSection("EmailUsername").Value, _config.GetSection("EmailPassword").Value);
-        }
+            Text = $"Dear {fullName},\nPlease click on the following link to {action}: {link}"
+        };
+    }
 
-        public void SendVerificationLink(User user)
+    private static TextPart CreateHtmlPart(string fullName, string action, string link)
+    {
+        return new TextPart("html")
         {
-            MimeMessage email = new();
-            email.From.Add(MailboxAddress.Parse(_config.GetSection("EmailFrom").Value));
-            email.To.Add(MailboxAddress.Parse(user.Email));
-            email.Subject = "Email Verification";
-            string verificationLink = $"{_config.GetSection("EmailClientUrl").Value}/verify-email?email={user.Email}&token={user.VerificationToken}";
-            TextPart textPart = new("plain")
-            {
-                Text = $"Dear {user.FullName},\n Please click on the following link to verify your email: {verificationLink}"
-            };
-            TextPart htmlPart = new("html")
-            {
-                Text = $"<p style=\"font-size:16px;color:#333;margin-bottom:10px;\">Dear {user.FullName},</p><p style=\"font-size:14px;color:#555;margin-bottom:20px;\">Please click on the following link to verify your email: </p><a style=\"display:inline-block;padding:10px 20px;background-color:#337ab7;color:#fff;text-decoration:none;border-radius:4px;font-size:14px;\" href=\"{verificationLink}\">Verify Email</a>"
-            };
-            Multipart multipart = new("alternative")
-            {
-                textPart,
-                htmlPart
-            };
-            email.Body = multipart;
-
-            _smtp.Send(email);
-            _smtp.Disconnect(true);
-        }
-
-        public void SendResetPasswordLink(User user)
-        {
-            MimeMessage email = new();
-            email.From.Add(MailboxAddress.Parse(_config.GetSection("EmailFrom").Value));
-            email.To.Add(MailboxAddress.Parse(user.Email));
-            email.Subject = "Password Reset Request";
-            string resetPasswordLink = $"{_config.GetSection("EmailClientUrl").Value}/reset-password?token={user.PasswordResetToken}";
-            TextPart textPart = new("plain")
-            {
-                Text = $"Dear {user.FullName},\n Please click on the following link to reset your password: {resetPasswordLink}"
-            };
-            TextPart htmlPart = new("html")
-            {
-                Text = $"<p style=\"font-size:16px;color:#333;margin-bottom:10px;\">Dear {user.FullName},</p><p style=\"font-size:14px;color:#555;margin-bottom:20px;\">Please click on the following link to reset your password:</p><a style=\"display:inline-block;padding:10px 20px;background-color:#337ab7;color:#fff;text-decoration:none;border-radius:4px;font-size:14px;\" href=\"{resetPasswordLink}\">Reset Password</a>"
-            };
-            Multipart multipart = new("alternative")
-            {
-                textPart,
-                htmlPart
-            };
-            email.Body = multipart;
-
-            _smtp.Send(email);
-            _smtp.Disconnect(true);
-        }
+            Text = $"""
+                <p style="font-size:16px;color:#333;margin-bottom:10px;">Dear {fullName},</p>
+                                        <p style="font-size:14px;color:#555;margin-bottom:20px;">Please click on the following link to {action}:</p>
+                                        <a style="display:inline-block;padding:10px 20px;background-color:#337ab7;color:#fff;text-decoration:none;border-radius:4px;font-size:14px;" href="{link}">{action}</a>
+                """
+        };
     }
 }
