@@ -1,8 +1,7 @@
-﻿namespace NojectServer.ResponseMessages
+﻿namespace NojectServer.ResponseMessages;
+
+public class ErrorWithDetailedMessage
 {
-    public class ErrorWithDetailedMessage
-    {
-        public string Error { get; set; }
-        public string Message { get; set; }
-    }
+    public string Error { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
 }

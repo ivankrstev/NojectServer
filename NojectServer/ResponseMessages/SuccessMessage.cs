@@ -1,7 +1,6 @@
-﻿namespace NojectServer.ResponseMessages
+﻿namespace NojectServer.ResponseMessages;
+
+public class SuccessMessage
 {
-    public class SuccessMessage
-    {
-        public string Message { get; set; }
-    }
+    public string Message { get; set; } = string.Empty;
 }
