@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPasswordService, PasswordService>();
         services.AddSingleton<ITokenService, TokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<ICollaboratorsService, CollaboratorsService>();
 
         // Register middlewares for verifying project ownership and access
         services.AddScoped<VerifyProjectOwnership>();
