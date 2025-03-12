@@ -5,6 +5,7 @@ using NojectServer.Data;
 using NojectServer.Models;
 using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Auth.Interfaces;
+using NojectServer.Tests.MockHelpers;
 using Task = System.Threading.Tasks.Task;
 
 namespace NojectServer.Tests.Services.Auth;
