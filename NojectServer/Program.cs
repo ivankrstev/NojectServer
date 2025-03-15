@@ -38,15 +38,9 @@ namespace NojectServer;
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
 
-            string[] origins = builder.Configuration["Cors:Origins"]?.Split(",") ?? Array.Empty<string>();
-            builder.Services.AddCors(options => options.AddPolicy("CorsPolicy",
-                builder =>
-                {
-                    builder.AllowAnyHeader()
-                           .AllowAnyMethod()
-                           .WithOrigins(origins)
-                           .AllowCredentials();
-                }));
+        // Register the global exception handler
+        builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+        builder.Services.AddProblemDetails(); // Recommended for structured error responses
 
         // Add CORS services
         builder.Services.AddCors();
