@@ -1,119 +1,88 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
-using NojectServer.Data;
-using NojectServer.Hubs;
 using NojectServer.Middlewares;
-using NojectServer.Models;
 using NojectServer.Models.Requests;
 using NojectServer.ResponseMessages;
+using NojectServer.Services.Collaborators.Interfaces;
+using NojectServer.Utils.ResultPattern;
 using System.Security.Claims;
 
-namespace NojectServer.Controllers
+namespace NojectServer.Controllers;
+
+[ApiController]
+[Route("[controller]")]
+[Produces("application/json")]
+[Authorize]
+[ServiceFilter(typeof(VerifyProjectOwnership))]
+public class CollaboratorsController(ICollaboratorsService collaboratorsService) : ControllerBase
 {
-    [ApiController]
-    [Route("[controller]")]
-    [Produces("application/json")]
-    [Authorize]
-    [ServiceFilter(typeof(VerifyProjectOwnership))]
-    public class CollaboratorsController : ControllerBase
+    private readonly ICollaboratorsService _collaboratorsService = collaboratorsService;
+
+    [HttpPost("{id}")]
+    [ProducesResponseType(typeof(SuccessMessage), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Add(Guid id, AddCollaboratorRequest request)
     {
-        private readonly DataContext _dataContext;
-        private readonly IHubContext<SharedProjectsHub> _hubContext;
+        string projectOwnerEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
+        var result = await _collaboratorsService.AddCollaboratorAsync(id, request.UserId, projectOwnerEmail);
 
-        public CollaboratorsController(DataContext dataContext, IHubContext<SharedProjectsHub> hubContext)
+        return result switch
         {
-            _dataContext = dataContext;
-            _hubContext = hubContext;
-        }
+            SuccessResult<string> success => Ok(success.Value),
+            FailureResult<string> failure => StatusCode(failure.Error.StatusCode,
+                new { error = failure.Error.Error, message = failure.Error.Message }),
+            _ => throw new InvalidOperationException("Unknown result type")
+        };
+    }
 
-        [HttpPost("{id}")]
-        [ProducesResponseType(typeof(SuccessMessage), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Add(Guid id, AddCollaboratorRequest request)
-        {
-            string UserEmailToAdd = request.UserId;
-            string ProjectOwnerEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
-            if (UserEmailToAdd == ProjectOwnerEmail)
-            {
-                return BadRequest(new
-                {
-                    error = "Error adding collaborator",
-                    message = "You cannot add yourself as collaborator"
-                });
-            }
-            if (!await _dataContext.Users.AnyAsync(u => u.Email == UserEmailToAdd))
-            {
-                return NotFound(new
-                {
-                    error = "User not found",
-                    message = "The specified user doesn't exist"
-                });
-            }
-            if (await _dataContext.Collaborators.AnyAsync(c => c.ProjectId == id && c.CollaboratorId == UserEmailToAdd))
-            {
-                return NotFound(new
-                {
-                    error = "Collaborator Already Exists",
-                    message = "This collaborator is already associated with this project"
-                });
-            }
-            await _dataContext.AddAsync(new Collaborator { ProjectId = id, CollaboratorId = UserEmailToAdd });
-            await _dataContext.SaveChangesAsync();
-            var project = await _dataContext.Projects.Where(p => p.Id == id).FirstOrDefaultAsync();
-            await _hubContext.Clients.Groups(UserEmailToAdd).SendAsync(
-                "NewSharedProject",
-                new { message = $"You were added as collaborator to the project {id}" },
-                new { project });
-            return Ok(new { message = $"Successfully added {UserEmailToAdd} as a collaborator" });
-        }
+    [HttpGet("search/{id}")]
+    [ProducesResponseType(typeof(SuccessMessage), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<List<string>>> Search(Guid id, [FromQuery, BindRequired] string userToFind)
+    {
+        string projectOwnerEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
+        var result = await _collaboratorsService.SearchCollaboratorsAsync(id, userToFind, projectOwnerEmail);
 
-        [HttpGet("search/{id}")]
-        public async Task<ActionResult<List<string>>> Search(Guid id, [FromQuery, BindRequired] string userToFind)
+        return result switch
         {
-            string ProjectOwnerEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
-            var query = from user in _dataContext.Users
-                        join collaborator in _dataContext.Collaborators
-                        on new { UserId = user.Email, ProjectId = id } equals new
-                        {
-                            UserId = collaborator.CollaboratorId,
-                            collaborator.ProjectId
-                        } into gj
-                        from subCollaborator in gj.DefaultIfEmpty()
-                        where subCollaborator == null && user.Email != ProjectOwnerEmail && user.Email.StartsWith(userToFind)
-                        select user.Email;
-            return Ok(new { users = await query.ToListAsync() });
-        }
+            SuccessResult<List<string>> success => Ok(new { users = success.Value }),
+            FailureResult<List<string>> failure => StatusCode(failure.Error.StatusCode,
+                new { error = failure.Error.Error, message = failure.Error.Message }),
+            _ => throw new InvalidOperationException("Unknown result type")
+        };
+    }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<List<string>>> GetAll(Guid id)
-        {
-            List<string> collaborators = await _dataContext.Collaborators.Where(c => c.ProjectId == id).Select(c => c.CollaboratorId).ToListAsync();
-            return Ok(new { collaborators });
-        }
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(SuccessMessage), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<string>>> GetAll(Guid id)
+    {
+        var result = await _collaboratorsService.GetAllCollaboratorsAsync(id);
 
-        [ProducesResponseType(typeof(SuccessMessage), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status404NotFound)]
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Remove(Guid id, [FromQuery, BindRequired] string userToRemove)
+        return result switch
         {
-            var deletedRows = await _dataContext.Collaborators.Where(c => c.ProjectId == id && c.CollaboratorId == userToRemove).ExecuteDeleteAsync();
-            if (deletedRows == 0)
-            {
-                return NotFound(new
-                {
-                    error = "Collaborator not found",
-                    message = "The specified collaborator doesn't exist"
-                });
-            }
-            await _hubContext.Clients.Group(userToRemove).SendAsync(
-                "RemovedSharedProject",
-                new { message = $"You were removed as collaborator from the project {id}" },
-                new { idToDelete = id });
-            return Ok(new { message = $"Successfully removed {userToRemove} as a collaborator" });
-        }
+            SuccessResult<List<string>> success => Ok(new { collaborators = success.Value }),
+            FailureResult<List<string>> failure => StatusCode(failure.Error.StatusCode,
+                new { error = failure.Error.Error, message = failure.Error.Message }),
+            _ => throw new InvalidOperationException("Unknown result type")
+        };
+    }
+
+    [HttpDelete("{id}")]
+    [ProducesResponseType(typeof(SuccessMessage), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Remove(Guid id, [FromQuery, BindRequired] string userToRemove)
+    {
+        var result = await _collaboratorsService.RemoveCollaboratorAsync(id, userToRemove);
+
+        return result switch
+        {
+            SuccessResult<string> success => Ok(new SuccessMessage { Message = success.Value }),
+            FailureResult<string> failure => StatusCode(failure.Error.StatusCode,
+                new { error = failure.Error.Error, message = failure.Error.Message }),
+            _ => throw new InvalidOperationException("Unknown result type")
+        };
     }
 }

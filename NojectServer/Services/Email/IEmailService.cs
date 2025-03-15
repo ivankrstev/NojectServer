@@ -1,11 +1,11 @@
 ﻿using NojectServer.Models;
+using Task = System.Threading.Tasks.Task;
 
-namespace NojectServer.Services.Email
+namespace NojectServer.Services.Email;
+
+public interface IEmailService
 {
-    public interface IEmailService
-    {
-        void SendVerificationLink(User user);
+    Task SendVerificationLinkAsync(User user);
 
-        void SendResetPasswordLink(User user);
-    }
+    Task SendResetPasswordLinkAsync(User user);
 }

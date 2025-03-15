@@ -1,34 +1,40 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using NojectServer.Configurations;
 using NojectServer.Data;
+using NojectServer.DependencyInjection;
 using NojectServer.Hubs;
 using NojectServer.Middlewares;
 using NojectServer.OptionsSetup;
-using NojectServer.Services.Email;
 
-namespace NojectServer
-{
+namespace NojectServer;
+
     public class Program
     {
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-            builder.Services.AddScoped<VerifyProjectOwnership>();
-            builder.Services.AddScoped<VerifyProjectAccess>();
-            builder.Services.AddScoped<IEmailService, EmailService>();
+        // Configure the EmailSettings and RouteOptions from the environment configuration
+        builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+        builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
+
+        // Register the database context
+        builder.Services.AddDbContext<DataContext>(options =>
+            options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
+        );
+
+        // Add application services using the extension methods
+        builder.Services.AddServices();
+
+        // Add filter for verifying project access to the Tasks SignalR hub
             builder.Services.AddSignalR().AddHubOptions<TasksHub>(options =>
             {
                 options.AddFilter<VerifyProjectAccessHub>();
             });
-            builder.Services.AddDbContext<DataContext>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
-            );
-            builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
+
+        // Add a controller and the API explorer
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
 
@@ -42,48 +48,16 @@ namespace NojectServer
                            .AllowCredentials();
                 }));
 
-            builder.Services.AddSwaggerGen(c =>
-            {
-                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-                {
-                    Type = SecuritySchemeType.Http,
-                    Scheme = "bearer"
-                });
-                c.AddSecurityRequirement(new OpenApiSecurityRequirement
-            {
-                {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Bearer"
-                        }
-                    },
-                    Array.Empty<string>()
-                }
-            });
-            });
+        // Add CORS services
+        builder.Services.AddCors();
+        // Register the configuration class for CORS
+        builder.Services.ConfigureOptions<ConfigureCorsOptions>();
+        // Configure the SwaggerGen options
+        builder.Services.ConfigureOptions<ConfigureSwaggerGenOptions>();
+        // Configure the API behavior options
+        builder.Services.ConfigureOptions<ApiBehaviorOptionsSetup>();
 
-            builder.Services.Configure<ApiBehaviorOptions>(options =>
-            {
-                options.InvalidModelStateResponseFactory = actionContext =>
-                {
-                    if (actionContext.ModelState.ErrorCount > 0)
-                    {
-                        var errorMessages = actionContext.ModelState.Values
-                            .SelectMany(v => v.Errors)
-                            .Select(e => e.ErrorMessage)
-                            .ToArray();
-                        return new BadRequestObjectResult(new { error = "Validation Failed", message = errorMessages[0] });
-                    }
-                    else
-                    {
-                        return new BadRequestResult();
-                    }
-                };
-            });
-
+        // Register the JWT bearer authentication scheme
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options => new JwtBearerOptionsSetup().GetOptions(builder.Configuration, options));
 
@@ -113,4 +87,3 @@ namespace NojectServer
             app.Run();
         }
     }
-}
