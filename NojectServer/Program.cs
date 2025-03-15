@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using NojectServer.Configurations;
 using NojectServer.Data;
 using NojectServer.DependencyInjection;
 using NojectServer.Hubs;
@@ -16,10 +15,6 @@ namespace NojectServer;
         {
             var builder = WebApplication.CreateBuilder(args);
 
-        // Configure the EmailSettings and RouteOptions from the environment configuration
-        builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-        builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
-
         // Register the database context
         builder.Services.AddDbContext<DataContext>(options =>
             options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
@@ -27,6 +22,8 @@ namespace NojectServer;
 
         // Add application services using the extension methods
         builder.Services.AddServices();
+        // Configure application options using the extension method
+        builder.Services.AddAppOptions(builder.Configuration);
 
         // Add filter for verifying project access to the Tasks SignalR hub
             builder.Services.AddSignalR().AddHubOptions<TasksHub>(options =>

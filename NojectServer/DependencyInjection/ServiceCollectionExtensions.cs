@@ -1,3 +1,4 @@
+﻿using NojectServer.Configurations;
 ﻿using NojectServer.Middlewares;
 using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Auth.Interfaces;
@@ -23,5 +24,12 @@ public static class ServiceCollectionExtensions
         // Register middlewares for verifying project ownership and access
         services.AddScoped<VerifyProjectOwnership>();
         services.AddScoped<VerifyProjectAccess>();
+    }
+
+    public static void AddAppOptions(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Configure application options from configuration
+        services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
+        services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
     }
 }
