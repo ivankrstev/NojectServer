@@ -4,8 +4,22 @@ using static NojectServer.Configurations.JwtTokenOptions;
 
 namespace NojectServer.Configurations;
 
+/// <summary>
+/// Validates JWT token configuration settings at application startup.
+///
+/// This class implements the IValidateOptions interface to check that all required JWT settings
+/// are properly configured and meet security requirements. It validates the presence of issuer and audience,
+/// and ensures each token type (access, refresh, and TFA) has appropriate secret keys and expiration times.
+/// If validation fails, the application will not start, preventing security issues from misconfiguration.
+/// </summary>
 public class JwtTokenOptionsValidator : IValidateOptions<JwtTokenOptions>
 {
+    /// <summary>
+    /// Validates the JWT token options configuration
+    /// </summary>
+    /// <param name="name">The name of the options being validated</param>
+    /// <param name="options">The JWT token options to validate</param>
+    /// <returns>A success result if the options are valid, otherwise a failure result with error messages</returns>
     public ValidateOptionsResult Validate(string? name, JwtTokenOptions options)
     {
         var errors = new List<string>();
@@ -35,6 +49,12 @@ public class JwtTokenOptionsValidator : IValidateOptions<JwtTokenOptions>
         return ValidateOptionsResult.Success;
     }
 
+    /// <summary>
+    /// Validates the signing credentials for a specific JWT token type
+    /// </summary>
+    /// <param name="options">The signing credentials to validate</param>
+    /// <param name="tokenType">The type of token (Access, Refresh, or Tfa)</param>
+    /// <returns>A list of validation error messages, empty if valid</returns>
     private static List<string> ValidateTokenOptions(JwtSigningCredentials options, string tokenType)
     {
         var errors = new List<string>();
