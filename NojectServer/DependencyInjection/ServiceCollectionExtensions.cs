@@ -1,4 +1,5 @@
-﻿using NojectServer.Configurations;
+﻿using Microsoft.Extensions.Options;
+using NojectServer.Configurations;
 ﻿using NojectServer.Middlewares;
 using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Auth.Interfaces;
@@ -31,5 +32,9 @@ public static class ServiceCollectionExtensions
         // Configure application options from configuration
         services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
         services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
+        services.Configure<JwtTokenOptions>(configuration.GetSection("JWTSecrets"));
+
+        // Register options validators
+        services.AddSingleton<IValidateOptions<JwtTokenOptions>, JwtTokenOptionsValidator>();
     }
 }
