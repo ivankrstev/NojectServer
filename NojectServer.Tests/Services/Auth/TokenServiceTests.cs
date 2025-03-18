@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Moq;
+using NojectServer.Configurations;
 using NojectServer.Services.Auth.Implementations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -9,22 +11,40 @@ namespace NojectServer.Tests.Services.Auth;
 
 public class TokenServiceTests
 {
-    private readonly Mock<IConfiguration> _mockConfiguration;
+    private readonly Mock<IOptions<JwtTokenOptions>> _mockOptions;
     private readonly TokenService _tokenService;
     private readonly JwtSecurityTokenHandler _tokenHandler;
+    private readonly JwtTokenOptions _jwtTokenOptions;
 
     public TokenServiceTests()
     {
-        // Setup mock configuration
-        _mockConfiguration = new Mock<IConfiguration>();
-        _mockConfiguration.Setup(c => c["JWTSecrets:AccessToken"]).Returns(
-            "accessTokenSecretWithAtLeast64BytesRequiredForHmacSha512Algorithm_ThisIsLongEnoughToWork12345");
-        _mockConfiguration.Setup(c => c["JWTSecrets:RefreshToken"]).Returns(
-            "refreshTokenSecretWithAtLeast64BytesRequiredForHmacSha512Algorithm_ThisIsLongEnoughToWork12345");
-        _mockConfiguration.Setup(c => c["JWTSecrets:TfaToken"]).Returns(
-            "tfaTokenSecretWithAtLeast64BytesRequiredForHmacSha512Algorithm_ThisIsLongEnoughToWork12345678");
+        // Setup JwtTokenOptions with test values
+        _jwtTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = "accessTokenSecretWithAtLeast64BytesRequiredForHmacSha512Algorithm_ThisIsLongEnoughToWork12345",
+                ExpirationInSeconds = 600 // 10 minutes
+            },
+            Refresh = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = "refreshTokenSecretWithAtLeast64BytesRequiredForHmacSha512Algorithm_ThisIsLongEnoughToWork12345",
+                ExpirationInSeconds = 1209600 // 14 days
+            },
+            Tfa = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = "tfaTokenSecretWithAtLeast64BytesRequiredForHmacSha512Algorithm_ThisIsLongEnoughToWork12345678",
+                ExpirationInSeconds = 120 // 2 minutes
+            }
+        };
 
-        _tokenService = new TokenService(_mockConfiguration.Object);
+        // Setup mock options
+        _mockOptions = new Mock<IOptions<JwtTokenOptions>>();
+        _mockOptions.Setup(o => o.Value).Returns(_jwtTokenOptions);
+
+        _tokenService = new TokenService(_mockOptions.Object);
         _tokenHandler = new JwtSecurityTokenHandler();
     }
 
@@ -112,8 +132,8 @@ public class TokenServiceTests
         // Assert
         Assert.NotNull(parameters);
         Assert.True(parameters.ValidateIssuerSigningKey);
-        Assert.False(parameters.ValidateIssuer);
-        Assert.False(parameters.ValidateAudience);
+        Assert.True(parameters.ValidateIssuer);
+        Assert.True(parameters.ValidateAudience);
         Assert.True(parameters.ValidateLifetime);
         Assert.Equal(TimeSpan.Zero, parameters.ClockSkew);
 
@@ -134,48 +154,84 @@ public class TokenServiceTests
     public void CreateAccessToken_WithMissingConfiguration_ThrowsInvalidOperationException()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["JWTSecrets:AccessToken"]).Returns((string)null!);
-        var tokenService = new TokenService(_mockConfiguration.Object);
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = null!, // Invalid configuration
+            Refresh = _jwtTokenOptions.Refresh,
+            Tfa = _jwtTokenOptions.Tfa
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() => tokenService.CreateAccessToken("test@example.com"));
-        Assert.Contains("JWTSecrets:AccessToken", exception.Message);
+        Assert.Throws<InvalidOperationException>(() => tokenService.CreateAccessToken("test@example.com"));
     }
 
     [Fact]
     public void CreateRefreshToken_WithMissingConfiguration_ThrowsInvalidOperationException()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["JWTSecrets:RefreshToken"]).Returns((string)null!);
-        var tokenService = new TokenService(_mockConfiguration.Object);
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = _jwtTokenOptions.Access,
+            Refresh = null!, // Invalid configuration
+            Tfa = _jwtTokenOptions.Tfa
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() => tokenService.CreateRefreshToken("test@example.com"));
-        Assert.Contains("JWTSecrets:RefreshToken", exception.Message);
+        Assert.Throws<InvalidOperationException>(() => tokenService.CreateRefreshToken("test@example.com"));
     }
 
     [Fact]
     public void CreateTfaToken_WithMissingConfiguration_ThrowsInvalidOperationException()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["JWTSecrets:TfaToken"]).Returns((string)null!);
-        var tokenService = new TokenService(_mockConfiguration.Object);
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = _jwtTokenOptions.Access,
+            Refresh = _jwtTokenOptions.Refresh,
+            Tfa = null! // Invalid configuration
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() => tokenService.CreateTfaToken("test@example.com"));
-        Assert.Contains("JWTSecrets:TfaToken", exception.Message);
+        Assert.Throws<InvalidOperationException>(() => tokenService.CreateTfaToken("test@example.com"));
     }
 
     [Fact]
     public void GetTfaTokenValidationParameters_WithMissingConfiguration_ThrowsInvalidOperationException()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["JWTSecrets:TfaToken"]).Returns((string)null!);
-        var tokenService = new TokenService(_mockConfiguration.Object);
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = _jwtTokenOptions.Access,
+            Refresh = _jwtTokenOptions.Refresh,
+            Tfa = null! // Invalid configuration
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        var exception = Assert.Throws<InvalidOperationException>(() => tokenService.GetTfaTokenValidationParameters());
-        Assert.Contains("JWTSecrets:TfaToken", exception.Message);
+        Assert.Throws<InvalidOperationException>(() => tokenService.GetTfaTokenValidationParameters());
     }
 
     /// <summary>
@@ -186,48 +242,104 @@ public class TokenServiceTests
     public void CreateAccessToken_WithEmptyConfiguration_ThrowsArgumentException()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["JWTSecrets:AccessToken"]).Returns(string.Empty);
-        var tokenService = new TokenService(_mockConfiguration.Object);
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = string.Empty,
+                ExpirationInSeconds = 600
+            },
+            Refresh = _jwtTokenOptions.Refresh,
+            Tfa = _jwtTokenOptions.Tfa
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() => tokenService.CreateAccessToken("test@example.com"));
-        Assert.Contains("The key size is 0 bytes", exception.Message);
+        Assert.Contains("JWT Access token secret key", exception.Message);
     }
 
     [Fact]
     public void CreateRefreshToken_WithEmptyConfiguration_ThrowsArgumentException()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["JWTSecrets:RefreshToken"]).Returns(string.Empty);
-        var tokenService = new TokenService(_mockConfiguration.Object);
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = _jwtTokenOptions.Access,
+            Refresh = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = string.Empty,
+                ExpirationInSeconds = 1209600
+            },
+            Tfa = _jwtTokenOptions.Tfa
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() => tokenService.CreateRefreshToken("test@example.com"));
-        Assert.Contains("The key size is 0 bytes", exception.Message);
+        Assert.Contains("JWT Refresh token secret key", exception.Message);
     }
 
     [Fact]
     public void CreateTfaToken_WithEmptyConfiguration_ThrowsArgumentException()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["JWTSecrets:TfaToken"]).Returns(string.Empty);
-        var tokenService = new TokenService(_mockConfiguration.Object);
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = _jwtTokenOptions.Access,
+            Refresh = _jwtTokenOptions.Refresh,
+            Tfa = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = string.Empty,
+                ExpirationInSeconds = 120
+            }
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() => tokenService.CreateTfaToken("test@example.com"));
-        Assert.Contains("The key size is 0 bytes", exception.Message);
+        Assert.Contains("JWT Tfa token secret key", exception.Message);
     }
 
     [Fact]
     public void GetTfaTokenValidationParameters_WithEmptyConfiguration_ThrowsArgumentException()
     {
         // Arrange
-        _mockConfiguration.Setup(c => c["JWTSecrets:TfaToken"]).Returns(string.Empty);
-        var tokenService = new TokenService(_mockConfiguration.Object);
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = _jwtTokenOptions.Access,
+            Refresh = _jwtTokenOptions.Refresh,
+            Tfa = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = string.Empty,
+                ExpirationInSeconds = 120
+            }
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() => tokenService.GetTfaTokenValidationParameters());
-        Assert.Contains("The key size is 0 bytes", exception.Message);
+        Assert.Contains("JWT Tfa token secret key", exception.Message);
     }
 
     /// <summary>
@@ -235,39 +347,81 @@ public class TokenServiceTests
     /// Verifies that cryptographically insecure short keys are rejected.
     /// </summary>
     [Fact]
-    public void CreateAccessToken_WithInvalidKeyLength_ThrowsArgumentException()
+    public void CreateAccessToken_WithInvalidKeyLength_ThrowsArgumentOutOfRangeException()
     {
         // Arrange - Key that's too short for HMAC-SHA512
-        _mockConfiguration.Setup(c => c["JWTSecrets:AccessToken"]).Returns("short-key");
-        var tokenService = new TokenService(_mockConfiguration.Object);
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = "short-key",
+                ExpirationInSeconds = 600
+            },
+            Refresh = _jwtTokenOptions.Refresh,
+            Tfa = _jwtTokenOptions.Tfa
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() => tokenService.CreateAccessToken("test@example.com"));
-        Assert.Contains("IDX10720", exception.Message); // Key size error
+        Assert.Contains("IDX10653", exception.Message); // Key size error
     }
 
     [Fact]
-    public void CreateRefreshToken_WithInvalidKeyLength_ThrowsArgumentException()
+    public void CreateRefreshToken_WithInvalidKeyLength_ThrowsArgumentOutOfRangeException()
     {
         // Arrange - Key that's too short for HMAC-SHA512
-        _mockConfiguration.Setup(c => c["JWTSecrets:RefreshToken"]).Returns("short-key");
-        var tokenService = new TokenService(_mockConfiguration.Object);
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = _jwtTokenOptions.Access,
+            Refresh = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = "short-key",
+                ExpirationInSeconds = 1209600
+            },
+            Tfa = _jwtTokenOptions.Tfa
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() => tokenService.CreateRefreshToken("test@example.com"));
-        Assert.Contains("IDX10720", exception.Message); // Key size error
+        Assert.Contains("IDX10653", exception.Message); // Key size error
     }
 
     [Fact]
-    public void CreateTfaToken_WithInvalidKeyLength_ThrowsArgumentException()
+    public void CreateTfaToken_WithInvalidKeyLength_ThrowsArgumentOutOfRangeException()
     {
         // Arrange - Key that's too short for HMAC-SHA512
-        _mockConfiguration.Setup(c => c["JWTSecrets:TfaToken"]).Returns("short-key");
-        var tokenService = new TokenService(_mockConfiguration.Object);
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = _jwtTokenOptions.Access,
+            Refresh = _jwtTokenOptions.Refresh,
+            Tfa = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = "short-key",
+                ExpirationInSeconds = 120
+            }
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() => tokenService.CreateTfaToken("test@example.com"));
-        Assert.Contains("IDX10720", exception.Message); // Key size error
+        Assert.Contains("IDX10653", exception.Message); // Key size error
     }
 
     /// <summary>
@@ -277,36 +431,21 @@ public class TokenServiceTests
     [Fact]
     public void CreateAccessToken_WithNullEmail_ThrowsArgumentNullException()
     {
-        // Arrange
-        _mockConfiguration.Setup(c => c["JWTSecrets:AccessToken"]).Returns(
-            "accessTokenSecretWithAtLeast64BytesRequiredForHmacSha512Algorithm_ThisIsLongEnoughToWork12345");
-        var tokenService = new TokenService(_mockConfiguration.Object);
-
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => tokenService.CreateAccessToken(null!));
+        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateAccessToken(null!));
     }
 
     [Fact]
     public void CreateRefreshToken_WithNullEmail_ThrowsArgumentNullException()
     {
-        // Arrange
-        _mockConfiguration.Setup(c => c["JWTSecrets:RefreshToken"]).Returns(
-            "refreshTokenSecretWithAtLeast64BytesRequiredForHmacSha512Algorithm_ThisIsLongEnoughToWork12345");
-        var tokenService = new TokenService(_mockConfiguration.Object);
-
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => tokenService.CreateRefreshToken(null!));
+        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateRefreshToken(null!));
     }
 
     [Fact]
     public void CreateTfaToken_WithNullEmail_ThrowsArgumentNullException()
     {
-        // Arrange
-        _mockConfiguration.Setup(c => c["JWTSecrets:TfaToken"]).Returns(
-            "tfaTokenSecretWithAtLeast64BytesRequiredForHmacSha512Algorithm_ThisIsLongEnoughToWork12345678");
-        var tokenService = new TokenService(_mockConfiguration.Object);
-
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => tokenService.CreateTfaToken(null!));
+        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateTfaToken(null!));
     }
 }
