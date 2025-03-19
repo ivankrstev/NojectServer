@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<IEmailService, EmailService>();
         services.AddSingleton<IPasswordService, PasswordService>();
         services.AddSingleton<ITokenService, TokenService>();
+        services.AddScoped<ITwoFactorAuthService, TwoFactorAuthService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<ICollaboratorsService, CollaboratorsService>();
 
