@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
     public static void AddServices(this IServiceCollection services)
     {
         // Register all services
+        services.AddScoped<IAuthService, AuthService>();
         services.AddTransient<IEmailService, EmailService>();
         services.AddSingleton<IPasswordService, PasswordService>();
         services.AddSingleton<ITokenService, TokenService>();
