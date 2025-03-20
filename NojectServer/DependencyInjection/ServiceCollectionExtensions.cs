@@ -3,6 +3,8 @@ using NojectServer.Configurations;
 ﻿using NojectServer.Middlewares;
 using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Auth.Interfaces;
+using NojectServer.Services.Auth.Validation.Implementations;
+using NojectServer.Services.Auth.Validation.Interfaces;
 using NojectServer.Services.Collaborators.Implementations;
 using NojectServer.Services.Collaborators.Interfaces;
 using NojectServer.Services.Common.Implementations;
@@ -21,6 +23,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPasswordService, PasswordService>();
         services.AddSingleton<ITokenService, TokenService>();
         services.AddScoped<ITwoFactorAuthService, TwoFactorAuthService>();
+        services.AddScoped<ITotpValidator, OtpNetTotpValidator>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<ICollaboratorsService, CollaboratorsService>();
 

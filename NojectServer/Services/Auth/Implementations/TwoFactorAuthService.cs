@@ -1,19 +1,20 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
 using NojectServer.Services.Auth.Interfaces;
+using NojectServer.Services.Auth.Validation.Interfaces;
 using NojectServer.Utils;
 using NojectServer.Utils.ResultPattern;
-using OtpNet;
 
 namespace NojectServer.Services.Auth.Implementations;
 
 public class TwoFactorAuthService(
     IConfiguration config,
-    DataContext dataContext
-    ) : ITwoFactorAuthService
+    DataContext dataContext,
+    ITotpValidator totpValidator) : ITwoFactorAuthService
 {
     private readonly IConfiguration _config = config;
     private readonly DataContext _dataContext = dataContext;
+    private readonly ITotpValidator _totpValidator = totpValidator;
 
     public async Task<Result<string>> DisableTwoFactorAsync(string email, string code)
     {
@@ -24,7 +25,7 @@ public class TwoFactorAuthService(
         if (!user.TwoFactorEnabled)
             return Result.Failure<string>("BadRequest", "2FA is already disabled.", 400);
 
-        if (!ValidateCode(user.TwoFactorSecretKey!, code.Trim()))
+        if (!_totpValidator.ValidateCode(user.TwoFactorSecretKey!, code.Trim()))
             return Result.Failure<string>("Unauthorized", "Invalid security code.", 401);
 
         user.TwoFactorEnabled = false;
@@ -43,7 +44,7 @@ public class TwoFactorAuthService(
         if (string.IsNullOrEmpty(user.TwoFactorSecretKey))
             return Result.Failure<string>("BadRequest", "Generate a setup code first.");
 
-        if (!ValidateCode(user.TwoFactorSecretKey, code.Trim()))
+        if (!_totpValidator.ValidateCode(user.TwoFactorSecretKey, code.Trim()))
             return Result.Failure<string>("Unauthorized", "Invalid security code.");
 
         user.TwoFactorEnabled = true;
@@ -87,26 +88,7 @@ public class TwoFactorAuthService(
         if (string.IsNullOrEmpty(user.TwoFactorSecretKey))
             return Result.Failure<bool>("BadRequest", "Two-factor authentication is not set up.", 400);
 
-        var isValid = ValidateCode(user.TwoFactorSecretKey, code.Trim());
+        var isValid = _totpValidator.ValidateCode(user.TwoFactorSecretKey, code.Trim());
         return Result.Success(isValid);
-    }
-
-    private static bool ValidateCode(string secretKey, string code)
-    {
-        try
-        {
-            // Convert the Base32 secret to byte array
-            var secretKeyBytes = Base32Encoding.ToBytes(secretKey);
-
-            // Create TOTP instance with 30-second window
-            var totp = new Totp(secretKeyBytes, step: 30);
-
-            // Verify with some time drift allowance (1 period before and after)
-            return totp.VerifyTotp(code, out _, VerificationWindow.RfcSpecifiedNetworkDelay);
-        }
-        catch
-        {
-            return false;
-        }
     }
 }
