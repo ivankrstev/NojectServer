@@ -1,5 +1,4 @@
-﻿using MailKit.Net.Smtp;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using MimeKit;
 using NojectServer.Configurations;
 using NojectServer.Models;
@@ -15,6 +14,16 @@ public class EmailService(
     private readonly EmailSettings _emailSettings = options.Value;
     private readonly IEmailSender _emailSender = emailSender;
 
+    /// <summary>
+    /// Sends an email with a verification link to a user.
+    /// </summary>
+    /// <param name="user">The user to send the verification email to</param>
+    /// <returns>A task representing the asynchronous email sending operation</returns>
+    /// <exception cref="Exception">Thrown when the user's verification token is null</exception>
+    /// <remarks>
+    /// This method builds a verification link with the user's email and verification token,
+    /// then sends an email containing this link to the user.
+    /// </remarks>
     public async Task SendVerificationLinkAsync(User user)
     {
         if (user.VerificationToken == null) throw new Exception("Verification token is null");
@@ -23,6 +32,16 @@ public class EmailService(
         await SendEmail(user, "Email Verification", "verify your email", verificationLink);
     }
 
+    /// <summary>
+    /// Sends an email with a password reset link to a user.
+    /// </summary>
+    /// <param name="user">The user to send the password reset email to</param>
+    /// <returns>A task representing the asynchronous email sending operation</returns>
+    /// <exception cref="Exception">Thrown when the user's password reset token is null</exception>
+    /// <remarks>
+    /// This method builds a password reset link with the user's password reset token,
+    /// then sends an email containing this link to the user.
+    /// </remarks>
     public async Task SendResetPasswordLinkAsync(User user)
     {
         if (user.PasswordResetToken == null) throw new Exception("Password reset token is null");
@@ -31,6 +50,18 @@ public class EmailService(
         await SendEmail(user, "Password Reset Request", "reset your password", resetLink);
     }
 
+    /// <summary>
+    /// Sends an email to a user with specified subject, action, and link.
+    /// </summary>
+    /// <param name="user">The recipient user</param>
+    /// <param name="subject">The email subject</param>
+    /// <param name="action">The action description for the email content</param>
+    /// <param name="link">The action link to include in the email</param>
+    /// <returns>A task representing the asynchronous email sending operation</returns>
+    /// <remarks>
+    /// This method creates an email message with both plain text and HTML versions
+    /// of the content and sends it through the configured email sender.
+    /// </remarks>
     private async Task SendEmail(User user, string subject, string action, string link)
     {
         var emailMessage = new MimeMessage();
@@ -49,12 +80,29 @@ public class EmailService(
         await _emailSender.SendAsync(emailMessage);
     }
 
+    /// <summary>
+    /// Builds a link URL with query parameters.
+    /// </summary>
+    /// <param name="path">The base path of the link</param>
+    /// <param name="parameters">The query parameters to append to the URL</param>
+    /// <returns>A fully formed URL with query parameters</returns>
+    /// <remarks>
+    /// This method constructs a URL by combining the client URL from settings,
+    /// the specified path, and properly URL-encoded query parameters.
+    /// </remarks>
     private string BuildLink(string path, params (string Key, string Value)[] parameters)
     {
         var query = string.Join("&", parameters.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}"));
         return $"{_emailSettings.ClientUrl}/{path}?{query}";
     }
 
+    /// <summary>
+    /// Creates a plain text version of the email content.
+    /// </summary>
+    /// <param name="fullName">The recipient's full name</param>
+    /// <param name="action">The action description</param>
+    /// <param name="link">The action link</param>
+    /// <returns>A TextPart containing plain text email content</returns>
     private static TextPart CreateTextPart(string fullName, string action, string link)
     {
         return new TextPart("plain")
@@ -63,6 +111,13 @@ public class EmailService(
         };
     }
 
+    /// <summary>
+    /// Creates an HTML version of the email content.
+    /// </summary>
+    /// <param name="fullName">The recipient's full name</param>
+    /// <param name="action">The action description</param>
+    /// <param name="link">The action link</param>
+    /// <returns>A TextPart containing HTML formatted email content</returns>
     private static TextPart CreateHtmlPart(string fullName, string action, string link)
     {
         return new TextPart("html")
