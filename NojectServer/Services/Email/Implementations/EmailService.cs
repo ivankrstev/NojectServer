@@ -3,25 +3,24 @@ using Microsoft.Extensions.Options;
 using MimeKit;
 using NojectServer.Configurations;
 using NojectServer.Models;
+using NojectServer.Services.Email.Interfaces;
 using Task = System.Threading.Tasks.Task;
 
-namespace NojectServer.Services.Email;
+namespace NojectServer.Services.Email.Implementations;
 
-public class EmailService(IOptions<EmailSettings> options) : IEmailService
+public class EmailService(
+    IOptions<EmailSettings> options,
+    IEmailSender emailSender) : IEmailService
 {
     private readonly EmailSettings _emailSettings = options.Value;
+    private readonly IEmailSender _emailSender = emailSender;
 
     public async Task SendVerificationLinkAsync(User user)
     {
         if (user.VerificationToken == null) throw new Exception("Verification token is null");
 
         var verificationLink = BuildLink("verify-email", ("email", user.Email), ("token", user.VerificationToken));
-        await SendEmail(
-            user,
-            "Email Verification",
-            "verify your email",
-            verificationLink
-        );
+        await SendEmail(user, "Email Verification", "verify your email", verificationLink);
     }
 
     public async Task SendResetPasswordLinkAsync(User user)
@@ -29,14 +28,8 @@ public class EmailService(IOptions<EmailSettings> options) : IEmailService
         if (user.PasswordResetToken == null) throw new Exception("Password reset token is null");
 
         var resetLink = BuildLink("reset-password", ("token", user.PasswordResetToken));
-        await SendEmail(
-            user,
-            "Password Reset Request",
-            "reset your password",
-            resetLink
-        );
+        await SendEmail(user, "Password Reset Request", "reset your password", resetLink);
     }
-
 
     private async Task SendEmail(User user, string subject, string action, string link)
     {
@@ -47,15 +40,13 @@ public class EmailService(IOptions<EmailSettings> options) : IEmailService
         var emailTo = new MailboxAddress(user.FullName, user.Email);
         emailMessage.To.Add(emailTo);
         emailMessage.Subject = subject;
+
         // Create both plain text and HTML parts
         var textPart = CreateTextPart(user.FullName, action, link);
         var htmlPart = CreateHtmlPart(user.FullName, action, link);
         emailMessage.Body = new Multipart("alternative") { textPart, htmlPart };
-        using var smtp = new SmtpClient();
-        await smtp.ConnectAsync(_emailSettings.Host, _emailSettings.Port, _emailSettings.UseSsl);
-        await smtp.AuthenticateAsync(_emailSettings.UserName, _emailSettings.Password);
-        await smtp.SendAsync(emailMessage);
-        await smtp.DisconnectAsync(true);
+
+        await _emailSender.SendAsync(emailMessage);
     }
 
     private string BuildLink(string path, params (string Key, string Value)[] parameters)

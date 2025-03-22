@@ -4,7 +4,7 @@ using NojectServer.Models;
 using NojectServer.Models.Requests;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Services.Common.Interfaces;
-using NojectServer.Services.Email;
+using NojectServer.Services.Email.Interfaces;
 using NojectServer.Utils;
 using NojectServer.Utils.ResultPattern;
 
