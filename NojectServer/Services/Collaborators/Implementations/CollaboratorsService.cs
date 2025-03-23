@@ -8,6 +8,14 @@ using NojectServer.Utils.ResultPattern;
 
 namespace NojectServer.Services.Collaborators.Implementations;
 
+/// <summary>
+/// Implementation of the ICollaboratorsService interface that manages project collaborations.
+///
+/// This service handles all operations related to project collaborators, including adding,
+/// removing, searching for, and retrieving collaborators. It maintains the relationships between
+/// users and projects they can access, and sends real-time events via SignalR when
+/// collaboration status changes, allowing immediate UI updates for affected users.
+/// </summary>
 public class CollaboratorsService(DataContext dataContext, IHubContext<SharedProjectsHub> hubContext) : ICollaboratorsService
 {
     private readonly DataContext _dataContext = dataContext;
@@ -28,7 +36,8 @@ public class CollaboratorsService(DataContext dataContext, IHubContext<SharedPro
     /// - User isn't adding themselves
     /// - User to add exists in the system
     /// - User isn't already a collaborator
-    /// Notifies the added user via SignalR.
+    /// Sends a real-time event via SignalR to the added user, enabling immediate UI update
+    /// with the newly shared project.
     /// </remarks>
     public async Task<Result<string>> AddCollaboratorAsync(Guid projectId, string userEmailToAdd, string projectOwnerEmail)
     {
@@ -116,7 +125,8 @@ public class CollaboratorsService(DataContext dataContext, IHubContext<SharedPro
     /// or a failure with appropriate error message and status code.
     /// </returns>
     /// <remarks>
-    /// Notifies the removed collaborator via SignalR so they can update their UI.
+    /// Sends a real-time event via SignalR to the removed collaborator, enabling immediate
+    /// removal of the project from their UI without requiring a page refresh.
     /// </remarks>
     public async Task<Result<string>> RemoveCollaboratorAsync(Guid projectId, string userToRemove)
     {

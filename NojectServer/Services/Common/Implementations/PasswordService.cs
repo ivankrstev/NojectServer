@@ -4,6 +4,14 @@ using System.Text;
 
 namespace NojectServer.Services.Common.Implementations;
 
+/// <summary>
+/// Implementation of the IPasswordService interface that provides secure password hashing
+/// and verification functionality.
+///
+/// This service uses HMACSHA512 cryptographic algorithm to generate password hashes and salts,
+/// providing secure storage of user credentials. It handles both the creation of new password
+/// hashes during user registration and verification of passwords during authentication.
+/// </summary>
 public class PasswordService : IPasswordService
 {
     /// <summary>

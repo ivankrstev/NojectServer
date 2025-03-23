@@ -6,6 +6,14 @@ using NojectServer.Services.Email.Interfaces;
 
 namespace NojectServer.Services.Email.Implementations;
 
+/// <summary>
+/// Implementation of the IEmailSender interface that sends emails using SMTP protocol.
+///
+/// This class handles the low-level email delivery by establishing connections to
+/// the configured SMTP server, authenticating with credentials from application settings,
+/// and transmitting email messages. It encapsulates all SMTP-specific functionality
+/// to provide a clean abstraction for sending emails in the application.
+/// </summary>
 public class SmtpEmailSender(IOptions<EmailSettings> options) : IEmailSender
 {
     private readonly EmailSettings _emailSettings = options.Value;

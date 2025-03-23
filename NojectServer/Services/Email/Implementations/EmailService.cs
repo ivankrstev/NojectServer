@@ -7,6 +7,16 @@ using Task = System.Threading.Tasks.Task;
 
 namespace NojectServer.Services.Email.Implementations;
 
+/// <summary>
+/// Implementation of the IEmailService interface that provides high-level email
+/// functionality for the application.
+///
+/// This service is responsible for creating well-formatted emails with appropriate
+/// content for various application functions such as account verification and password
+/// reset. It handles the creation of both plain text and HTML versions of emails,
+/// proper formatting of links, and delegating the actual sending to an IEmailSender
+/// implementation.
+/// </summary>
 public class EmailService(
     IOptions<EmailSettings> options,
     IEmailSender emailSender) : IEmailService
