@@ -8,11 +8,33 @@ using System.Text;
 
 namespace NojectServer.Services.Auth.Implementations;
 
+/// <summary>
+/// Implementation of the ITokenService interface that generates and validates JWT tokens
+/// for authentication and authorization purposes.
+///
+/// This service handles three token types:
+/// - Access tokens for API authentication
+/// - Refresh tokens for obtaining new access tokens
+/// - Two-factor authentication (TFA) tokens for multi-factor authentication flows
+///
+/// Each token type has its own configuration including secret key and expiration time,
+/// loaded from application settings.
+/// </summary>
 public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
 {
     private readonly JwtTokenOptions _jwtTokenOptions = options.Value;
     private readonly JwtSecurityTokenHandler _tokenHandler = new();
 
+    /// <summary>
+    /// Creates a JWT access token containing the user's email as a claim.
+    /// The token is signed with the access token secret key and includes configured
+    /// issuer, audience, and expiration time.
+    /// </summary>
+    /// <param name="email">The email address of the user to create the token for</param>
+    /// <returns>A signed JWT token string</returns>
+    /// <exception cref="ArgumentNullException">Thrown when email is null</exception>
+    /// <exception cref="InvalidOperationException">Thrown when JWT configuration is incomplete or invalid</exception>
+    /// <exception cref="ArgumentException">Thrown when required JWT settings are empty or invalid</exception>
     public string CreateAccessToken(string email)
     {
         if (email == null)
@@ -63,6 +85,16 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
         }
     }
 
+    /// <summary>
+    /// Creates a JWT refresh token containing the user's email as a claim.
+    /// The token is signed with the refresh token secret key and includes configured
+    /// issuer, audience, and expiration time (typically longer than access tokens).
+    /// </summary>
+    /// <param name="email">The email address of the user to create the token for</param>
+    /// <returns>A signed JWT token string</returns>
+    /// <exception cref="ArgumentNullException">Thrown when email is null</exception>
+    /// <exception cref="InvalidOperationException">Thrown when JWT configuration is incomplete or invalid</exception>
+    /// <exception cref="ArgumentException">Thrown when required JWT settings are empty or invalid</exception>
     public string CreateRefreshToken(string email)
     {
         if (email == null)
@@ -113,6 +145,16 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
         }
     }
 
+    /// <summary>
+    /// Creates a JWT token for two-factor authentication containing the user's email as a claim.
+    /// The token is signed with the TFA token secret key and includes configured issuer, audience,
+    /// and a short expiration time suitable for TFA flows.
+    /// </summary>
+    /// <param name="email">The email address of the user to create the token for</param>
+    /// <returns>A signed JWT token string</returns>
+    /// <exception cref="ArgumentNullException">Thrown when email is null</exception>
+    /// <exception cref="InvalidOperationException">Thrown when JWT configuration is incomplete or invalid</exception>
+    /// <exception cref="ArgumentException">Thrown when required JWT settings are empty or invalid</exception>
     public string CreateTfaToken(string email)
     {
         if (email == null)
@@ -161,6 +203,14 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
         }
     }
 
+    /// <summary>
+    /// Provides the validation parameters required to verify TFA tokens.
+    /// These parameters define how a TFA token should be validated, including issuer, audience,
+    /// lifetime, and signing key verification requirements.
+    /// </summary>
+    /// <returns>TokenValidationParameters configured for TFA token validation</returns>
+    /// <exception cref="InvalidOperationException">Thrown when JWT configuration is incomplete or invalid</exception>
+    /// <exception cref="ArgumentException">Thrown when required JWT settings are empty or invalid</exception>
     public TokenValidationParameters GetTfaTokenValidationParameters()
     {
         try

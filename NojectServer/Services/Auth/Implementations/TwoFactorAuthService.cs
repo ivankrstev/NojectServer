@@ -7,6 +7,15 @@ using NojectServer.Utils.ResultPattern;
 
 namespace NojectServer.Services.Auth.Implementations;
 
+/// <summary>
+/// Implementation of the ITwoFactorAuthService interface that manages two-factor
+/// authentication (2FA) functionality for the application.
+///
+/// This service handles the generation of 2FA setup codes, enabling/disabling 2FA
+/// for user accounts, and validating TOTP codes during the authentication process.
+/// It utilizes TOTP (Time-based One-Time Password) standards to generate and validate
+/// verification codes.
+/// </summary>
 public class TwoFactorAuthService(
     IConfiguration config,
     DataContext dataContext,
@@ -16,6 +25,17 @@ public class TwoFactorAuthService(
     private readonly DataContext _dataContext = dataContext;
     private readonly ITotpValidator _totpValidator = totpValidator;
 
+    /// <summary>
+    /// Disables two-factor authentication for a user after verifying the provided code.
+    /// This method validates the code using the TOTP validator before disabling 2FA
+    /// and removing the secret key from the user's account.
+    /// </summary>
+    /// <param name="email">The email address of the user</param>
+    /// <param name="code">The verification code from the user's TOTP app</param>
+    /// <returns>
+    /// A Result containing a success message if 2FA was disabled successfully,
+    /// or an error message with appropriate status code if the operation fails
+    /// </returns>
     public async Task<Result<string>> DisableTwoFactorAsync(string email, string code)
     {
         var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email == email);
@@ -35,6 +55,17 @@ public class TwoFactorAuthService(
         return Result.Success("2FA disabled successfully.");
     }
 
+    /// <summary>
+    /// Enables two-factor authentication for a user after verifying the provided code.
+    /// This method checks if the user has a secret key generated and validates the code
+    /// using the TOTP validator before enabling 2FA for the user's account.
+    /// </summary>
+    /// <param name="email">The email address of the user</param>
+    /// <param name="code">The verification code from the user's TOTP app</param>
+    /// <returns>
+    /// A Result containing a success message if 2FA was enabled successfully,
+    /// or an error message if the operation fails
+    /// </returns>
     public async Task<Result<string>> EnableTwoFactorAsync(string email, string code)
     {
         var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email == email);
@@ -53,6 +84,16 @@ public class TwoFactorAuthService(
         return Result.Success("2FA enabled successfully.");
     }
 
+    /// <summary>
+    /// Generates a setup code for 2FA and prepares the user account for 2FA enrollment.
+    /// This method creates a new secret key and generates a QR code URL that can be
+    /// displayed to the user for scanning with a TOTP app.
+    /// </summary>
+    /// <param name="email">The email address of the user</param>
+    /// <returns>
+    /// A Result containing TwoFactorSetupResult with the manual key and QR code URL if successful,
+    /// or an error message if the operation fails
+    /// </returns>
     public async Task<Result<TwoFactorSetupResult>> GenerateSetupCodeAsync(string email)
     {
         var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email == email);
@@ -80,6 +121,17 @@ public class TwoFactorAuthService(
         });
     }
 
+    /// <summary>
+    /// Validates a TOTP code provided by the user during the login process.
+    /// This method checks if the user has 2FA enabled and validates the code
+    /// using the TOTP validator.
+    /// </summary>
+    /// <param name="email">The email address of the user</param>
+    /// <param name="code">The verification code from the user's TOTP app</param>
+    /// <returns>
+    /// A Result containing a boolean indicating whether the code is valid,
+    /// or an error message if the validation process fails
+    /// </returns>
     public async Task<Result<bool>> ValidateTwoFactorCodeAsync(string email, string code)
     {
         var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email == email);
