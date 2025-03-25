@@ -204,6 +204,53 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
     }
 
     /// <summary>
+    /// Provides the validation parameters required to verify access tokens.
+    /// These parameters define how an access token should be validated, including issuer, audience,
+    /// lifetime, and signing key verification requirements.
+    /// </summary>
+    /// <returns>TokenValidationParameters configured for access token validation</returns>
+    /// <exception cref="InvalidOperationException">Thrown when JWT configuration is incomplete or invalid</exception>
+    /// <exception cref="ArgumentException">Thrown when required JWT settings are empty or invalid</exception>
+    public TokenValidationParameters GetAccessTokenValidationParameters()
+    {
+        try
+        {
+            if (_jwtTokenOptions.Access == null)
+                throw new InvalidOperationException("JWT Access token configuration is missing");
+
+            if (string.IsNullOrEmpty(_jwtTokenOptions.Access.SecretKey))
+                throw new ArgumentException("JWT Access token secret key cannot be empty");
+
+            if (string.IsNullOrEmpty(_jwtTokenOptions.Issuer))
+                throw new ArgumentException("JWT issuer cannot be empty");
+
+            if (string.IsNullOrEmpty(_jwtTokenOptions.Audience))
+                throw new ArgumentException("JWT audience cannot be empty");
+
+            // Create and return new token validation parameters
+            return new()
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtTokenOptions.Access.SecretKey)),
+                ValidateIssuer = true,
+                ValidIssuer = _jwtTokenOptions.Issuer,
+                ValidateAudience = true,
+                ValidAudience = _jwtTokenOptions.Audience,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+        }
+        catch (NullReferenceException)
+        {
+            throw new InvalidOperationException("JWT configuration is incomplete. Make sure Access token settings are properly configured.");
+        }
+        catch (ArgumentException ex) when (ex.Message.Contains("The key size is"))
+        {
+            throw new InvalidOperationException("JWT Access token secret key has invalid length", ex);
+        }
+    }
+
+    /// <summary>
     /// Provides the validation parameters required to verify TFA tokens.
     /// These parameters define how a TFA token should be validated, including issuer, audience,
     /// lifetime, and signing key verification requirements.

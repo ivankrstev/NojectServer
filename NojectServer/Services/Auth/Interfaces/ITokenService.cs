@@ -34,6 +34,14 @@ public interface ITokenService
     string CreateTfaToken(string email);
 
     /// <summary>
+    /// Provides the validation parameters required to verify access tokens.
+    /// These parameters define how an access token should be validated, including
+    /// issuer, audience, lifetime, and signing key verification.
+    /// </summary>
+    /// <returns>TokenValidationParameters for access token validation</returns>
+    TokenValidationParameters GetAccessTokenValidationParameters();
+
+    /// <summary>
     /// Provides the validation parameters required to verify TFA tokens.
     /// These parameters define how a TFA token should be validated, including
     /// issuer, audience, lifetime, and signing key verification.
