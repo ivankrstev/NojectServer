@@ -20,7 +20,7 @@ namespace NojectServer;
             options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
         );
 
-        // Add application services using the extension methods
+        // Add application services using the extension method
         builder.Services.AddServices();
         // Configure application options using the extension method
         builder.Services.AddAppOptions(builder.Configuration);
@@ -34,6 +34,8 @@ namespace NojectServer;
         // Add a controller and the API explorer
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
+        // Register Swagger generator for API documentation and testing
+        builder.Services.AddSwaggerGen();
 
         // Register the global exception handler
         builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
