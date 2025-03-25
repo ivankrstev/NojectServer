@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using NojectServer.Configurations;
 using NojectServer.Middlewares;
+using NojectServer.OptionsSetup;
 using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Services.Auth.Validation.Implementations;
@@ -11,6 +12,8 @@ using NojectServer.Services.Common.Implementations;
 using NojectServer.Services.Common.Interfaces;
 using NojectServer.Services.Email.Implementations;
 using NojectServer.Services.Email.Interfaces;
+using NojectServer.Services.Projects.Implementations;
+using NojectServer.Services.Projects.Interfaces;
 
 namespace NojectServer.DependencyInjection;
 
@@ -47,6 +50,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITotpValidator, OtpNetTotpValidator>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<ICollaboratorsService, CollaboratorsService>();
+        services.AddScoped<IProjectsService, ProjectsService>();
 
         // Register middlewares for verifying project ownership and access
         services.AddScoped<VerifyProjectOwnership>();
@@ -76,5 +80,8 @@ public static class ServiceCollectionExtensions
 
         // Register options validators
         services.AddSingleton<IValidateOptions<JwtTokenOptions>, JwtTokenOptionsValidator>();
+
+        // Configure JWT bearer options
+        services.ConfigureOptions<JwtBearerOptionsSetup>();
     }
 }

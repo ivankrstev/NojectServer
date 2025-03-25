@@ -9,11 +9,11 @@ using NojectServer.OptionsSetup;
 
 namespace NojectServer;
 
-    public class Program
+public class Program
+{
+    public static void Main(string[] args)
     {
-        public static void Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
+        var builder = WebApplication.CreateBuilder(args);
 
         // Register the database context
         builder.Services.AddDbContext<DataContext>(options =>
@@ -26,14 +26,14 @@ namespace NojectServer;
         builder.Services.AddAppOptions(builder.Configuration);
 
         // Add filter for verifying project access to the Tasks SignalR hub
-            builder.Services.AddSignalR().AddHubOptions<TasksHub>(options =>
-            {
-                options.AddFilter<VerifyProjectAccessHub>();
-            });
+        builder.Services.AddSignalR().AddHubOptions<TasksHub>(options =>
+        {
+            options.AddFilter<VerifyProjectAccessHub>();
+        });
 
         // Add a controller and the API explorer
-            builder.Services.AddControllers();
-            builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddControllers();
+        builder.Services.AddEndpointsApiExplorer();
         // Register Swagger generator for API documentation and testing
         builder.Services.AddSwaggerGen();
 
@@ -51,32 +51,32 @@ namespace NojectServer;
         builder.Services.ConfigureOptions<ApiBehaviorOptionsSetup>();
 
         // Register the JWT bearer authentication scheme
-            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options => new JwtBearerOptionsSetup().GetOptions(builder.Configuration, options));
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer();
 
-            var app = builder.Build();
+        var app = builder.Build();
 
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-            if (app.Environment.IsProduction())
-            {
-                // Make sure the database is set up, on production start
-                app.Services.CreateScope().ServiceProvider.GetRequiredService<DataContext>().Database.Migrate();
-            }
-            app.UseCors("CorsPolicy");
-
-            app.UseHttpsRedirection();
-
-            app.UseAuthentication();
-            app.UseAuthorization();
-
-            app.MapControllers();
-            app.MapHub<SharedProjectsHub>("/SharedProjectsHub");
-            app.MapHub<TasksHub>("/TasksHub");
-
-            app.Run();
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
         }
+        if (app.Environment.IsProduction())
+        {
+            // Make sure the database is set up, on production start
+            app.Services.CreateScope().ServiceProvider.GetRequiredService<DataContext>().Database.Migrate();
+        }
+        app.UseCors("CorsPolicy");
+
+        app.UseHttpsRedirection();
+
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        app.MapControllers();
+        app.MapHub<SharedProjectsHub>("/SharedProjectsHub");
+        app.MapHub<TasksHub>("/TasksHub");
+
+        app.Run();
     }
+}
