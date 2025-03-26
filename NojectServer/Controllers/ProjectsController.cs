@@ -23,58 +23,34 @@ public class ProjectsController(IProjectsService projectsService) : ControllerBa
         var userEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
         var result = await _projectsService.CreateProjectAsync(request, userEmail);
 
-        return result switch
-        {
-            SuccessResult<Project> success => Created(nameof(Project), success.Value),
-            FailureResult<Project> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, project => Created(nameof(project), project));
     }
 
     [HttpGet("", Name = "Get all own projects")]
-    public async Task<ActionResult<List<Project>>> GetOwnProjects()
+    public async Task<IActionResult> GetOwnProjects()
     {
         var userEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
         var result = await _projectsService.GetOwnProjectsAsync(userEmail);
 
-        return result switch
-        {
-            SuccessResult<List<Project>> success => Ok(new { projects = success.Value }),
-            FailureResult<List<Project>> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, projects => Ok(new { projects }));
     }
 
     [HttpGet("shared", Name = "Get all shared projects")]
-    public async Task<ActionResult<List<Project>>> GetSharedProjects()
+    public async Task<IActionResult> GetSharedProjects()
     {
         var userEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
         var result = await _projectsService.GetProjectsAsCollaboratorAsync(userEmail);
 
-        return result switch
-        {
-            SuccessResult<List<Project>> success => Ok(new { sharedProjects = success.Value }),
-            FailureResult<List<Project>> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, sharedProjects => Ok(new { sharedProjects }));
     }
 
     [HttpPut("{id}")]
     [ServiceFilter(typeof(VerifyProjectOwnership))]
-    public async Task<ActionResult> UpdateProjectName(Guid id, AddUpdateProjectRequest request)
+    public async Task<IActionResult> UpdateProjectName(Guid id, AddUpdateProjectRequest request)
     {
         var result = await _projectsService.UpdateProjectNameAsync(id, request);
 
-        return result switch
-        {
-            SuccessResult<string> success => Ok(new { message = success.Value }),
-            FailureResult<string> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, value => Ok(new { message = value }));
     }
 
     [HttpDelete("{id}", Name = "DeleteById")]
@@ -83,13 +59,7 @@ public class ProjectsController(IProjectsService projectsService) : ControllerBa
     {
         var result = await _projectsService.DeleteProjectAsync(id);
 
-        return result switch
-        {
-            SuccessResult<string> success => Ok(new { message = success.Value }),
-            FailureResult<string> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, value => Ok(new { message = value }));
     }
 
     [HttpPut("{id}/share", Name = "ToggleProjectSharingOn")]
@@ -98,13 +68,7 @@ public class ProjectsController(IProjectsService projectsService) : ControllerBa
     {
         var result = await _projectsService.GrantPublicAccessAsync(id);
 
-        return result switch
-        {
-            SuccessResult<string> success => Ok(new { message = success.Value }),
-            FailureResult<string> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, value => Ok(new { message = value }));
     }
 
     [HttpDelete("{id}/share", Name = "ToggleProjectSharingOff")]
@@ -113,27 +77,15 @@ public class ProjectsController(IProjectsService projectsService) : ControllerBa
     {
         var result = await _projectsService.RevokePublicAccessAsync(id);
 
-        return result switch
-        {
-            SuccessResult<string> success => Ok(new { message = success.Value }),
-            FailureResult<string> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, value => Ok(new { message = value }));
     }
 
     [HttpGet("{id}/share", Name = "GetPublicProjectTasks ")]
     [AllowAnonymous]
-    public async Task<ActionResult<List<Models.Task>>> GetPublicProjectTasks(Guid id)
+    public async Task<IActionResult> GetPublicProjectTasks(Guid id)
     {
         var result = await _projectsService.GetTasksAsCollaboratorAsync(id);
 
-        return result switch
-        {
-            SuccessResult<List<Models.Task>> success => Ok(new { tasks = success.Value }),
-            FailureResult<List<Models.Task>> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, tasks => Ok(new { tasks }));
     }
 }

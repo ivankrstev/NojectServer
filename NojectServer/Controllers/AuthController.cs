@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NojectServer.Configurations;
 using NojectServer.Data;
-using NojectServer.Models;
 using NojectServer.Models.Requests;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Utils.ResultPattern;
@@ -38,14 +37,9 @@ public class AuthController(
     public async Task<IActionResult> Register(UserRegisterRequest request)
     {
         var result = await _authService.RegisterAsync(request);
-        return result switch
-        {
-            SuccessResult<User> => Created(nameof(User),
-                new { message = "Registration successful. Please check your email to verify your account." }),
-            FailureResult<User> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+
+        return result.ToActionResult(this, _ => Created(nameof(User),
+            new { message = "Registration successful. Please check your email to verify your account." }));
     }
 
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -56,6 +50,7 @@ public class AuthController(
     {
         var result = await _authService.LoginAsync(request);
 
+        // Custom handling for login due to cookie setting and token generation
         if (result is not SuccessResult<string> success)
         {
             var failure = (FailureResult<string>)result;
@@ -87,15 +82,9 @@ public class AuthController(
 
         var result = await _twoFactorAuthService.ValidateTwoFactorCodeAsync(email, request.TwoFactorCode.Trim());
 
-        return result switch
-        {
-            SuccessResult<bool> success => success.Value
-                ? Ok(new { access_token = _tokenService.CreateAccessToken(email) })
-                : BadRequest(new { error = "Bad Request", message = "Invalid security code." }),
-            FailureResult<bool> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, isValid =>
+            isValid ? Ok(new { access_token = _tokenService.CreateAccessToken(email) })
+                    : BadRequest(new { error = "Bad Request", message = "Invalid security code." }));
     }
 
     [HttpPost("tfa/generate")]
@@ -105,13 +94,7 @@ public class AuthController(
         var email = User.FindFirst(ClaimTypes.Name)?.Value!;
         var result = await _twoFactorAuthService.GenerateSetupCodeAsync(email);
 
-        return result switch
-        {
-            SuccessResult<TwoFactorSetupResult> success => Ok(success.Value),
-            FailureResult<TwoFactorSetupResult> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this);
     }
 
     [HttpPut("tfa/enable")]
@@ -121,13 +104,7 @@ public class AuthController(
         var email = User.FindFirst(ClaimTypes.Name)?.Value!;
         var result = await _twoFactorAuthService.EnableTwoFactorAsync(email, request.TwoFactorCode);
 
-        return result switch
-        {
-            SuccessResult<string> success => Ok(new { message = success.Value }),
-            FailureResult<string> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this);
     }
 
     [HttpPut("tfa/disable")]
@@ -137,13 +114,7 @@ public class AuthController(
         var email = User.FindFirst(ClaimTypes.Name)?.Value!;
         var result = await _twoFactorAuthService.DisableTwoFactorAsync(email, request.TwoFactorCode);
 
-        return result switch
-        {
-            SuccessResult<string> success => Ok(new { message = success.Value }),
-            FailureResult<string> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, value => Ok(new { message = value }));
     }
 
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -176,13 +147,7 @@ public class AuthController(
     {
         var result = await _authService.VerifyEmailAsync(email, token);
 
-        return result switch
-        {
-            SuccessResult<string> success => Ok(new { message = success.Value }),
-            FailureResult<string> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, value => Ok(new { message = value }));
     }
 
     [HttpPost("forgot-password")]
@@ -190,12 +155,6 @@ public class AuthController(
     {
         var result = await _authService.ForgotPasswordAsync(request.Email);
 
-        return result switch
-        {
-            SuccessResult<string> success => Ok(new { message = success.Value }),
-            FailureResult<string> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, value => Ok(new { message = value }));
     }
 }

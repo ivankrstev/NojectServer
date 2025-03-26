@@ -29,45 +29,27 @@ public class CollaboratorsController(ICollaboratorsService collaboratorsService)
         string projectOwnerEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
         var result = await _collaboratorsService.AddCollaboratorAsync(id, request.UserId, projectOwnerEmail);
 
-        return result switch
-        {
-            SuccessResult<string> success => Ok(success.Value),
-            FailureResult<string> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this);
     }
 
     [HttpGet("search/{id}")]
     [ProducesResponseType(typeof(SuccessMessage), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<List<string>>> Search(Guid id, [FromQuery, BindRequired] string userToFind)
+    public async Task<IActionResult> Search(Guid id, [FromQuery, BindRequired] string userToFind)
     {
         string projectOwnerEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
         var result = await _collaboratorsService.SearchCollaboratorsAsync(id, userToFind, projectOwnerEmail);
 
-        return result switch
-        {
-            SuccessResult<List<string>> success => Ok(new { users = success.Value }),
-            FailureResult<List<string>> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, users => Ok(new { users }));
     }
 
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(SuccessMessage), StatusCodes.Status200OK)]
-    public async Task<ActionResult<List<string>>> GetAll(Guid id)
+    public async Task<IActionResult> GetAll(Guid id)
     {
         var result = await _collaboratorsService.GetAllCollaboratorsAsync(id);
 
-        return result switch
-        {
-            SuccessResult<List<string>> success => Ok(new { collaborators = success.Value }),
-            FailureResult<List<string>> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, collaborators => Ok(new { collaborators }));
     }
 
     [HttpDelete("{id}")]
@@ -77,12 +59,6 @@ public class CollaboratorsController(ICollaboratorsService collaboratorsService)
     {
         var result = await _collaboratorsService.RemoveCollaboratorAsync(id, userToRemove);
 
-        return result switch
-        {
-            SuccessResult<string> success => Ok(new SuccessMessage { Message = success.Value }),
-            FailureResult<string> failure => StatusCode(failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
-        };
+        return result.ToActionResult(this, value => Ok(new SuccessMessage { Message = value }));
     }
 }
