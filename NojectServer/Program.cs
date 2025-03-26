@@ -66,8 +66,12 @@ public class Program
             // Make sure the database is set up, on production start
             app.Services.CreateScope().ServiceProvider.GetRequiredService<DataContext>().Database.Migrate();
         }
-        app.UseCors("CorsPolicy");
 
+        // Use the CORS policy
+        app.UseCors("CorsPolicy");
+        // Use the global exception handler
+        app.UseExceptionHandler();
+        // Use HTTPS redirection
         app.UseHttpsRedirection();
 
         app.UseAuthentication();
