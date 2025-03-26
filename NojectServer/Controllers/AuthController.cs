@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NojectServer.Configurations;
-using NojectServer.Data;
 using NojectServer.Models.Requests;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Utils.ResultPattern;
@@ -16,14 +14,12 @@ namespace NojectServer.Controllers;
 [Route("[controller]")]
 [Produces("application/json")]
 public class AuthController(
-    DataContext dataContext,
     IAuthService authService,
     ITokenService tokenService,
     IRefreshTokenService refreshTokenService,
     ITwoFactorAuthService twoFactorAuthService,
     IOptions<JwtTokenOptions> options) : ControllerBase
 {
-    private readonly DataContext _dataContext = dataContext;
     private readonly IAuthService _authService = authService;
     private readonly IRefreshTokenService _refreshTokenService = refreshTokenService;
     private readonly ITokenService _tokenService = tokenService;
@@ -48,24 +44,33 @@ public class AuthController(
     [HttpPost("login", Name = "Login user")]
     public async Task<IActionResult> Login(UserLoginRequest request)
     {
-        var result = await _authService.LoginAsync(request);
+        var authResult = await _authService.LoginAsync(request);
 
         // Custom handling for login due to cookie setting and token generation
-        if (result is not SuccessResult<string> success)
+        if (authResult is not SuccessResult<string> success)
         {
-            var failure = (FailureResult<string>)result;
+            var failure = (FailureResult<string>)authResult;
             return StatusCode(failure.Error.StatusCode,
                 new { error = failure.Error.Error, message = failure.Error.Message });
         }
 
         var email = success.Value;
         var accessToken = _tokenService.CreateAccessToken(email);
-        var refreshToken = await _refreshTokenService.GenerateRefreshTokenAsync(email);
+        var refreshTokenResult = await _refreshTokenService.GenerateRefreshTokenAsync(email);
+
+        if (refreshTokenResult is not SuccessResult<string> refreshSuccess)
+        {
+            var failure = (FailureResult<string>)refreshTokenResult;
+            return StatusCode(failure.Error.StatusCode,
+                new { error = failure.Error.Error, message = failure.Error.Message });
+        }
+
+        var refreshToken = refreshSuccess.Value;
 
         Response.Cookies.Append("refresh_token", refreshToken, new CookieOptions
         {
             HttpOnly = true,
-            Expires = DateTime.UtcNow.AddSeconds(_jwtTokenOptions.Access.ExpirationInSeconds),
+            Expires = DateTime.UtcNow.AddSeconds(_jwtTokenOptions.Refresh.ExpirationInSeconds),
             Secure = true,
             SameSite = SameSiteMode.None
         });
@@ -123,23 +128,21 @@ public class AuthController(
     public async Task<ActionResult<object>> RefreshToken()
     {
         var refreshToken = Request.Cookies["refresh_token"];
-        var user = await _dataContext.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == refreshToken);
-        if (user == null)
+
+        if (string.IsNullOrEmpty(refreshToken))
             return Unauthorized(new
             {
                 error = "Unauthorized",
-                message = "Invalid refresh token."
+                message = "Refresh token not found."
             });
 
-        if (user.ExpireDate < DateTime.UtcNow)
-            return Unauthorized(new
-            {
-                error = "Unauthorized",
-                message = "Token has expired."
-            });
+        var result = await _refreshTokenService.ValidateRefreshTokenAsync(refreshToken);
 
-        var accessToken = _tokenService.CreateAccessToken(user.Email);
-        return new { accessToken };
+        return result.ToActionResult(this, validToken =>
+        {
+            var accessToken = _tokenService.CreateAccessToken(validToken.Email);
+            return Ok(new { access_token = accessToken });
+        });
     }
 
     [HttpGet("verify-email")]

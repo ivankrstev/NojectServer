@@ -1,5 +1,5 @@
 ﻿using NojectServer.Models;
-using Task = System.Threading.Tasks.Task;
+using NojectServer.Utils.ResultPattern;
 
 namespace NojectServer.Services.Auth.Interfaces;
 
@@ -17,7 +17,7 @@ public interface IRefreshTokenService
     /// <param name="email">The email address of the user to create the token for</param>
     /// <returns>A Task representing the asynchronous operation, containing the generated refresh token string</returns>
     /// <exception cref="ArgumentNullException">Thrown when email is null</exception>
-    Task<string> GenerateRefreshTokenAsync(string email);
+    Task<Result<string>> GenerateRefreshTokenAsync(string email);
 
     /// <summary>
     /// Validates a refresh token by checking its existence and expiration date.
@@ -26,7 +26,7 @@ public interface IRefreshTokenService
     /// <returns>A Task representing the asynchronous operation, containing the valid RefreshToken entity</returns>
     /// <exception cref="ArgumentNullException">Thrown when token is null</exception>
     /// <exception cref="SecurityTokenException">Thrown when the token is invalid or expired</exception>
-    Task<RefreshToken> ValidateRefreshTokenAsync(string token);
+    Task<Result<RefreshToken>> ValidateRefreshTokenAsync(string token);
 
     /// <summary>
     /// Revokes a refresh token by removing it from the database.
@@ -35,5 +35,5 @@ public interface IRefreshTokenService
     /// <param name="token">The refresh token string to revoke</param>
     /// <returns>A Task representing the asynchronous operation</returns>
     /// <exception cref="ArgumentNullException">Thrown when token is null</exception>
-    Task RevokeRefreshTokenAsync(string token);
+    Task<Result<bool>> RevokeRefreshTokenAsync(string token);
 }
