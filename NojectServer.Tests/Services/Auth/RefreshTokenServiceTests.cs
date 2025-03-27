@@ -94,7 +94,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task ValidateRefreshTokenAsync_WithExpiredToken_ShouldThrowSecurityTokenException()
+    public async Task ValidateRefreshTokenAsync_WithExpiredToken_ShouldReturnFailureResult()
     {
         // Arrange
         var expiredToken = new RefreshToken
@@ -105,23 +105,31 @@ public class RefreshTokenServiceTests
         };
         _refreshTokenList.Add(expiredToken);
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<SecurityTokenException>(
-            async () => await _refreshTokenService.ValidateRefreshTokenAsync("expired-token"));
+        // Act
+        var result = await _refreshTokenService.ValidateRefreshTokenAsync("expired-token");
 
-        Assert.Contains("Invalid or expired", exception.Message);
+        // Assert
+        Assert.False(result.IsSuccess);
+        var failureResult = Assert.IsType<FailureResult<RefreshToken>>(result);
+        Assert.Equal("ExpiredToken", failureResult.Error.Error);
+        Assert.Equal("Refresh token has expired.", failureResult.Error.Message);
+        Assert.Equal(401, failureResult.Error.StatusCode);
     }
 
     [Fact]
-    public async Task ValidateRefreshTokenAsync_WithInvalidToken_ShouldThrowSecurityTokenException()
+    public async Task ValidateRefreshTokenAsync_WithInvalidToken_ShouldReturnFailureResult()
     {
         // Arrange - No tokens in the list matches "invalid-token"
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<SecurityTokenException>(
-            async () => await _refreshTokenService.ValidateRefreshTokenAsync("invalid-token"));
+        // Act
+        var result = await _refreshTokenService.ValidateRefreshTokenAsync("invalid-token");
 
-        Assert.Contains("Invalid or expired", exception.Message);
+        // Assert
+        Assert.False(result.IsSuccess);
+        var failureResult = Assert.IsType<FailureResult<RefreshToken>>(result);
+        Assert.Equal("InvalidToken", failureResult.Error.Error);
+        Assert.Equal("Invalid refresh token.", failureResult.Error.Message);
+        Assert.Equal(401, failureResult.Error.StatusCode);
     }
 
     [Fact]
