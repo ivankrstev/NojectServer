@@ -1,16 +1,14 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Moq;
 using NojectServer.Data;
 using NojectServer.Models;
-using NojectServer.Models.Requests;
+using NojectServer.Models.Requests.Auth;
 using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Common.Interfaces;
 using NojectServer.Services.Email.Interfaces;
 using NojectServer.Tests.MockHelpers;
 using NojectServer.Utils.ResultPattern;
-using System.Linq.Expressions;
 using Task = System.Threading.Tasks.Task;
 
 namespace NojectServer.Tests.Services.Auth;
@@ -54,7 +52,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_UserExists_ReturnsConflictResult()
     {
         // Arrange
-        var request = new UserRegisterRequest
+        var request = new RegisterRequest
         {
             Email = "existing@example.com",
             FullName = "Existing User",
@@ -80,7 +78,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_InvalidRequest_ReturnsBadRequest()
     {
         // Arrange
-        var request = new UserRegisterRequest
+        var request = new RegisterRequest
         {
             Email = "test@example.com",
             FullName = "Test User",
@@ -101,7 +99,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_ValidRequest_ReturnsSuccess()
     {
         // Arrange
-        var request = new UserRegisterRequest
+        var request = new RegisterRequest
         {
             Email = "new@example.com",
             FullName = "New User",
@@ -136,7 +134,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_ExceptionThrown_ReturnsFailureResult()
     {
         // Arrange
-        var request = new UserRegisterRequest
+        var request = new RegisterRequest
         {
             Email = "test@example.com",
             FullName = "Test User",
@@ -176,7 +174,7 @@ public class AuthServiceTests
     public async Task LoginAsync_UserNotFound_ReturnsUnauthorized()
     {
         // Arrange
-        var request = new UserLoginRequest
+        var request = new LoginRequest
         {
             Email = "notfound@example.com",
             Password = "Password123"
@@ -197,7 +195,7 @@ public class AuthServiceTests
     public async Task LoginAsync_InvalidPassword_ReturnsUnauthorized()
     {
         // Arrange
-        var request = new UserLoginRequest
+        var request = new LoginRequest
         {
             Email = "user@example.com",
             Password = "WrongPassword"
@@ -235,7 +233,7 @@ public class AuthServiceTests
     public async Task LoginAsync_EmailNotVerified_ReturnsUnauthorized()
     {
         // Arrange
-        var request = new UserLoginRequest
+        var request = new LoginRequest
         {
             Email = "unverified@example.com",
             Password = "Password123"
@@ -269,7 +267,7 @@ public class AuthServiceTests
     public async Task LoginAsync_ValidCredentials_ReturnsSuccess()
     {
         // Arrange
-        var request = new UserLoginRequest
+        var request = new LoginRequest
         {
             Email = "verified@example.com",
             Password = "Password123"

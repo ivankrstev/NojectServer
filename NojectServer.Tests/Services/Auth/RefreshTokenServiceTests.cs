@@ -6,6 +6,7 @@ using NojectServer.Models;
 using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Tests.MockHelpers;
+using NojectServer.Utils.ResultPattern;
 using Task = System.Threading.Tasks.Task;
 
 namespace NojectServer.Tests.Services.Auth;
@@ -50,10 +51,12 @@ public class RefreshTokenServiceTests
         string expectedToken = $"mock-refresh-token-{email}";
 
         // Act
-        string result = await _refreshTokenService.GenerateRefreshTokenAsync(email);
+        var result = await _refreshTokenService.GenerateRefreshTokenAsync(email);
 
         // Assert
-        Assert.Equal(expectedToken, result);
+        Assert.True(result.IsSuccess);
+        var successResult = Assert.IsType<SuccessResult<string>>(result);
+        Assert.Equal(expectedToken, successResult.Value);
         _mockTokenService.Verify(ts => ts.CreateRefreshToken(email), Times.Once);
         _mockDataContext.Verify(dc => dc.RefreshTokens.Add(It.IsAny<RefreshToken>()), Times.Once);
         _mockDataContext.Verify(dc => dc.SaveChangesAsync(default), Times.Once);
@@ -84,9 +87,10 @@ public class RefreshTokenServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(validToken.Email, result.Email);
-        Assert.Equal(validToken.Token, result.Token);
-        Assert.Equal(validToken.ExpireDate, result.ExpireDate);
+        var successResult = Assert.IsType<SuccessResult<RefreshToken>>(result);
+        Assert.Equal(validToken.Email, successResult.Value.Email);
+        Assert.Equal(validToken.Token, successResult.Value.Token);
+        Assert.Equal(validToken.ExpireDate, successResult.Value.ExpireDate);
     }
 
     [Fact]
