@@ -1,5 +1,5 @@
 ﻿using NojectServer.Models;
-using NojectServer.Models.Requests;
+using NojectServer.Models.Requests.Auth;
 using NojectServer.Utils.ResultPattern;
 
 namespace NojectServer.Services.Auth.Interfaces;
@@ -21,7 +21,7 @@ public interface IAuthService
     /// A Result containing the created User object if successful,
     /// or an error message if the registration fails
     /// </returns>
-    Task<Result<User>> RegisterAsync(UserRegisterRequest request);
+    Task<Result<User>> RegisterAsync(RegisterRequest request);
 
     /// <summary>
     /// Authenticates a user based on email and password credentials.
@@ -32,7 +32,7 @@ public interface IAuthService
     /// A Result containing the user's email if login is successful,
     /// or an error message if authentication fails
     /// </returns>
-    Task<Result<string>> LoginAsync(UserLoginRequest request);
+    Task<Result<string>> LoginAsync(LoginRequest request);
 
     /// <summary>
     /// Verifies a user's email address using the verification token sent during registration.

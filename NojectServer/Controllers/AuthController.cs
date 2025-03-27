@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using NojectServer.Configurations;
-using NojectServer.Models.Requests;
+using NojectServer.Models.Requests.Auth;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Utils.ResultPattern;
 using System.IdentityModel.Tokens.Jwt;
@@ -30,7 +30,7 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [HttpPost("register", Name = "Register user")]
-    public async Task<IActionResult> Register(UserRegisterRequest request)
+    public async Task<IActionResult> Register(RegisterRequest request)
     {
         var result = await _authService.RegisterAsync(request);
 
@@ -42,7 +42,7 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [HttpPost("login", Name = "Login user")]
-    public async Task<IActionResult> Login(UserLoginRequest request)
+    public async Task<IActionResult> Login(LoginRequest request)
     {
         var authResult = await _authService.LoginAsync(request);
 
@@ -79,7 +79,7 @@ public class AuthController(
     }
 
     [HttpPost("tfa/verify", Name = "Verify the two-factor code to login")]
-    public async Task<ActionResult> VerifyTfa(UserVerifyTfaRequest request)
+    public async Task<ActionResult> VerifyTfa(LoginTfaVerificationRequest request)
     {
         var principal = new JwtSecurityTokenHandler().ValidateToken(request.JwtToken,
             _tokenService.GetTfaTokenValidationParameters(), out _);
@@ -104,7 +104,7 @@ public class AuthController(
 
     [HttpPut("tfa/enable")]
     [Authorize]
-    public async Task<ActionResult> Enable2Fa(UserToggleTfaRequest request)
+    public async Task<ActionResult> Enable2Fa(ToggleTfaRequest request)
     {
         var email = User.FindFirst(ClaimTypes.Name)?.Value!;
         var result = await _twoFactorAuthService.EnableTwoFactorAsync(email, request.TwoFactorCode);
@@ -114,7 +114,7 @@ public class AuthController(
 
     [HttpPut("tfa/disable")]
     [Authorize]
-    public async Task<ActionResult> Disable2Fa(UserToggleTfaRequest request)
+    public async Task<ActionResult> Disable2Fa(ToggleTfaRequest request)
     {
         var email = User.FindFirst(ClaimTypes.Name)?.Value!;
         var result = await _twoFactorAuthService.DisableTwoFactorAsync(email, request.TwoFactorCode);
@@ -146,9 +146,9 @@ public class AuthController(
     }
 
     [HttpGet("verify-email")]
-    public async Task<ActionResult<object>> VerifyEmail([FromQuery] string email, [FromQuery] string token)
+    public async Task<ActionResult<object>> VerifyEmail(VerifyEmailRequest request)
     {
-        var result = await _authService.VerifyEmailAsync(email, token);
+        var result = await _authService.VerifyEmailAsync(request.Email, request.Token);
 
         return result.ToActionResult(this, value => Ok(new { message = value }));
     }

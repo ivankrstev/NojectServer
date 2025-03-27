@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
 using NojectServer.Hubs;
 using NojectServer.Models;
-using NojectServer.Models.Requests;
+using NojectServer.Models.Requests.Projects;
 using NojectServer.Services.Projects.Interfaces;
 using NojectServer.Utils;
 using NojectServer.Utils.ResultPattern;
@@ -28,7 +28,7 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
     /// <param name="request">The project creation request containing the project name.</param>
     /// <param name="createdBy">The email of the user creating the project.</param>
     /// <returns>A Result containing the created project.</returns>
-    public async Task<Result<Project>> CreateProjectAsync(AddUpdateProjectRequest request, string createdBy)
+    public async Task<Result<Project>> CreateProjectAsync(CreateUpdateProjectRequest request, string createdBy)
     {
         GenerateColors(out string color, out string backgroundColor);
         Project project = new()
@@ -187,7 +187,7 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
     /// <param name="projectId">The unique identifier of the project.</param>
     /// <param name="request">The update request containing the new project name.</param>
     /// <returns>A Result containing a success message or failure details.</returns>
-    public async Task<Result<string>> UpdateProjectNameAsync(Guid projectId, AddUpdateProjectRequest request)
+    public async Task<Result<string>> UpdateProjectNameAsync(Guid projectId, CreateUpdateProjectRequest request)
     {
         var project = await _dataContext.Projects.Where(p => p.Id == projectId).SingleOrDefaultAsync();
 

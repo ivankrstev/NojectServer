@@ -1,6 +1,6 @@
-using NojectServer.Models.Requests;
 using NojectServer.Models;
 using NojectServer.Utils.ResultPattern;
+using NojectServer.Models.Requests.Projects;
 
 namespace NojectServer.Services.Projects.Interfaces;
 
@@ -17,7 +17,7 @@ public interface IProjectsService
     /// <param name="request">The project creation request containing the project name.</param>
     /// <param name="createdBy">The email of the user creating the project.</param>
     /// <returns>A Result containing the created project or failure details.</returns>
-    Task<Result<Project>> CreateProjectAsync(AddUpdateProjectRequest request, string createdBy);
+    Task<Result<Project>> CreateProjectAsync(CreateUpdateProjectRequest request, string createdBy);
 
     /// <summary>
     /// Gets all projects owned by a user.
@@ -39,7 +39,7 @@ public interface IProjectsService
     /// <param name="projectId">The unique identifier of the project.</param>
     /// <param name="request">The update request containing the new project name.</param>
     /// <returns>A Result containing a success message or failure details.</returns>
-    Task<Result<string>> UpdateProjectNameAsync(Guid projectId, AddUpdateProjectRequest request);
+    Task<Result<string>> UpdateProjectNameAsync(Guid projectId, CreateUpdateProjectRequest request);
 
     /// <summary>
     /// Deletes a project.

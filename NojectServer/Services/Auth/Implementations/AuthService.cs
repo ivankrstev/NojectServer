@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
 using NojectServer.Models;
-using NojectServer.Models.Requests;
+using NojectServer.Models.Requests.Auth;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Services.Common.Interfaces;
 using NojectServer.Services.Email.Interfaces;
@@ -33,7 +33,7 @@ public class AuthService(
     /// A Result containing the created User object if successful,
     /// or an error message if the registration fails
     /// </returns>
-    public async Task<Result<User>> RegisterAsync(UserRegisterRequest request)
+    public async Task<Result<User>> RegisterAsync(RegisterRequest request)
     {
         if (await dataContext.Users.AnyAsync(u => u.Email == request.Email))
             return Result.Failure<User>("Conflict", "A user with the provided email already exists.", 409);
@@ -77,7 +77,7 @@ public class AuthService(
     /// A Result containing the user's email if login is successful,
     /// or an error message if authentication fails
     /// </returns>
-    public async Task<Result<string>> LoginAsync(UserLoginRequest request)
+    public async Task<Result<string>> LoginAsync(LoginRequest request)
     {
         var user = await dataContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
         if (user == null || !passwordService.VerifyPasswordHash(request.Password, user.Password, user.PasswordSalt))

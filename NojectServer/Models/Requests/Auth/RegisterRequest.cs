@@ -1,9 +1,14 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using static System.Text.RegularExpressions.Regex;
 
-namespace NojectServer.Models.Requests;
+namespace NojectServer.Models.Requests.Auth;
 
-public class UserRegisterRequest
+/// <summary>
+/// Represents a request to register a new user in the system.
+/// Contains user registration information including email, full name, and password with comprehensive validation.
+/// Provides custom password strength validation to ensure security requirements are met.
+/// </summary>
+public class RegisterRequest
 {
     [Required]
     [MaxLength(62)]
