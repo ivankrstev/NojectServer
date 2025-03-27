@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using NojectServer.Middlewares;
-using NojectServer.Models.Requests;
+using NojectServer.Models.Requests.Collaborators;
 using NojectServer.ResponseMessages;
 using NojectServer.Services.Collaborators.Interfaces;
 using NojectServer.Utils.ResultPattern;

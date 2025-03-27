@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using NojectServer.Middlewares;
 using NojectServer.Models;
-using NojectServer.Models.Requests;
+using NojectServer.Models.Requests.Projects;
 using NojectServer.Services.Projects.Interfaces;
 using NojectServer.Utils.ResultPattern;
 using System.Security.Claims;
@@ -18,7 +18,7 @@ public class ProjectsController(IProjectsService projectsService) : ControllerBa
     private readonly IProjectsService _projectsService = projectsService;
 
     [HttpPost("", Name = "Create a Project")]
-    public async Task<ActionResult<Project>> Create(AddUpdateProjectRequest request)
+    public async Task<ActionResult<Project>> Create(CreateUpdateProjectRequest request)
     {
         var userEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
         var result = await _projectsService.CreateProjectAsync(request, userEmail);
@@ -46,7 +46,7 @@ public class ProjectsController(IProjectsService projectsService) : ControllerBa
 
     [HttpPut("{id}")]
     [ServiceFilter(typeof(VerifyProjectOwnership))]
-    public async Task<IActionResult> UpdateProjectName(Guid id, AddUpdateProjectRequest request)
+    public async Task<IActionResult> UpdateProjectName(Guid id, CreateUpdateProjectRequest request)
     {
         var result = await _projectsService.UpdateProjectNameAsync(id, request);
 
