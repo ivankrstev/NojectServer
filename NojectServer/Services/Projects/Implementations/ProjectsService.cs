@@ -211,10 +211,17 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
     {
         string letters = "0123456789ABCDEF";
         backgroundColor = "#";
-        for (int i = 0; i < 6; i++) backgroundColor += letters[new Random().Next(0, 16)];
-        int red = int.Parse(backgroundColor.Substring(1, 2), System.Globalization.NumberStyles.HexNumber);
-        int green = int.Parse(backgroundColor.Substring(3, 2), System.Globalization.NumberStyles.HexNumber);
-        int blue = int.Parse(backgroundColor.Substring(5, 2), System.Globalization.NumberStyles.HexNumber);
+        for (int i = 0; i < 6; i++) backgroundColor += letters[Random.Shared.Next(0, 16)];
+        // Use TryParse instead of Parse for better error handling
+        if (!int.TryParse(backgroundColor.AsSpan(1, 2), System.Globalization.NumberStyles.HexNumber, null, out int red) ||
+            !int.TryParse(backgroundColor.AsSpan(3, 2), System.Globalization.NumberStyles.HexNumber, null, out int green) ||
+            !int.TryParse(backgroundColor.AsSpan(5, 2), System.Globalization.NumberStyles.HexNumber, null, out int blue))
+        {
+            // Handle parsing error - provide default values
+            red = 0;
+            green = 0;
+            blue = 0;
+        }
         int yiq = (red * 299 + green * 587 + blue * 114) / 1000;
         color = yiq >= 128 ? "#000" : "#FFF";
     }
