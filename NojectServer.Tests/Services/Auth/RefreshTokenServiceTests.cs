@@ -6,6 +6,7 @@ using NojectServer.Models;
 using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Tests.MockHelpers;
+using NojectServer.Utils.ResultPattern;
 using Task = System.Threading.Tasks.Task;
 
 namespace NojectServer.Tests.Services.Auth;
@@ -43,17 +44,19 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task GenerateRefreshTokenAsync_ShouldCreateAndReturnToken()
+    public async Task GenerateRefreshTokenAsync_ShouldCreateAndReturnTokenAsync()
     {
         // Arrange
         string email = "test123@example.com";
         string expectedToken = $"mock-refresh-token-{email}";
 
         // Act
-        string result = await _refreshTokenService.GenerateRefreshTokenAsync(email);
+        var result = await _refreshTokenService.GenerateRefreshTokenAsync(email);
 
         // Assert
-        Assert.Equal(expectedToken, result);
+        Assert.True(result.IsSuccess);
+        var successResult = Assert.IsType<SuccessResult<string>>(result);
+        Assert.Equal(expectedToken, successResult.Value);
         _mockTokenService.Verify(ts => ts.CreateRefreshToken(email), Times.Once);
         _mockDataContext.Verify(dc => dc.RefreshTokens.Add(It.IsAny<RefreshToken>()), Times.Once);
         _mockDataContext.Verify(dc => dc.SaveChangesAsync(default), Times.Once);
@@ -68,7 +71,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task ValidateRefreshTokenAsync_WithValidToken_ShouldReturnRefreshToken()
+    public async Task ValidateRefreshTokenAsync_WithValidToken_ShouldReturnRefreshTokenAsync()
     {
         // Arrange
         var validToken = new RefreshToken
@@ -84,13 +87,14 @@ public class RefreshTokenServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(validToken.Email, result.Email);
-        Assert.Equal(validToken.Token, result.Token);
-        Assert.Equal(validToken.ExpireDate, result.ExpireDate);
+        var successResult = Assert.IsType<SuccessResult<RefreshToken>>(result);
+        Assert.Equal(validToken.Email, successResult.Value.Email);
+        Assert.Equal(validToken.Token, successResult.Value.Token);
+        Assert.Equal(validToken.ExpireDate, successResult.Value.ExpireDate);
     }
 
     [Fact]
-    public async Task ValidateRefreshTokenAsync_WithExpiredToken_ShouldThrowSecurityTokenException()
+    public async Task ValidateRefreshTokenAsync_WithExpiredToken_ShouldReturnFailureResultAsync()
     {
         // Arrange
         var expiredToken = new RefreshToken
@@ -101,27 +105,35 @@ public class RefreshTokenServiceTests
         };
         _refreshTokenList.Add(expiredToken);
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<SecurityTokenException>(
-            async () => await _refreshTokenService.ValidateRefreshTokenAsync("expired-token"));
+        // Act
+        var result = await _refreshTokenService.ValidateRefreshTokenAsync("expired-token");
 
-        Assert.Contains("Invalid or expired", exception.Message);
+        // Assert
+        Assert.False(result.IsSuccess);
+        var failureResult = Assert.IsType<FailureResult<RefreshToken>>(result);
+        Assert.Equal("ExpiredToken", failureResult.Error.Error);
+        Assert.Equal("Refresh token has expired.", failureResult.Error.Message);
+        Assert.Equal(401, failureResult.Error.StatusCode);
     }
 
     [Fact]
-    public async Task ValidateRefreshTokenAsync_WithInvalidToken_ShouldThrowSecurityTokenException()
+    public async Task ValidateRefreshTokenAsync_WithInvalidToken_ShouldReturnFailureResultAsync()
     {
         // Arrange - No tokens in the list matches "invalid-token"
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<SecurityTokenException>(
-            async () => await _refreshTokenService.ValidateRefreshTokenAsync("invalid-token"));
+        // Act
+        var result = await _refreshTokenService.ValidateRefreshTokenAsync("invalid-token");
 
-        Assert.Contains("Invalid or expired", exception.Message);
+        // Assert
+        Assert.False(result.IsSuccess);
+        var failureResult = Assert.IsType<FailureResult<RefreshToken>>(result);
+        Assert.Equal("InvalidToken", failureResult.Error.Error);
+        Assert.Equal("Invalid refresh token.", failureResult.Error.Message);
+        Assert.Equal(401, failureResult.Error.StatusCode);
     }
 
     [Fact]
-    public async Task RevokeRefreshTokenAsync_WithValidToken_ShouldRemoveToken()
+    public async Task RevokeRefreshTokenAsync_WithValidToken_ShouldRemoveTokenAsync()
     {
         // Arrange
         var token = new RefreshToken
@@ -142,7 +154,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task RevokeRefreshTokenAsync_WithInvalidToken_ShouldNotThrowException()
+    public async Task RevokeRefreshTokenAsync_WithInvalidToken_ShouldNotThrowExceptionAsync()
     {
         // Arrange - No tokens in list
 
@@ -155,7 +167,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task GenerateRefreshTokenAsync_WithNullEmail_ShouldThrowArgumentNullException()
+    public async Task GenerateRefreshTokenAsync_WithNullEmail_ShouldThrowArgumentNullExceptionAsync()
     {
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>("email",
@@ -163,7 +175,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task ValidateRefreshTokenAsync_WithNullToken_ShouldThrowArgumentNullException()
+    public async Task ValidateRefreshTokenAsync_WithNullToken_ShouldThrowArgumentNullExceptionAsync()
     {
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>("token",
@@ -171,7 +183,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task RevokeRefreshTokenAsync_WithNullToken_ShouldThrowArgumentNullException()
+    public async Task RevokeRefreshTokenAsync_WithNullToken_ShouldThrowArgumentNullExceptionAsync()
     {
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>("token",
