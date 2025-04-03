@@ -49,7 +49,7 @@ public class AuthServiceTests
     #region RegisterAsync Tests
 
     [Fact]
-    public async Task RegisterAsync_UserExists_ReturnsConflictResult()
+    public async Task RegisterAsync_UserExists_ReturnsConflictResultAsync()
     {
         // Arrange
         var request = new RegisterRequest
@@ -75,7 +75,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_InvalidRequest_ReturnsBadRequest()
+    public async Task RegisterAsync_InvalidRequest_ReturnsBadRequestAsync()
     {
         // Arrange
         var request = new RegisterRequest
@@ -96,7 +96,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_ValidRequest_ReturnsSuccess()
+    public async Task RegisterAsync_ValidRequest_ReturnsSuccessAsync()
     {
         // Arrange
         var request = new RegisterRequest
@@ -131,7 +131,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_ExceptionThrown_ReturnsFailureResult()
+    public async Task RegisterAsync_ExceptionThrown_ReturnsFailureResultAsync()
     {
         // Arrange
         var request = new RegisterRequest
@@ -171,7 +171,7 @@ public class AuthServiceTests
     #region LoginAsync Tests
 
     [Fact]
-    public async Task LoginAsync_UserNotFound_ReturnsUnauthorized()
+    public async Task LoginAsync_UserNotFound_ReturnsUnauthorizedAsync()
     {
         // Arrange
         var request = new LoginRequest
@@ -192,7 +192,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_InvalidPassword_ReturnsUnauthorized()
+    public async Task LoginAsync_InvalidPassword_ReturnsUnauthorizedAsync()
     {
         // Arrange
         var request = new LoginRequest
@@ -230,7 +230,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_EmailNotVerified_ReturnsUnauthorized()
+    public async Task LoginAsync_EmailNotVerified_ReturnsUnauthorizedAsync()
     {
         // Arrange
         var request = new LoginRequest
@@ -264,7 +264,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_ValidCredentials_ReturnsSuccess()
+    public async Task LoginAsync_ValidCredentials_ReturnsSuccessAsync()
     {
         // Arrange
         var request = new LoginRequest
@@ -300,7 +300,7 @@ public class AuthServiceTests
     #region VerifyEmailAsync Tests
 
     [Fact]
-    public async Task VerifyEmailAsync_InvalidToken_ReturnsNotFound()
+    public async Task VerifyEmailAsync_InvalidToken_ReturnsNotFoundAsync()
     {
         // Arrange
         var email = "user@example.com";
@@ -317,7 +317,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task VerifyEmailAsync_AlreadyVerified_ReturnsConflict()
+    public async Task VerifyEmailAsync_AlreadyVerified_ReturnsConflictAsync()
     {
         // Arrange
         var email = "verified@example.com";
@@ -342,7 +342,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task VerifyEmailAsync_ValidToken_ReturnsSuccess()
+    public async Task VerifyEmailAsync_ValidToken_ReturnsSuccessAsync()
     {
         // Arrange
         var email = "unverified@example.com";
@@ -373,7 +373,7 @@ public class AuthServiceTests
     #region ForgotPasswordAsync Tests
 
     [Fact]
-    public async Task ForgotPasswordAsync_UserNotFound_ReturnsNotFound()
+    public async Task ForgotPasswordAsync_UserNotFound_ReturnsNotFoundAsync()
     {
         // Arrange
         var email = "nonexistent@example.com";
@@ -389,7 +389,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task ForgotPasswordAsync_ValidRequest_ReturnsSuccess()
+    public async Task ForgotPasswordAsync_ValidRequest_ReturnsSuccessAsync()
     {
         // Arrange
         var email = "user@example.com";

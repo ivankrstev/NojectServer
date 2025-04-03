@@ -37,7 +37,7 @@ public class TwoFactorAuthServiceTests
     #region DisableTwoFactorAsync Tests
 
     [Fact]
-    public async Task DisableTwoFactorAsync_UserNotFound_ReturnsNotFoundFailure()
+    public async Task DisableTwoFactorAsync_UserNotFound_ReturnsNotFoundFailureAsync()
     {
         // Arrange
         var users = new List<User>();
@@ -56,7 +56,7 @@ public class TwoFactorAuthServiceTests
     }
 
     [Fact]
-    public async Task DisableTwoFactorAsync_TwoFactorAlreadyDisabled_ReturnsBadRequestFailure()
+    public async Task DisableTwoFactorAsync_TwoFactorAlreadyDisabled_ReturnsBadRequestFailureAsync()
     {
         // Arrange
         var user = new User
@@ -81,7 +81,7 @@ public class TwoFactorAuthServiceTests
     }
 
     [Fact]
-    public async Task DisableTwoFactorAsync_InvalidCode_ReturnsUnauthorizedFailure()
+    public async Task DisableTwoFactorAsync_InvalidCode_ReturnsUnauthorizedFailureAsync()
     {
         // Arrange
         var user = new User
@@ -107,7 +107,7 @@ public class TwoFactorAuthServiceTests
     }
 
     [Fact]
-    public async Task DisableTwoFactorAsync_ValidCode_DisablesTwoFactorAndReturnsSuccess()
+    public async Task DisableTwoFactorAsync_ValidCode_DisablesTwoFactorAndReturnsSuccessAsync()
     {
         // Arrange
         var user = new User
@@ -146,7 +146,7 @@ public class TwoFactorAuthServiceTests
     #region EnableTwoFactorAsync Tests
 
     [Fact]
-    public async Task EnableTwoFactorAsync_UserNotFound_ReturnsNotFoundFailure()
+    public async Task EnableTwoFactorAsync_UserNotFound_ReturnsNotFoundFailureAsync()
     {
         // Arrange
         var users = new List<User>();
@@ -165,7 +165,7 @@ public class TwoFactorAuthServiceTests
     }
 
     [Fact]
-    public async Task EnableTwoFactorAsync_NoSecretKey_ReturnsBadRequestFailure()
+    public async Task EnableTwoFactorAsync_NoSecretKey_ReturnsBadRequestFailureAsync()
     {
         // Arrange
         var user = new User
@@ -189,7 +189,7 @@ public class TwoFactorAuthServiceTests
     }
 
     [Fact]
-    public async Task EnableTwoFactorAsync_InvalidCode_ReturnsUnauthorizedFailure()
+    public async Task EnableTwoFactorAsync_InvalidCode_ReturnsUnauthorizedFailureAsync()
     {
         // Arrange
         var user = new User
@@ -214,7 +214,7 @@ public class TwoFactorAuthServiceTests
     }
 
     [Fact]
-    public async Task EnableTwoFactorAsync_ValidCode_EnablesTwoFactorAndReturnsSuccess()
+    public async Task EnableTwoFactorAsync_ValidCode_EnablesTwoFactorAndReturnsSuccessAsync()
     {
         // Arrange
         var user = new User
@@ -253,7 +253,7 @@ public class TwoFactorAuthServiceTests
     #region GenerateSetupCodeAsync Tests
 
     [Fact]
-    public async Task GenerateSetupCodeAsync_UserNotFound_ReturnsNotFoundFailure()
+    public async Task GenerateSetupCodeAsync_UserNotFound_ReturnsNotFoundFailureAsync()
     {
         // Arrange
         var users = new List<User>();
@@ -272,7 +272,7 @@ public class TwoFactorAuthServiceTests
     }
 
     [Fact]
-    public async Task GenerateSetupCodeAsync_TwoFactorAlreadyEnabled_ReturnsBadRequestFailure()
+    public async Task GenerateSetupCodeAsync_TwoFactorAlreadyEnabled_ReturnsBadRequestFailureAsync()
     {
         // Arrange
         var user = new User
@@ -297,7 +297,7 @@ public class TwoFactorAuthServiceTests
     }
 
     [Fact]
-    public async Task GenerateSetupCodeAsync_Success_GeneratesCodeAndReturnsSetupData()
+    public async Task GenerateSetupCodeAsync_Success_GeneratesCodeAndReturnsSetupDataAsync()
     {
         // Arrange
         var user = new User
@@ -333,7 +333,7 @@ public class TwoFactorAuthServiceTests
     #region ValidateTwoFactorCodeAsync Tests
 
     [Fact]
-    public async Task ValidateTwoFactorCodeAsync_UserNotFound_ReturnsNotFoundFailure()
+    public async Task ValidateTwoFactorCodeAsync_UserNotFound_ReturnsNotFoundFailureAsync()
     {
         // Arrange
         var users = new List<User>();
@@ -352,7 +352,7 @@ public class TwoFactorAuthServiceTests
     }
 
     [Fact]
-    public async Task ValidateTwoFactorCodeAsync_NoSecretKey_ReturnsBadRequestFailure()
+    public async Task ValidateTwoFactorCodeAsync_NoSecretKey_ReturnsBadRequestFailureAsync()
     {
         // Arrange
         var user = new User
@@ -377,7 +377,7 @@ public class TwoFactorAuthServiceTests
     }
 
     [Fact]
-    public async Task ValidateTwoFactorCodeAsync_WithValidCode_ReturnsTrue()
+    public async Task ValidateTwoFactorCodeAsync_WithValidCode_ReturnsTrueAsync()
     {
         // Arrange
         var user = new User
@@ -405,7 +405,7 @@ public class TwoFactorAuthServiceTests
     }
 
     [Fact]
-    public async Task ValidateTwoFactorCodeAsync_WithInvalidCode_ReturnsFalse()
+    public async Task ValidateTwoFactorCodeAsync_WithInvalidCode_ReturnsFalseAsync()
     {
         // Arrange
         var user = new User

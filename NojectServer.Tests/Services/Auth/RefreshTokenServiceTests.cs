@@ -44,7 +44,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task GenerateRefreshTokenAsync_ShouldCreateAndReturnToken()
+    public async Task GenerateRefreshTokenAsync_ShouldCreateAndReturnTokenAsync()
     {
         // Arrange
         string email = "test123@example.com";
@@ -71,7 +71,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task ValidateRefreshTokenAsync_WithValidToken_ShouldReturnRefreshToken()
+    public async Task ValidateRefreshTokenAsync_WithValidToken_ShouldReturnRefreshTokenAsync()
     {
         // Arrange
         var validToken = new RefreshToken
@@ -94,7 +94,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task ValidateRefreshTokenAsync_WithExpiredToken_ShouldReturnFailureResult()
+    public async Task ValidateRefreshTokenAsync_WithExpiredToken_ShouldReturnFailureResultAsync()
     {
         // Arrange
         var expiredToken = new RefreshToken
@@ -117,7 +117,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task ValidateRefreshTokenAsync_WithInvalidToken_ShouldReturnFailureResult()
+    public async Task ValidateRefreshTokenAsync_WithInvalidToken_ShouldReturnFailureResultAsync()
     {
         // Arrange - No tokens in the list matches "invalid-token"
 
@@ -133,7 +133,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task RevokeRefreshTokenAsync_WithValidToken_ShouldRemoveToken()
+    public async Task RevokeRefreshTokenAsync_WithValidToken_ShouldRemoveTokenAsync()
     {
         // Arrange
         var token = new RefreshToken
@@ -154,7 +154,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task RevokeRefreshTokenAsync_WithInvalidToken_ShouldNotThrowException()
+    public async Task RevokeRefreshTokenAsync_WithInvalidToken_ShouldNotThrowExceptionAsync()
     {
         // Arrange - No tokens in list
 
@@ -167,7 +167,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task GenerateRefreshTokenAsync_WithNullEmail_ShouldThrowArgumentNullException()
+    public async Task GenerateRefreshTokenAsync_WithNullEmail_ShouldThrowArgumentNullExceptionAsync()
     {
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>("email",
@@ -175,7 +175,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task ValidateRefreshTokenAsync_WithNullToken_ShouldThrowArgumentNullException()
+    public async Task ValidateRefreshTokenAsync_WithNullToken_ShouldThrowArgumentNullExceptionAsync()
     {
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>("token",
@@ -183,7 +183,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task RevokeRefreshTokenAsync_WithNullToken_ShouldThrowArgumentNullException()
+    public async Task RevokeRefreshTokenAsync_WithNullToken_ShouldThrowArgumentNullExceptionAsync()
     {
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>("token",

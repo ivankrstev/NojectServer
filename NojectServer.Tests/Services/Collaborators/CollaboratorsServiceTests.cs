@@ -90,7 +90,7 @@ public class CollaboratorsServiceTests
 
 
     [Fact]
-    public async Task AddCollaboratorAsync_WithOwnerEmail_ShouldReturnFailure()
+    public async Task AddCollaboratorAsync_WithOwnerEmail_ShouldReturnFailureAsync()
     {
         // Arrange
         var projectId = _projectsList.First().Id;
@@ -107,7 +107,7 @@ public class CollaboratorsServiceTests
     }
 
     [Fact]
-    public async Task AddCollaboratorAsync_WithNonExistentUser_ShouldReturnNotFound()
+    public async Task AddCollaboratorAsync_WithNonExistentUser_ShouldReturnNotFoundAsync()
     {
         // Arrange
         var projectId = _projectsList.First().Id;
@@ -126,7 +126,7 @@ public class CollaboratorsServiceTests
     }
 
     [Fact]
-    public async Task AddCollaboratorAsync_WithExistingCollaborator_ShouldReturnConflict()
+    public async Task AddCollaboratorAsync_WithExistingCollaborator_ShouldReturnConflictAsync()
     {
         // Arrange
         var projectId = _projectsList.First().Id;
@@ -145,7 +145,7 @@ public class CollaboratorsServiceTests
     }
 
     [Fact]
-    public async Task AddCollaboratorAsync_WithValidInput_ShouldAddCollaboratorAndNotifyUser()
+    public async Task AddCollaboratorAsync_WithValidInput_ShouldAddCollaboratorAndNotifyUserAsync()
     {
         // Arrange
         var projectId = _projectsList.First().Id;
@@ -177,7 +177,7 @@ public class CollaboratorsServiceTests
     }
 
     [Fact]
-    public async Task SearchCollaboratorsAsync_ShouldReturnNonCollaboratorsMatchingPrefix()
+    public async Task SearchCollaboratorsAsync_ShouldReturnNonCollaboratorsMatchingPrefixAsync()
     {
         // Arrange
         var projectId = _projectsList.First().Id;
@@ -197,7 +197,7 @@ public class CollaboratorsServiceTests
     }
 
     [Fact]
-    public async Task GetAllCollaboratorsAsync_ShouldReturnAllCollaborators()
+    public async Task GetAllCollaboratorsAsync_ShouldReturnAllCollaboratorsAsync()
     {
         // Arrange
         var projectId = _projectsList.First().Id;
@@ -213,7 +213,7 @@ public class CollaboratorsServiceTests
     }
 
     [Fact]
-    public async Task RemoveCollaboratorAsync_WithNonExistentCollaborator_ShouldReturnNotFound()
+    public async Task RemoveCollaboratorAsync_WithNonExistentCollaborator_ShouldReturnNotFoundAsync()
     {
         // Arrange
         var projectId = _projectsList.First().Id;
@@ -231,7 +231,7 @@ public class CollaboratorsServiceTests
     }
 
     [Fact]
-    public async Task RemoveCollaboratorAsync_WithValidCollaborator_ShouldRemoveAndNotify()
+    public async Task RemoveCollaboratorAsync_WithValidCollaborator_ShouldRemoveAndNotifyAsync()
     {
         // Arrange
         var projectId = _projectsList.First().Id;

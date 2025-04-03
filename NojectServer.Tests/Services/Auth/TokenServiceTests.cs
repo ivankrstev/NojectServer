@@ -48,7 +48,7 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void CreateAccessToken_ShouldCreateValidToken()
+    public void CreateAccessToken_ShouldCreateValidTokenAsync()
     {
         // Arrange
         string email = "test@example.com";
@@ -73,7 +73,7 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void CreateRefreshToken_ShouldCreateValidToken()
+    public void CreateRefreshToken_ShouldCreateValidTokenAsync()
     {
         // Arrange
         string email = "test@example.com";
@@ -98,7 +98,7 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void CreateTfaToken_ShouldCreateValidToken()
+    public void CreateTfaToken_ShouldCreateValidTokenAsync()
     {
         // Arrange
         string email = "test@example.com";
@@ -123,7 +123,7 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void GetTfaTokenValidationParameters_ShouldReturnValidParameters()
+    public void GetTfaTokenValidationParameters_ShouldReturnValidParametersAsync()
     {
         // Act
         var parameters = _tokenService.GetTfaTokenValidationParameters();
@@ -150,7 +150,7 @@ public class TokenServiceTests
     /// required security settings are not configured properly.
     /// </summary>
     [Fact]
-    public void CreateAccessToken_WithMissingConfiguration_ThrowsInvalidOperationException()
+    public void CreateAccessToken_WithMissingConfiguration_ThrowsInvalidOperationExceptionAsync()
     {
         // Arrange
         var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
@@ -171,7 +171,7 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void CreateRefreshToken_WithMissingConfiguration_ThrowsInvalidOperationException()
+    public void CreateRefreshToken_WithMissingConfiguration_ThrowsInvalidOperationExceptionAsync()
     {
         // Arrange
         var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
@@ -192,7 +192,7 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void CreateTfaToken_WithMissingConfiguration_ThrowsInvalidOperationException()
+    public void CreateTfaToken_WithMissingConfiguration_ThrowsInvalidOperationExceptionAsync()
     {
         // Arrange
         var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
@@ -213,7 +213,7 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void GetTfaTokenValidationParameters_WithMissingConfiguration_ThrowsInvalidOperationException()
+    public void GetTfaTokenValidationParameters_WithMissingConfiguration_ThrowsInvalidOperationExceptionAsync()
     {
         // Arrange
         var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
@@ -238,7 +238,7 @@ public class TokenServiceTests
     /// Ensures proper validation of key material to prevent security issues.
     /// </summary>
     [Fact]
-    public void CreateAccessToken_WithEmptyConfiguration_ThrowsArgumentException()
+    public void CreateAccessToken_WithEmptyConfiguration_ThrowsArgumentExceptionAsync()
     {
         // Arrange
         var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
@@ -264,7 +264,7 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void CreateRefreshToken_WithEmptyConfiguration_ThrowsArgumentException()
+    public void CreateRefreshToken_WithEmptyConfiguration_ThrowsArgumentExceptionAsync()
     {
         // Arrange
         var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
@@ -290,7 +290,7 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void CreateTfaToken_WithEmptyConfiguration_ThrowsArgumentException()
+    public void CreateTfaToken_WithEmptyConfiguration_ThrowsArgumentExceptionAsync()
     {
         // Arrange
         var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
@@ -316,7 +316,7 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void GetTfaTokenValidationParameters_WithEmptyConfiguration_ThrowsArgumentException()
+    public void GetTfaTokenValidationParameters_WithEmptyConfiguration_ThrowsArgumentExceptionAsync()
     {
         // Arrange
         var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
@@ -346,7 +346,7 @@ public class TokenServiceTests
     /// Verifies that cryptographically insecure short keys are rejected.
     /// </summary>
     [Fact]
-    public void CreateAccessToken_WithInvalidKeyLength_ThrowsArgumentOutOfRangeException()
+    public void CreateAccessToken_WithInvalidKeyLength_ThrowsArgumentOutOfRangeExceptionAsync()
     {
         // Arrange - Key that's too short for HMAC-SHA512
         var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
@@ -372,7 +372,7 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void CreateRefreshToken_WithInvalidKeyLength_ThrowsArgumentOutOfRangeException()
+    public void CreateRefreshToken_WithInvalidKeyLength_ThrowsArgumentOutOfRangeExceptionAsync()
     {
         // Arrange - Key that's too short for HMAC-SHA512
         var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
@@ -398,7 +398,7 @@ public class TokenServiceTests
     }
 
     [Fact]
-    public void CreateTfaToken_WithInvalidKeyLength_ThrowsArgumentOutOfRangeException()
+    public void CreateTfaToken_WithInvalidKeyLength_ThrowsArgumentOutOfRangeExceptionAsync()
     {
         // Arrange - Key that's too short for HMAC-SHA512
         var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
@@ -428,21 +428,21 @@ public class TokenServiceTests
     /// Ensures null email addresses are properly rejected with appropriate exceptions.
     /// </summary>
     [Fact]
-    public void CreateAccessToken_WithNullEmail_ThrowsArgumentNullException()
+    public void CreateAccessToken_WithNullEmail_ThrowsArgumentNullExceptionAsync()
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => _tokenService.CreateAccessToken(null!));
     }
 
     [Fact]
-    public void CreateRefreshToken_WithNullEmail_ThrowsArgumentNullException()
+    public void CreateRefreshToken_WithNullEmail_ThrowsArgumentNullExceptionAsync()
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => _tokenService.CreateRefreshToken(null!));
     }
 
     [Fact]
-    public void CreateTfaToken_WithNullEmail_ThrowsArgumentNullException()
+    public void CreateTfaToken_WithNullEmail_ThrowsArgumentNullExceptionAsync()
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => _tokenService.CreateTfaToken(null!));

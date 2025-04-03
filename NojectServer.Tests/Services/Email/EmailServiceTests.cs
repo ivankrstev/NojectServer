@@ -44,7 +44,7 @@ public class EmailServiceTests
     /// Verifies that the email is sent when the user is valid.
     /// </summary>
     [Fact]
-    public async Task SendVerificationLinkAsync_WithValidUser_SendsEmail()
+    public async Task SendVerificationLinkAsync_WithValidUser_SendsEmailAsync()
     {
         // Arrange
         var user = new User
@@ -75,7 +75,7 @@ public class EmailServiceTests
     /// Verifies that an exception is thrown when the verification token is null.
     /// </summary>
     [Fact]
-    public async Task SendVerificationLinkAsync_WithNullToken_ThrowsException()
+    public async Task SendVerificationLinkAsync_WithNullToken_ThrowsExceptionAsync()
     {
         // Arrange
         var user = new User
@@ -97,7 +97,7 @@ public class EmailServiceTests
     /// Verifies that the correct verification link is constructed and included in the email body.
     /// </summary>
     [Fact]
-    public async Task SendVerificationLinkAsync_VerifiesCorrectLinkConstruction()
+    public async Task SendVerificationLinkAsync_VerifiesCorrectLinkConstructionAsync()
     {
         // Arrange
         var user = new User
@@ -132,7 +132,7 @@ public class EmailServiceTests
     /// Verifies that the email is sent when the user is valid.
     /// </summary>
     [Fact]
-    public async Task SendResetPasswordLinkAsync_WithValidUser_SendsEmail()
+    public async Task SendResetPasswordLinkAsync_WithValidUser_SendsEmailAsync()
     {
         // Arrange
         var user = new User
@@ -163,7 +163,7 @@ public class EmailServiceTests
     /// Verifies that an exception is thrown when the password reset token is null.
     /// </summary>
     [Fact]
-    public async Task SendResetPasswordLinkAsync_WithNullToken_ThrowsException()
+    public async Task SendResetPasswordLinkAsync_WithNullToken_ThrowsExceptionAsync()
     {
         // Arrange
         var user = new User
@@ -185,7 +185,7 @@ public class EmailServiceTests
     /// Verifies that the correct reset password link is constructed and included in the email body.
     /// </summary>
     [Fact]
-    public async Task SendResetPasswordLinkAsync_VerifiesCorrectLinkConstruction()
+    public async Task SendResetPasswordLinkAsync_VerifiesCorrectLinkConstructionAsync()
     {
         // Arrange
         var user = new User
