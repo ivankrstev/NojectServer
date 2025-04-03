@@ -42,6 +42,9 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
 
         try
         {
+            if (_jwtTokenOptions == null)
+                throw new InvalidOperationException("JWT configuration is missing");
+
             if (_jwtTokenOptions.Access == null)
                 throw new InvalidOperationException("JWT Access token configuration is missing");
 
@@ -73,11 +76,6 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
 
             return _tokenHandler.WriteToken(token);
         }
-        catch (NullReferenceException)
-        {
-            // Handle the exception when a required property is null
-            throw new InvalidOperationException("JWT configuration is incomplete. Make sure Access token settings are properly configured.");
-        }
         catch (ArgumentException ex) when (ex.Message.Contains("The key size is"))
         {
             // Handle the exception when the key size is invalid, thrown by the SymmetricSecurityKey constructor
@@ -102,6 +100,9 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
 
         try
         {
+            if (_jwtTokenOptions == null)
+                throw new InvalidOperationException("JWT configuration is missing");
+
             if (_jwtTokenOptions.Refresh == null)
                 throw new InvalidOperationException("JWT Refresh token configuration is missing");
 
@@ -133,11 +134,6 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
 
             return _tokenHandler.WriteToken(token);
         }
-        catch (NullReferenceException)
-        {
-            // Handle the exception when a required property is null
-            throw new InvalidOperationException("JWT configuration is incomplete. Make sure Refresh token settings are properly configured.");
-        }
         catch (ArgumentException ex) when (ex.Message.Contains("The key size is"))
         {
             // Handle the exception when the key size is invalid, thrown by the SymmetricSecurityKey constructor
@@ -162,6 +158,9 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
 
         try
         {
+            if (_jwtTokenOptions == null)
+                throw new InvalidOperationException("JWT configuration is missing");
+
             if (_jwtTokenOptions.Tfa == null)
                 throw new InvalidOperationException("JWT Tfa token configuration is missing");
 
@@ -193,10 +192,6 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
 
             return _tokenHandler.WriteToken(token);
         }
-        catch (NullReferenceException)
-        {
-            throw new InvalidOperationException("JWT configuration is incomplete. Make sure Tfa token settings are properly configured.");
-        }
         catch (ArgumentException ex) when (ex.Message.Contains("The key size is"))
         {
             throw new InvalidOperationException("JWT Tfa token secret key has invalid length", ex);
@@ -215,6 +210,9 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
     {
         try
         {
+            if (_jwtTokenOptions == null)
+                throw new InvalidOperationException("JWT configuration is missing");
+
             if (_jwtTokenOptions.Access == null)
                 throw new InvalidOperationException("JWT Access token configuration is missing");
 
@@ -240,10 +238,6 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
                 ClockSkew = TimeSpan.Zero
             };
         }
-        catch (NullReferenceException)
-        {
-            throw new InvalidOperationException("JWT configuration is incomplete. Make sure Access token settings are properly configured.");
-        }
         catch (ArgumentException ex) when (ex.Message.Contains("The key size is"))
         {
             throw new InvalidOperationException("JWT Access token secret key has invalid length", ex);
@@ -262,6 +256,9 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
     {
         try
         {
+            if (_jwtTokenOptions == null)
+                throw new InvalidOperationException("JWT configuration is missing");
+
             if (_jwtTokenOptions.Tfa == null)
                 throw new InvalidOperationException("JWT Tfa token configuration is missing");
 
@@ -286,10 +283,6 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             };
-        }
-        catch (NullReferenceException)
-        {
-            throw new InvalidOperationException("JWT configuration is incomplete. Make sure Tfa token settings are properly configured.");
         }
         catch (ArgumentException ex) when (ex.Message.Contains("The key size is"))
         {

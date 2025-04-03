@@ -36,7 +36,8 @@ public class EmailService(
     /// </remarks>
     public async Task SendVerificationLinkAsync(User user)
     {
-        if (user.VerificationToken == null) throw new Exception("Verification token is null");
+        if (user.VerificationToken == null)
+            throw new ArgumentException("User does not have a verification token", nameof(user));
 
         var verificationLink = BuildLink("verify-email", ("email", user.Email), ("token", user.VerificationToken));
         await SendEmail(user, "Email Verification", "verify your email", verificationLink);
@@ -54,7 +55,8 @@ public class EmailService(
     /// </remarks>
     public async Task SendResetPasswordLinkAsync(User user)
     {
-        if (user.PasswordResetToken == null) throw new Exception("Password reset token is null");
+        if (user.PasswordResetToken == null)
+            throw new ArgumentException("User does not have a password reset token", nameof(user));
 
         var resetLink = BuildLink("reset-password", ("token", user.PasswordResetToken));
         await SendEmail(user, "Password Reset Request", "reset your password", resetLink);
@@ -121,7 +123,7 @@ public class EmailService(
         };
     }
 
-    /// <summary>
+    /// <summary>6
     /// Creates an HTML version of the email content.
     /// </summary>
     /// <param name="fullName">The recipient's full name</param>
