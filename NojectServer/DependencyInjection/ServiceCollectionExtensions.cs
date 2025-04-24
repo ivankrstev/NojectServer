@@ -2,6 +2,10 @@
 using NojectServer.Configurations;
 using NojectServer.Middlewares;
 using NojectServer.OptionsSetup;
+using NojectServer.Repositories.Base;
+using NojectServer.Repositories.Implementations;
+using NojectServer.Repositories.Interfaces;
+using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Services.Auth.Validation.Implementations;
@@ -40,6 +44,17 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The IServiceCollection to add the services to</param>
     public static void AddServices(this IServiceCollection services)
     {
+        // Register generic repository
+        services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        // Register unit of work
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        // Register specialized repositories
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ICollaboratorRepository, CollaboratorRepository>();
+        services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<ITaskRepository, TaskRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
         // Register all services
         services.AddScoped<IAuthService, AuthService>();
         services.AddTransient<IEmailSender, SmtpEmailSender>();
