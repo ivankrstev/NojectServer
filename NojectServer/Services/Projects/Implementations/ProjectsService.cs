@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using NojectServer.Data;
 using NojectServer.Hubs;
 using NojectServer.Models;
 using NojectServer.Models.Requests.Projects;
+using NojectServer.Repositories.Interfaces;
+using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Projects.Interfaces;
 using NojectServer.Utils;
 using NojectServer.Utils.ResultPattern;
@@ -17,10 +18,18 @@ namespace NojectServer.Services.Projects.Implementations;
 /// reading, updating, deleting, and sharing projects. It maintains the core project
 /// data and provides functionality for project management across the application.
 /// </summary>
-public class ProjectsService(DataContext dataContext, IHubContext<SharedProjectsHub> hubContext) : IProjectsService
+public class ProjectsService(
+    IUnitOfWork unitOfWork,
+    IHubContext<SharedProjectsHub> hubContext) : IProjectsService
 {
-    private readonly DataContext _dataContext = dataContext;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IHubContext<SharedProjectsHub> _hubContext = hubContext;
+    private readonly IProjectRepository _projectRepository = unitOfWork.GetRepository<Project>() as IProjectRepository
+        ?? throw new InvalidOperationException("Failed to get project repository");
+    private readonly ITaskRepository _taskRepository = unitOfWork.GetRepository<Models.Task>() as ITaskRepository
+        ?? throw new InvalidOperationException("Failed to get task repository");
+    private readonly ICollaboratorRepository _collaboratorRepository = unitOfWork.GetRepository<Models.Task>() as ICollaboratorRepository
+    ?? throw new InvalidOperationException("Failed to get task repository");
 
     /// <summary>
     /// Creates a new project with generated colors.
@@ -39,8 +48,9 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
             CreatedBy = createdBy
         };
 
-        _dataContext.Add(project);
-        await _dataContext.SaveChangesAsync();
+        await _unitOfWork.GetRepository<Project>().AddAsync(project);
+        await _projectRepository.AddAsync(project);
+        await _unitOfWork.SaveChangesAsync();
 
         return Result.Success(project);
     }
@@ -50,16 +60,24 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
     /// </summary>
     /// <param name="projectId">The unique identifier of the project to delete.</param>
     /// <returns>A Result containing a success message or failure details.</returns>
+    /// Task: Implement notification to collaborators about project deletion(update their UI properly).
     public async Task<Result<string>> DeleteProjectAsync(Guid projectId)
     {
-        var deletedRows = await _dataContext.Projects
-            .Where(p => p.Id == projectId)
-            .ExecuteDeleteAsync();
+        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
 
-        if (deletedRows == 0)
+        if (project == null)
         {
             return Result.Failure<string>("NotFound", "Project not found.", 404);
         }
+
+        _unitOfWork.GetRepository<Project>().Remove(project);
+        await _unitOfWork.SaveChangesAsync();
+        // Notify all collaborators about the project deletion
+        //var collaborators = await _unitOfWork.GetRepository<Collaborator>().FindAsync(c => c.ProjectId == projectId);
+        //foreach (var collaborator in collaborators)
+        //{
+        //    await _hubContext.Clients.User(collaborator.CollaboratorId).SendAsync("ProjectDeleted", projectId);
+        //}
 
         return Result.Success($"Project with ID {projectId} successfully deleted.");
     }
@@ -71,11 +89,9 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
     /// <returns>A Result containing a list of projects owned by the user.</returns>
     public async Task<Result<List<Project>>> GetOwnProjectsAsync(string userEmail)
     {
-        List<Project> projects = await _dataContext.Projects
-            .Where(p => p.CreatedBy == userEmail)
-            .ToListAsync();
+        var projects = await _unitOfWork.GetRepository<Project>().FindAsync(p => p.CreatedBy == userEmail);
 
-        return Result.Success(projects);
+        return Result.Success(projects.ToList());
     }
 
     /// <summary>
@@ -85,9 +101,9 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
     /// <returns>A Result containing a list of projects shared with the user.</returns>
     public async Task<Result<List<Project>>> GetProjectsAsCollaboratorAsync(string userEmail)
     {
-        List<Project> sharedProjects = await _dataContext.Projects
+        List<Project> sharedProjects = await _projectRepository.Query()
             .Join(
-                _dataContext.Collaborators,
+                _collaboratorRepository.Query(),
                 p => p.Id,
                 c => c.ProjectId,
                 (p, c) => new { Project = p, Collaborator = c })
@@ -105,7 +121,7 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
     /// <returns>A Result containing an array of tasks or failure details.</returns>
     public async Task<Result<List<Models.Task>>> GetTasksAsCollaboratorAsync(Guid projectId)
     {
-        var project = await _dataContext.Projects.Where(p => p.Id == projectId && p.IsPublic).FirstOrDefaultAsync();
+        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
 
         if (project == null)
         {
@@ -114,19 +130,12 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
                 "You do not have permission to access this project.",
                 403);
         }
+        int? first_task = project.FirstTask;
 
-        int? first_task = await _dataContext.Projects
-            .Where(p => p.Id == projectId)
-            .AsNoTracking()
-            .Select(p => p.FirstTask)
-            .FirstOrDefaultAsync();
+        var tasks = await _taskRepository.FindAsync(t => t.ProjectId == projectId);
+        var taskArray = tasks.ToArray();
 
-        var tasks = await _dataContext.Tasks
-            .Where(t => t.ProjectId == projectId)
-            .AsNoTrackingWithIdentityResolution()
-            .ToArrayAsync();
-
-        tasks.OrderTasks(first_task);
+        taskArray.OrderTasks(first_task);
 
         return Result.Success(tasks.ToList());
     }
@@ -138,7 +147,7 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
     /// <returns>A Result containing a success message or failure details.</returns>
     public async Task<Result<string>> GrantPublicAccessAsync(Guid projectId)
     {
-        var project = await _dataContext.Projects.Where(p => p.Id == projectId).FirstOrDefaultAsync();
+        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
 
         if (project == null)
         {
@@ -151,7 +160,8 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
         }
 
         project.IsPublic = true;
-        await _dataContext.SaveChangesAsync();
+        _projectRepository.Update(project);
+        await _unitOfWork.SaveChangesAsync();
 
         return Result.Success("Project sharing is enabled.");
     }
@@ -163,7 +173,7 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
     /// <returns>A Result containing a success message or failure details.</returns>
     public async Task<Result<string>> RevokePublicAccessAsync(Guid projectId)
     {
-        var project = await _dataContext.Projects.Where(p => p.Id == projectId).FirstOrDefaultAsync();
+        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
 
         if (project == null)
         {
@@ -176,7 +186,8 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
         }
 
         project.IsPublic = false;
-        await _dataContext.SaveChangesAsync();
+        _projectRepository.Update(project);
+        await _unitOfWork.SaveChangesAsync();
 
         return Result.Success("Project sharing is disabled.");
     }
@@ -189,7 +200,7 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
     /// <returns>A Result containing a success message or failure details.</returns>
     public async Task<Result<string>> UpdateProjectNameAsync(Guid projectId, CreateUpdateProjectRequest request)
     {
-        var project = await _dataContext.Projects.Where(p => p.Id == projectId).SingleOrDefaultAsync();
+        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
 
         if (project == null)
         {
@@ -197,7 +208,8 @@ public class ProjectsService(DataContext dataContext, IHubContext<SharedProjects
         }
 
         project.Name = request.Name;
-        await _dataContext.SaveChangesAsync();
+        _projectRepository.Update(project);
+        await _unitOfWork.SaveChangesAsync();
 
         return Result.Success($"Project with ID {projectId} successfully updated.");
     }

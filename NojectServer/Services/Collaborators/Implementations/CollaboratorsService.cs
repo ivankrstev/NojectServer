@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using NojectServer.Data;
 using NojectServer.Hubs;
 using NojectServer.Models;
+using NojectServer.Repositories.Interfaces;
+using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Collaborators.Interfaces;
 using NojectServer.Utils.ResultPattern;
 
@@ -16,10 +17,16 @@ namespace NojectServer.Services.Collaborators.Implementations;
 /// users and projects they can access, and sends real-time events via SignalR when
 /// collaboration status changes, allowing immediate UI updates for affected users.
 /// </summary>
-public class CollaboratorsService(DataContext dataContext, IHubContext<SharedProjectsHub> hubContext) : ICollaboratorsService
+public class CollaboratorsService(IUnitOfWork unitOfWork, IHubContext<SharedProjectsHub> hubContext) : ICollaboratorsService
 {
-    private readonly DataContext _dataContext = dataContext;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IHubContext<SharedProjectsHub> _hubContext = hubContext;
+    private readonly IUserRepository _userRepository = unitOfWork.GetRepository<User>() as IUserRepository
+        ?? throw new InvalidOperationException("Failed to get user repository");
+    private readonly ICollaboratorRepository _collaboratorRepository = unitOfWork.GetRepository<Collaborator>() as ICollaboratorRepository
+        ?? throw new InvalidOperationException("Failed to get collaborator repository");
+    private readonly IProjectRepository _projectRepository = unitOfWork.GetRepository<Project>() as IProjectRepository
+        ?? throw new InvalidOperationException("Failed to get project repository");
 
     /// <summary>
     /// Adds a user as a collaborator to a project.
@@ -46,20 +53,21 @@ public class CollaboratorsService(DataContext dataContext, IHubContext<SharedPro
             return Result.Failure<string>("ValidationError", "You cannot add yourself as collaborator");
         }
 
-        if (!await _dataContext.Users.AnyAsync(u => u.Email == userEmailToAdd))
+        if (!await _userRepository.AnyAsync(u => u.Email == userEmailToAdd))
         {
             return Result.Failure<string>("NotFound", "The specified user doesn't exist", 404);
         }
 
-        if (await _dataContext.Collaborators.AnyAsync(c => c.ProjectId == projectId && c.CollaboratorId == userEmailToAdd))
+        if (await _collaboratorRepository.AnyAsync(c => c.ProjectId == projectId && c.CollaboratorId == userEmailToAdd))
         {
             return Result.Failure<string>("Conflict", "This collaborator is already associated with this project", 409);
         }
 
-        await _dataContext.AddAsync(new Collaborator { ProjectId = projectId, CollaboratorId = userEmailToAdd });
-        await _dataContext.SaveChangesAsync();
+        var collaborator = new Collaborator { ProjectId = projectId, CollaboratorId = userEmailToAdd };
+        await _collaboratorRepository.AddAsync(collaborator);
+        await _unitOfWork.SaveChangesAsync();
 
-        var project = await _dataContext.Projects.Where(p => p.Id == projectId).FirstOrDefaultAsync();
+        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
 
         await _hubContext.Clients.Groups(userEmailToAdd).SendAsync(
             "NewSharedProject",
@@ -87,8 +95,8 @@ public class CollaboratorsService(DataContext dataContext, IHubContext<SharedPro
     /// </remarks>
     public async Task<Result<List<string>>> SearchCollaboratorsAsync(Guid projectId, string userToFind, string projectOwnerEmail)
     {
-        var query = from user in _dataContext.Users
-                    join collaborator in _dataContext.Collaborators
+        var query = from user in _userRepository.Query()
+                    join collaborator in _collaboratorRepository.Query()
                     on new { UserId = user.Email, ProjectId = projectId } equals new
                     {
                         UserId = collaborator.CollaboratorId,
@@ -108,11 +116,9 @@ public class CollaboratorsService(DataContext dataContext, IHubContext<SharedPro
     /// <returns>A Result containing a list of collaborator emails for the project.</returns>
     public async Task<Result<List<string>>> GetAllCollaboratorsAsync(Guid projectId)
     {
-        var collaborators = await _dataContext.Collaborators
-            .Where(c => c.ProjectId == projectId)
-            .Select(c => c.CollaboratorId)
-            .ToListAsync();
-        return Result.Success(collaborators);
+        var collaborators = await _collaboratorRepository.FindAsync(c => c.ProjectId == projectId);
+        var collaboratorIds = collaborators.Select(c => c.CollaboratorId).ToList();
+        return Result.Success(collaboratorIds);
     }
 
     /// <summary>
@@ -130,14 +136,17 @@ public class CollaboratorsService(DataContext dataContext, IHubContext<SharedPro
     /// </remarks>
     public async Task<Result<string>> RemoveCollaboratorAsync(Guid projectId, string userToRemove)
     {
-        var deletedRows = await _dataContext.Collaborators
-            .Where(c => c.ProjectId == projectId && c.CollaboratorId == userToRemove)
-            .ExecuteDeleteAsync();
+        var collaborators = await _collaboratorRepository.FindAsync(
+            c => c.ProjectId == projectId && c.CollaboratorId == userToRemove);
 
-        if (deletedRows == 0)
+        var collaborator = collaborators.FirstOrDefault();
+        if (collaborator == null)
         {
             return Result.Failure<string>("NotFound", "The specified collaborator doesn't exist", 404);
         }
+
+        _collaboratorRepository.Remove(collaborator);
+        await _unitOfWork.SaveChangesAsync();
 
         await _hubContext.Clients.Group(userToRemove).SendAsync(
             "RemovedSharedProject",
