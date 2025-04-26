@@ -19,6 +19,10 @@ public class DataContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Email)
+            .IsUnique();
+
         modelBuilder.Entity<Models.Task>()
             .HasOne(t => t.NextTask)
             .WithMany()

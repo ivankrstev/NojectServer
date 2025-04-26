@@ -8,6 +8,10 @@ public class User
 {
     [Key]
     [Column("user_id")]
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    [Column("email")]
+    [Required]
     [StringLength(62)]
     public string Email { get; set; } = string.Empty;
 

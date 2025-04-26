@@ -17,10 +17,10 @@ public class Collaborator
     [JsonIgnore]
     public virtual Project? Project { get; set; }
 
-    [Column("user_id")]
+    [Column("collaborator_id")]
     [ForeignKey("User")]
     [Required]
-    public string CollaboratorId { get; set; } = string.Empty;
+    public Guid CollaboratorId { get; set; } = Guid.Empty;
 
     [JsonIgnore]
     public virtual User? User { get; set; }

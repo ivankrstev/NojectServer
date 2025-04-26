@@ -5,14 +5,14 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace NojectServer.Models;
 
 [Table("refresh_tokens")]
-[PrimaryKey(nameof(Email), nameof(Token))]
+[PrimaryKey(nameof(UserId), nameof(Token))]
 public class RefreshToken
 {
     [Column("user_id")]
     [ForeignKey("User")]
     [Required]
     [StringLength(62)]
-    public string Email { get; set; } = string.Empty;
+    public Guid UserId { get; set; } = Guid.Empty;
 
     public virtual User? User { get; set; }
 

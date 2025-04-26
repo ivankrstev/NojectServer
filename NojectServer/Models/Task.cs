@@ -36,7 +36,7 @@ public class Task
 
     [Column("completed_by")]
     [ForeignKey("UserWhoCompleted")]
-    public string? CompletedBy { get; set; }
+    public Guid? CompletedBy { get; set; }
 
     [JsonIgnore]
     public virtual User? UserWhoCompleted { get; set; }
@@ -44,7 +44,7 @@ public class Task
     [Column("created_by")]
     [ForeignKey("UserWhoCreated")]
     [Required]
-    public string CreatedBy { get; set; } = string.Empty;
+    public Guid CreatedBy { get; set; } = Guid.Empty;
 
     [JsonIgnore]
     public virtual User? UserWhoCreated { get; set; }
