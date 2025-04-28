@@ -11,26 +11,23 @@ public class ProjectRepository(DataContext dataContext)
 {
     private new readonly DataContext _dataContext = dataContext;
 
-    public async Task<IEnumerable<Project>> GetByUserEmailAsync(string userEmail)
-    {
-        return await _dbSet.Where(p => p.CreatedBy == userEmail).ToListAsync();
-    }
-
-    public async Task<IEnumerable<Project>> GetCollaboratorProjectsAsync(string userEmail)
+    public async Task<IEnumerable<Project>> GetByCreatorEmailAsync(string userEmail)
     {
         return await _dbSet
-            .Where(p => _dataContext.Collaborators.Any(c => c.ProjectId == p.Id && c.CollaboratorId == userEmail))
+            .Include(p => p.User)
+            .Where(p => _dataContext.Users.Any(u => u.Email == userEmail && u.Id == p.CreatedBy))
             .ToListAsync();
     }
 
-    public async Task<bool> HasUserAccessToProjectAsync(Guid projectId, string userEmail)
+    public async Task<bool> HasUserAccessToProjectAsync(Guid projectId, Guid userId)
     {
-        return await _dbSet.AnyAsync(p => p.Id == projectId && p.CreatedBy == userEmail) ||
-       await _dataContext.Collaborators.AnyAsync(c => c.ProjectId == projectId && c.CollaboratorId == userEmail);
+        // Checks if user is owner or collaborator
+        return await _dbSet.AnyAsync(p => p.Id == projectId && p.CreatedBy == userId) ||
+            await _dataContext.Collaborators.AnyAsync(c => c.ProjectId == projectId && c.CollaboratorId == userId);
     }
 
-    public async Task<bool> IsUserProjectOwnerAsync(Guid projectId, string userEmail)
+    public async Task<bool> IsUserProjectOwnerAsync(Guid projectId, Guid userId)
     {
-        return await _dbSet.AnyAsync(p => p.Id == projectId && p.CreatedBy == userEmail);
+        return await _dbSet.AnyAsync(p => p.Id == projectId && p.CreatedBy == userId);
     }
 }

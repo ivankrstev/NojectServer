@@ -9,9 +9,9 @@ namespace NojectServer.Repositories.Implementations;
 public class RefreshTokenRepository(DataContext dataContext)
     : GenericRepository<RefreshToken>(dataContext), IRefreshTokenRepository
 {
-    public async Task<RefreshToken?> GetByEmailAndTokenAsync(string email, string token)
+    public async Task<RefreshToken?> GetByUserIdAndTokenAsync(Guid userId, string token)
     {
-        return await _dbSet.FirstOrDefaultAsync(rt => rt.Email == email && rt.Token == token);
+        return await _dbSet.FirstOrDefaultAsync(rt => rt.UserId == userId && rt.Token == token);
     }
 
     public Task<RefreshToken?> GetByTokenAsync(string token)
