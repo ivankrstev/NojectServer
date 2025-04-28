@@ -22,7 +22,10 @@ public class VerifyProjectAccessHub(IProjectRepository projectRepository) : IHub
                 throw new HubException("The provided project id is not a valid GUID");
 
             // Check if the user can access the project with id = projectId
-            if (!await CheckProjectAccess(projectId, invocationContext.Context.User?.FindFirst(ClaimTypes.Name)?.Value!))
+            var userId = invocationContext.Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var parsedUserId))
+                throw new HubException("User ID is not valid");
+            if (!await CheckProjectAccess(projectId, parsedUserId))
                 throw new HubException("You do not have permission to access this project");
         }
 
@@ -30,12 +33,12 @@ public class VerifyProjectAccessHub(IProjectRepository projectRepository) : IHub
         return await next(invocationContext);
     }
 
-    private async Task<bool> CheckProjectAccess(Guid projectId, string userEmail)
+    private async Task<bool> CheckProjectAccess(Guid projectId, Guid userId)
     {
         try
         {
             await _semaphore.WaitAsync();
-            return await _projectRepository.HasUserAccessToProjectAsync(projectId, userEmail);
+            return await _projectRepository.HasUserAccessToProjectAsync(projectId, userId);
         }
         catch (Exception)
         {

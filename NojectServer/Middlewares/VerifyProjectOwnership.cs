@@ -11,10 +11,23 @@ public class VerifyProjectOwnership(IProjectRepository projectRepository) : Attr
 
     public async Task OnResourceExecutionAsync(ResourceExecutingContext context, ResourceExecutionDelegate next)
     {
-        string UserEmail = context.HttpContext.User.FindFirst(ClaimTypes.Name)?.Value!;
-        if (context.RouteData.Values.TryGetValue("id", out var IdParam) && Guid.TryParse(IdParam!.ToString(), out Guid ParsedId))
+        var userId = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        // Check if the userId is valid and can be parsed to a Guid
+        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out Guid parsedUserId))
         {
-            if (!await _projectRepository.IsUserProjectOwnerAsync(ParsedId, UserEmail))
+            context.HttpContext.Response.StatusCode = 401;
+            await context.HttpContext.Response.WriteAsJsonAsync(new
+            {
+                error = "Unauthorized",
+                message = "User ID is not valid"
+            });
+            return;
+        }
+
+        // Check if the project ID is present in the route data and can be parsed to a Guid
+        if (context.RouteData.Values.TryGetValue("id", out var projectIdParam) && Guid.TryParse(projectIdParam!.ToString(), out Guid parsedProjectId))
+        {
+            if (!await _projectRepository.IsUserProjectOwnerAsync(parsedProjectId, parsedUserId))
             {
                 context.HttpContext.Response.StatusCode = 403;
                 await context.HttpContext.Response.WriteAsJsonAsync(new
