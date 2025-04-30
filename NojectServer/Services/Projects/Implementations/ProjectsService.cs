@@ -35,9 +35,9 @@ public class ProjectsService(
     /// Creates a new project with generated colors.
     /// </summary>
     /// <param name="request">The project creation request containing the project name.</param>
-    /// <param name="createdBy">The email of the user creating the project.</param>
+    /// <param name="createdBy"> The ID of the user creating the project.</param>
     /// <returns>A Result containing the created project.</returns>
-    public async Task<Result<Project>> CreateProjectAsync(CreateUpdateProjectRequest request, string createdBy)
+    public async Task<Result<Project>> CreateProjectAsync(CreateUpdateProjectRequest request, Guid createdBy)
     {
         GenerateColors(out string color, out string backgroundColor);
         Project project = new()
@@ -48,7 +48,6 @@ public class ProjectsService(
             CreatedBy = createdBy
         };
 
-        await _unitOfWork.GetRepository<Project>().AddAsync(project);
         await _projectRepository.AddAsync(project);
         await _unitOfWork.SaveChangesAsync();
 
@@ -58,9 +57,9 @@ public class ProjectsService(
     /// <summary>
     /// Deletes a project.
     /// </summary>
-    /// <param name="projectId">The unique identifier of the project to delete.</param>
+    /// <param name="projectId">The ID of the project to delete.</param>
     /// <returns>A Result containing a success message or failure details.</returns>
-    /// Task: Implement notification to collaborators about project deletion(update their UI properly).
+    /// TODO: Implement notification to collaborators about project deletion(update their UI properly).
     public async Task<Result<string>> DeleteProjectAsync(Guid projectId)
     {
         var project = await _projectRepository.GetByIdAsync(projectId.ToString());
@@ -85,11 +84,11 @@ public class ProjectsService(
     /// <summary>
     /// Gets all projects owned by a user.
     /// </summary>
-    /// <param name="userEmail">The email of the user.</param>
+    /// <param name="userId"> The ID of the user whose projects are to be retrieved.</param>
     /// <returns>A Result containing a list of projects owned by the user.</returns>
-    public async Task<Result<List<Project>>> GetOwnProjectsAsync(string userEmail)
+    public async Task<Result<List<Project>>> GetOwnProjectsAsync(Guid userId)
     {
-        var projects = await _unitOfWork.GetRepository<Project>().FindAsync(p => p.CreatedBy == userEmail);
+        var projects = await _projectRepository.FindAsync(p => p.CreatedBy == userId);
 
         return Result.Success(projects.ToList());
     }
@@ -97,9 +96,9 @@ public class ProjectsService(
     /// <summary>
     /// Gets all projects shared with a user.
     /// </summary>
-    /// <param name="userEmail">The email of the user.</param>
+    /// <param name="userId"> The ID of the user whose shared projects are to be retrieved.</param>
     /// <returns>A Result containing a list of projects shared with the user.</returns>
-    public async Task<Result<List<Project>>> GetProjectsAsCollaboratorAsync(string userEmail)
+    public async Task<Result<List<Project>>> GetProjectsAsCollaboratorAsync(Guid userId)
     {
         List<Project> sharedProjects = await _projectRepository.Query()
             .Join(
@@ -107,7 +106,7 @@ public class ProjectsService(
                 p => p.Id,
                 c => c.ProjectId,
                 (p, c) => new { Project = p, Collaborator = c })
-            .Where(joinedResult => joinedResult.Collaborator.CollaboratorId == userEmail)
+            .Where(joinedResult => joinedResult.Collaborator.CollaboratorId == userId)
             .Select(joinedResult => joinedResult.Project)
             .ToListAsync();
 
@@ -117,7 +116,7 @@ public class ProjectsService(
     /// <summary>
     /// Gets a shared project's tasks.
     /// </summary>
-    /// <param name="projectId">The unique identifier of the project.</param>
+    /// <param name="projectId">The ID of the project to retrieve tasks from.</param>
     /// <returns>A Result containing an array of tasks or failure details.</returns>
     public async Task<Result<List<Models.Task>>> GetTasksAsCollaboratorAsync(Guid projectId)
     {
@@ -143,7 +142,7 @@ public class ProjectsService(
     /// <summary>
     /// Grants public access for a project.
     /// </summary>
-    /// <param name="projectId">The unique identifier of the project.</param>
+    /// <param name="projectId">The ID of the project to grant access to.</param>
     /// <returns>A Result containing a success message or failure details.</returns>
     public async Task<Result<string>> GrantPublicAccessAsync(Guid projectId)
     {
@@ -169,7 +168,7 @@ public class ProjectsService(
     /// <summary>
     /// Revokes public access for a project.
     /// </summary>
-    /// <param name="projectId">The unique identifier of the project.</param>
+    /// <param name="projectId">The ID of the project to revoke access from.</param>
     /// <returns>A Result containing a success message or failure details.</returns>
     public async Task<Result<string>> RevokePublicAccessAsync(Guid projectId)
     {
@@ -195,7 +194,7 @@ public class ProjectsService(
     /// <summary>
     /// Updates a project's name.
     /// </summary>
-    /// <param name="projectId">The unique identifier of the project.</param>
+    /// <param name="projectId"> The ID of the project to update.</param>
     /// <param name="request">The update request containing the new project name.</param>
     /// <returns>A Result containing a success message or failure details.</returns>
     public async Task<Result<string>> UpdateProjectNameAsync(Guid projectId, CreateUpdateProjectRequest request)
