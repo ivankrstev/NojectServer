@@ -13,46 +13,46 @@ public interface ITwoFactorAuthService
     /// Generates a setup code for 2FA and prepares the user account for 2FA enrollment.
     /// This method creates a new secret key and generates a QR code URL for TOTP apps.
     /// </summary>
-    /// <param name="email">The email address of the user</param>
+    /// <param name="userId"> The ID of the user to create the setup code for</param>
     /// <returns>
     /// A Result containing TwoFactorSetupResult with the manual key and QR code URL if successful,
     /// or an error message if the operation fails
     /// </returns>
-    Task<Result<TwoFactorSetupResult>> GenerateSetupCodeAsync(string email);
+    Task<Result<TwoFactorSetupResult>> GenerateSetupCodeAsync(Guid userId);
 
     /// <summary>
     /// Enables two-factor authentication for a user after verifying the provided code.
     /// The user must first call GenerateSetupCodeAsync before enabling 2FA.
     /// </summary>
-    /// <param name="email">The email address of the user</param>
+    /// <param name="userId"> The ID of the user to enable 2FA for</param>
     /// <param name="code">The verification code from the user's TOTP app</param>
     /// <returns>
     /// A Result containing a success message if 2FA was enabled successfully,
     /// or an error message if the operation fails
     /// </returns>
-    Task<Result<string>> EnableTwoFactorAsync(string email, string code);
+    Task<Result<string>> EnableTwoFactorAsync(Guid userId, string code);
 
     /// <summary>
     /// Disables two-factor authentication for a user after verifying the provided code.
     /// </summary>
-    /// <param name="email">The email address of the user</param>
+    /// <param name="userId"> The ID of the user to disable 2FA for</param>
     /// <param name="code">The verification code from the user's TOTP app</param>
     /// <returns>
     /// A Result containing a success message if 2FA was disabled successfully,
     /// or an error message if the operation fails
     /// </returns>
-    Task<Result<string>> DisableTwoFactorAsync(string email, string code);
+    Task<Result<string>> DisableTwoFactorAsync(Guid userId, string code);
 
     /// <summary>
     /// Validates a TOTP code provided by the user during the login process.
     /// </summary>
-    /// <param name="email">The email address of the user</param>
+    /// <param name="userId"> The ID of the user to validate the code for</param>
     /// <param name="code">The verification code from the user's TOTP app</param>
     /// <returns>
     /// A Result containing a boolean indicating whether the code is valid,
     /// or an error message if the validation process fails
     /// </returns>
-    Task<Result<bool>> ValidateTwoFactorCodeAsync(string email, string code);
+    Task<Result<bool>> ValidateTwoFactorCodeAsync(Guid userId, string code);
 }
 
 /// <summary>

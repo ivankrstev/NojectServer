@@ -13,25 +13,28 @@ public interface ITokenService
     /// Creates a JWT access token for the specified user email.
     /// Access tokens are short-lived tokens used for API authentication.
     /// </summary>
-    /// <param name="email">The email address of the user to create the token for</param>
+    /// <param name="userId">The ID of the user to create the token for</param>
+    /// <param name="email">The email address of the user for additional claims</param>
     /// <returns>A signed JWT token string</returns>
-    string CreateAccessToken(string email);
+    string CreateAccessToken(Guid userId, string email);
 
     /// <summary>
     /// Creates a JWT refresh token for the specified user email.
     /// Refresh tokens are long-lived tokens used to obtain new access tokens.
     /// </summary>
-    /// <param name="email">The email address of the user to create the token for</param>
+    /// <param name="userId">The ID of the user to create the token for</param>
+    /// <param name="email">The email address of the user for additional claims</param>
     /// <returns>A signed JWT token string</returns>
-    string CreateRefreshToken(string email);
+    string CreateRefreshToken(Guid userId, string email);
 
     /// <summary>
     /// Creates a JWT token for two-factor authentication (TFA) purposes.
     /// TFA tokens are short-lived tokens used during the two-factor authentication flow.
     /// </summary>
-    /// <param name="email">The email address of the user to create the token for</param>
+    /// <param name="userId">The ID of the user to create the token for</param>
+    /// <param name="email">The email address of the user for additional claims</param>
     /// <returns>A signed JWT token string</returns>
-    string CreateTfaToken(string email);
+    string CreateTfaToken(Guid userId, string email);
 
     /// <summary>
     /// Provides the validation parameters required to verify access tokens.

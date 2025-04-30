@@ -79,19 +79,19 @@ public class AuthService(
     /// </summary>
     /// <param name="request">The login request containing user credentials</param>
     /// <returns>
-    /// A Result containing the user's email if login is successful,
-    /// or an error message if authentication fails
+    /// A Result containing the User object if login is successful,
+    /// or an error message if authentication fails.
     /// </returns>
-    public async Task<Result<string>> LoginAsync(LoginRequest request)
+    public async Task<Result<User>> LoginAsync(LoginRequest request)
     {
         var user = await _userRepository.GetByEmailAsync(request.Email);
         if (user == null || !_passwordService.VerifyPasswordHash(request.Password, user.Password, user.PasswordSalt))
-            return Result.Failure<string>("Unauthorized", "Invalid credentials.", 401);
+            return Result.Failure<User>("Unauthorized", "Invalid credentials.", 401);
 
         if (user.VerifiedAt == null)
-            return Result.Failure<string>("Unauthorized", "Email not verified.", 401);
+            return Result.Failure<User>("Unauthorized", "Email not verified.", 401);
 
-        return Result.Success(user.Email);
+        return Result.Success(user);
     }
 
     /// <summary>

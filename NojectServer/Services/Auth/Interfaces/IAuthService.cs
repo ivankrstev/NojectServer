@@ -32,7 +32,7 @@ public interface IAuthService
     /// A Result containing the user's email if login is successful,
     /// or an error message if authentication fails
     /// </returns>
-    Task<Result<string>> LoginAsync(LoginRequest request);
+    Task<Result<User>> LoginAsync(LoginRequest request);
 
     /// <summary>
     /// Verifies a user's email address using the verification token sent during registration.

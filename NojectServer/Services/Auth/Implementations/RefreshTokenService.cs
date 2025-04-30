@@ -25,18 +25,20 @@ public class RefreshTokenService(IUnitOfWork unitOfWork, ITokenService tokenServ
     /// Generates a new refresh token for a user and stores it in the database.
     /// The token is created with a 14-day expiration period from the current UTC time.
     /// </summary>
-    /// <param name="email">The email address of the user to create the token for</param>
-    /// <returns>The generated refresh token string</returns>
+    /// <param name="userId">The ID of the user to create the token for</param>
+    /// <param name="email">The email address of the user used for claims</param>
+    /// <returns>A Result containing the generated refresh token string</returns>
     /// <exception cref="ArgumentNullException">Thrown when email is null</exception>
-    public async Task<Result<string>> GenerateRefreshTokenAsync(string email)
+    public async Task<Result<string>> GenerateRefreshTokenAsync(Guid userId, string email)
     {
+        ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(email);
         try
         {
             var refreshToken = new RefreshToken
             {
-                Email = email,
-                Token = _tokenService.CreateRefreshToken(email),
+                UserId = userId,
+                Token = _tokenService.CreateRefreshToken(userId, email),
                 ExpireDate = DateTime.UtcNow.AddDays(14)
             };
             await _refreshTokenRepository.AddAsync(refreshToken);
@@ -78,6 +80,7 @@ public class RefreshTokenService(IUnitOfWork unitOfWork, ITokenService tokenServ
     /// to be invalidated for security reasons.
     /// </summary>
     /// <param name="token">The refresh token string to revoke</param>
+    /// <returns>A Result indicating success or failure of the operation</returns>
     /// <exception cref="ArgumentNullException">Thrown when token is null</exception>
     /// <remarks>
     /// If the token doesn't exist in the database, this method completes without throwing an exception.

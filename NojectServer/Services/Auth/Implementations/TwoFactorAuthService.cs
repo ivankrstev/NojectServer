@@ -33,15 +33,15 @@ public class TwoFactorAuthService(
     /// This method validates the code using the TOTP validator before disabling 2FA
     /// and removing the secret key from the user's account.
     /// </summary>
-    /// <param name="email">The email address of the user</param>
+    /// <param name="userId"> The ID of the user to disable 2FA for</param>
     /// <param name="code">The verification code from the user's TOTP app</param>
     /// <returns>
     /// A Result containing a success message if 2FA was disabled successfully,
     /// or an error message with appropriate status code if the operation fails
     /// </returns>
-    public async Task<Result<string>> DisableTwoFactorAsync(string email, string code)
+    public async Task<Result<string>> DisableTwoFactorAsync(Guid userId, string code)
     {
-        var user = await _userRepository.GetByEmailAsync(email);
+        var user = await _userRepository.GetByIdAsync(userId.ToString());
         if (user == null)
             return Result.Failure<string>("NotFound", "User not found.", 404);
 
@@ -64,15 +64,15 @@ public class TwoFactorAuthService(
     /// This method checks if the user has a secret key generated and validates the code
     /// using the TOTP validator before enabling 2FA for the user's account.
     /// </summary>
-    /// <param name="email">The email address of the user</param>
+    /// <param name="userId"> The ID of the user to enable 2FA for</param>
     /// <param name="code">The verification code from the user's TOTP app</param>
     /// <returns>
     /// A Result containing a success message if 2FA was enabled successfully,
     /// or an error message if the operation fails
     /// </returns>
-    public async Task<Result<string>> EnableTwoFactorAsync(string email, string code)
+    public async Task<Result<string>> EnableTwoFactorAsync(Guid userId, string code)
     {
-        var user = await _userRepository.GetByEmailAsync(email);
+        var user = await _userRepository.GetByIdAsync(userId.ToString());
         if (user == null)
             return Result.Failure<string>("NotFound", "User not found.", 404);
 
@@ -94,14 +94,14 @@ public class TwoFactorAuthService(
     /// This method creates a new secret key and generates a QR code URL that can be
     /// displayed to the user for scanning with a TOTP app.
     /// </summary>
-    /// <param name="email">The email address of the user</param>
+    /// <param name="userId"> The ID of the user to create the setup code for</param>
     /// <returns>
     /// A Result containing TwoFactorSetupResult with the manual key and QR code URL if successful,
     /// or an error message if the operation fails
     /// </returns>
-    public async Task<Result<TwoFactorSetupResult>> GenerateSetupCodeAsync(string email)
+    public async Task<Result<TwoFactorSetupResult>> GenerateSetupCodeAsync(Guid userId)
     {
-        var user = await _userRepository.GetByEmailAsync(email);
+        var user = await _userRepository.GetByIdAsync(userId.ToString());
         if (user == null)
             return Result.Failure<TwoFactorSetupResult>("NotFound", "User not found.", 404);
 
@@ -113,7 +113,7 @@ public class TwoFactorAuthService(
         var appName = _config["AppName"] ?? "Noject";
 
         // Create QR code URL
-        string qrCodeUrl = $"otpauth://totp/{Uri.EscapeDataString(appName)}:{Uri.EscapeDataString(email)}?secret={secretKey}&issuer={Uri.EscapeDataString(appName)}&digits=6&period=30";
+        string qrCodeUrl = $"otpauth://totp/{Uri.EscapeDataString(appName)}:{Uri.EscapeDataString(user.Email)}?secret={secretKey}&issuer={Uri.EscapeDataString(appName)}&digits=6&period=30";
 
         // Save the secret key to the user
         user.TwoFactorSecretKey = secretKey;
@@ -132,15 +132,15 @@ public class TwoFactorAuthService(
     /// This method checks if the user has 2FA enabled and validates the code
     /// using the TOTP validator.
     /// </summary>
-    /// <param name="email">The email address of the user</param>
+    /// <param name="userId"> The ID of the user to validate the code for</param>
     /// <param name="code">The verification code from the user's TOTP app</param>
     /// <returns>
     /// A Result containing a boolean indicating whether the code is valid,
     /// or an error message if the validation process fails
     /// </returns>
-    public async Task<Result<bool>> ValidateTwoFactorCodeAsync(string email, string code)
+    public async Task<Result<bool>> ValidateTwoFactorCodeAsync(Guid userId, string code)
     {
-        var user = await _userRepository.GetByEmailAsync(email);
+        var user = await _userRepository.GetByIdAsync(userId.ToString());
         if (user == null)
             return Result.Failure<bool>("NotFound", "User not found.", 404);
         if (string.IsNullOrEmpty(user.TwoFactorSecretKey))
