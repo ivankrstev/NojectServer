@@ -1,6 +1,4 @@
-﻿using NojectServer.Models;
-using NojectServer.Repositories.Interfaces;
-using NojectServer.Repositories.UnitOfWork;
+﻿using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Services.Auth.Validation.Interfaces;
 using NojectServer.Utils;
@@ -25,8 +23,6 @@ public class TwoFactorAuthService(
     private readonly IConfiguration _config = config;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly ITotpValidator _totpValidator = totpValidator;
-    private readonly IUserRepository _userRepository = unitOfWork.GetRepository<User>() as IUserRepository
-        ?? throw new InvalidOperationException("Failed to get user repository");
 
     /// <summary>
     /// Disables two-factor authentication for a user after verifying the provided code.
@@ -41,7 +37,7 @@ public class TwoFactorAuthService(
     /// </returns>
     public async Task<Result<string>> DisableTwoFactorAsync(Guid userId, string code)
     {
-        var user = await _userRepository.GetByIdAsync(userId.ToString());
+        var user = await _unitOfWork.Users.GetByIdAsync(userId.ToString());
         if (user == null)
             return Result.Failure<string>("NotFound", "User not found.", 404);
 
@@ -53,7 +49,7 @@ public class TwoFactorAuthService(
 
         user.TwoFactorEnabled = false;
         user.TwoFactorSecretKey = null;
-        _userRepository.Update(user);
+        _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
 
         return Result.Success("2FA disabled successfully.");
@@ -72,7 +68,7 @@ public class TwoFactorAuthService(
     /// </returns>
     public async Task<Result<string>> EnableTwoFactorAsync(Guid userId, string code)
     {
-        var user = await _userRepository.GetByIdAsync(userId.ToString());
+        var user = await _unitOfWork.Users.GetByIdAsync(userId.ToString());
         if (user == null)
             return Result.Failure<string>("NotFound", "User not found.", 404);
 
@@ -83,7 +79,7 @@ public class TwoFactorAuthService(
             return Result.Failure<string>("Unauthorized", "Invalid security code.");
 
         user.TwoFactorEnabled = true;
-        _userRepository.Update(user);
+        _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
 
         return Result.Success("2FA enabled successfully.");
@@ -101,7 +97,7 @@ public class TwoFactorAuthService(
     /// </returns>
     public async Task<Result<TwoFactorSetupResult>> GenerateSetupCodeAsync(Guid userId)
     {
-        var user = await _userRepository.GetByIdAsync(userId.ToString());
+        var user = await _unitOfWork.Users.GetByIdAsync(userId.ToString());
         if (user == null)
             return Result.Failure<TwoFactorSetupResult>("NotFound", "User not found.", 404);
 
@@ -117,7 +113,7 @@ public class TwoFactorAuthService(
 
         // Save the secret key to the user
         user.TwoFactorSecretKey = secretKey;
-        _userRepository.Update(user);
+        _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
 
         return Result.Success(new TwoFactorSetupResult
@@ -140,7 +136,7 @@ public class TwoFactorAuthService(
     /// </returns>
     public async Task<Result<bool>> ValidateTwoFactorCodeAsync(Guid userId, string code)
     {
-        var user = await _userRepository.GetByIdAsync(userId.ToString());
+        var user = await _unitOfWork.Users.GetByIdAsync(userId.ToString());
         if (user == null)
             return Result.Failure<bool>("NotFound", "User not found.", 404);
         if (string.IsNullOrEmpty(user.TwoFactorSecretKey))

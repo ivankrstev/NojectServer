@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
 using NojectServer.Data;
-using NojectServer.Repositories.Base;
+using NojectServer.Repositories.Implementations;
+using NojectServer.Repositories.Interfaces;
 
 namespace NojectServer.Repositories.UnitOfWork;
 
@@ -9,12 +10,26 @@ namespace NojectServer.Repositories.UnitOfWork;
 /// This class coordinates operations across multiple repositories and provides transaction management
 /// to ensure data consistency.
 /// </summary>
-public class UnitOfWork(DataContext dataContext) : IUnitOfWork
+public class UnitOfWork : IUnitOfWork
 {
-    private readonly DataContext _dataContext = dataContext;
+    private readonly DataContext _dataContext;
     private IDbContextTransaction? _transaction;
-    private readonly Dictionary<Type, object> _repositories = [];
     private bool _disposed = false;
+    public IUserRepository Users { get; private set; }
+    public IProjectRepository Projects { get; private set; }
+    public ICollaboratorRepository Collaborators { get; private set; }
+    public ITaskRepository Tasks { get; private set; }
+    public IRefreshTokenRepository RefreshTokens { get; private set; }
+
+    public UnitOfWork(DataContext context)
+    {
+        _dataContext = context;
+        Users = new UserRepository(_dataContext);
+        Projects = new ProjectRepository(_dataContext);
+        Collaborators = new CollaboratorRepository(_dataContext);
+        Tasks = new TaskRepository(_dataContext);
+        RefreshTokens = new RefreshTokenRepository(_dataContext);
+    }
 
     /// <summary>
     /// Asynchronously begins a new database transaction if one doesn't already exist.
@@ -33,7 +48,7 @@ public class UnitOfWork(DataContext dataContext) : IUnitOfWork
     public async Task CommitTransactionAsync()
     {
         await _dataContext.SaveChangesAsync();
-        await(_transaction?.CommitAsync() ?? Task.CompletedTask);
+        await (_transaction?.CommitAsync() ?? Task.CompletedTask);
         await DisposeTransactionAsync();
     }
 
@@ -113,20 +128,6 @@ public class UnitOfWork(DataContext dataContext) : IUnitOfWork
         {
             await _dataContext.DisposeAsync();
         }
-    }
-
-    /// <summary>
-    /// Gets or creates a repository instance for the specified entity type.
-    /// Uses a dictionary to cache repository instances for reuse.
-    /// </summary>
-    /// <typeparam name="T">The entity type for which to get a repository.</typeparam>
-    /// <returns>A repository instance that can perform operations on entities of type T.</returns>
-    public IGenericRepository<T> GetRepository<T>() where T : class
-    {
-        if (!_repositories.ContainsKey(typeof(T)))
-            _repositories[typeof(T)] = new GenericRepository<T>(_dataContext);
-
-        return (IGenericRepository<T>)_repositories[typeof(T)];
     }
 
     /// <summary>

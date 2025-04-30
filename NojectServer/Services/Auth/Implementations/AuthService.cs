@@ -1,6 +1,5 @@
 ﻿using NojectServer.Models;
 using NojectServer.Models.Requests.Auth;
-using NojectServer.Repositories.Interfaces;
 using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Services.Common.Interfaces;
@@ -26,8 +25,6 @@ public class AuthService(
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IPasswordService _passwordService = passwordService;
     private readonly IEmailService _emailService = emailService;
-    private readonly IUserRepository _userRepository = unitOfWork.GetRepository<User>() as IUserRepository
-        ?? throw new InvalidOperationException("Failed to get user repository");
 
     /// <summary>
     /// Registers a new user in the system with the provided information.
@@ -41,7 +38,7 @@ public class AuthService(
     /// </returns>
     public async Task<Result<User>> RegisterAsync(RegisterRequest request)
     {
-        if (await _userRepository.AnyAsync(u => u.Email == request.Email))
+        if (await _unitOfWork.Users.AnyAsync(u => u.Email == request.Email))
             return Result.Failure<User>("Conflict", "A user with the provided email already exists.", 409);
 
         var requestError = request.Validate();
@@ -60,7 +57,7 @@ public class AuthService(
         try
         {
             await _unitOfWork.BeginTransactionAsync();
-            await _userRepository.AddAsync(user);
+            await _unitOfWork.Users.AddAsync(user);
             await _unitOfWork.SaveChangesAsync();
             await _emailService.SendVerificationLinkAsync(user);
             await _unitOfWork.CommitTransactionAsync();
@@ -84,7 +81,7 @@ public class AuthService(
     /// </returns>
     public async Task<Result<User>> LoginAsync(LoginRequest request)
     {
-        var user = await _userRepository.GetByEmailAsync(request.Email);
+        var user = await _unitOfWork.Users.GetByEmailAsync(request.Email);
         if (user == null || !_passwordService.VerifyPasswordHash(request.Password, user.Password, user.PasswordSalt))
             return Result.Failure<User>("Unauthorized", "Invalid credentials.", 401);
 
@@ -106,7 +103,7 @@ public class AuthService(
     /// </returns>
     public async Task<Result<string>> VerifyEmailAsync(string email, string token)
     {
-        var users = await _userRepository.FindAsync(u => u.Email == email && u.VerificationToken == token);
+        var users = await _unitOfWork.Users.FindAsync(u => u.Email == email && u.VerificationToken == token);
         var user = users.FirstOrDefault();
         if (user == null)
             return Result.Failure<string>("NotFound", "Invalid verification information.", 404);
@@ -115,7 +112,7 @@ public class AuthService(
             return Result.Failure<string>("Conflict", "Email already verified.", 409);
 
         user.VerifiedAt = DateTime.UtcNow;
-        _userRepository.Update(user);
+        _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
         return Result.Success("Email successfully verified.");
     }
@@ -131,13 +128,13 @@ public class AuthService(
     /// </returns>
     public async Task<Result<string>> ForgotPasswordAsync(string email)
     {
-        var user = await _userRepository.GetByEmailAsync(email);
+        var user = await _unitOfWork.Users.GetByEmailAsync(email);
         if (user == null)
             return Result.Failure<string>("NotFound", "User not found.", 404);
 
         user.PasswordResetToken = TokenGenerator.GenerateRandomToken();
         user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
-        _userRepository.Update(user);
+        _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
 
         try

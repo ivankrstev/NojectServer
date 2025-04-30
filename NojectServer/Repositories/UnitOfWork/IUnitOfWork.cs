@@ -1,4 +1,4 @@
-﻿using NojectServer.Repositories.Base;
+﻿using NojectServer.Repositories.Interfaces;
 
 namespace NojectServer.Repositories.UnitOfWork;
 
@@ -9,12 +9,11 @@ namespace NojectServer.Repositories.UnitOfWork;
 /// </summary>
 public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
-    /// <summary>
-    /// Gets a repository instance for the specified entity type.
-    /// </summary>
-    /// <typeparam name="T">The entity type for which to get a repository.</typeparam>
-    /// <returns>A repository instance that can perform operations on entities of type T.</returns>
-    IGenericRepository<T> GetRepository<T>() where T : class;
+    IUserRepository Users { get; }
+    IProjectRepository Projects { get; }
+    ICollaboratorRepository Collaborators { get; }
+    ITaskRepository Tasks { get; }
+    IRefreshTokenRepository RefreshTokens { get; }
 
     /// <summary>
     /// Asynchronously saves all changes made in this unit of work to the database.

@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using NojectServer.Hubs;
 using NojectServer.Models;
 using NojectServer.Models.Requests.Projects;
-using NojectServer.Repositories.Interfaces;
 using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Projects.Interfaces;
 using NojectServer.Utils;
@@ -24,12 +23,6 @@ public class ProjectsService(
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IHubContext<SharedProjectsHub> _hubContext = hubContext;
-    private readonly IProjectRepository _projectRepository = unitOfWork.GetRepository<Project>() as IProjectRepository
-        ?? throw new InvalidOperationException("Failed to get project repository");
-    private readonly ITaskRepository _taskRepository = unitOfWork.GetRepository<Models.Task>() as ITaskRepository
-        ?? throw new InvalidOperationException("Failed to get task repository");
-    private readonly ICollaboratorRepository _collaboratorRepository = unitOfWork.GetRepository<Models.Task>() as ICollaboratorRepository
-    ?? throw new InvalidOperationException("Failed to get task repository");
 
     /// <summary>
     /// Creates a new project with generated colors.
@@ -48,7 +41,7 @@ public class ProjectsService(
             CreatedBy = createdBy
         };
 
-        await _projectRepository.AddAsync(project);
+        await _unitOfWork.Projects.AddAsync(project);
         await _unitOfWork.SaveChangesAsync();
 
         return Result.Success(project);
@@ -62,14 +55,14 @@ public class ProjectsService(
     /// TODO: Implement notification to collaborators about project deletion(update their UI properly).
     public async Task<Result<string>> DeleteProjectAsync(Guid projectId)
     {
-        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
 
         if (project == null)
         {
             return Result.Failure<string>("NotFound", "Project not found.", 404);
         }
 
-        _unitOfWork.GetRepository<Project>().Remove(project);
+        _unitOfWork.Projects.Remove(project);
         await _unitOfWork.SaveChangesAsync();
         // Notify all collaborators about the project deletion
         //var collaborators = await _unitOfWork.GetRepository<Collaborator>().FindAsync(c => c.ProjectId == projectId);
@@ -88,7 +81,7 @@ public class ProjectsService(
     /// <returns>A Result containing a list of projects owned by the user.</returns>
     public async Task<Result<List<Project>>> GetOwnProjectsAsync(Guid userId)
     {
-        var projects = await _projectRepository.FindAsync(p => p.CreatedBy == userId);
+        var projects = await _unitOfWork.Projects.FindAsync(p => p.CreatedBy == userId);
 
         return Result.Success(projects.ToList());
     }
@@ -100,9 +93,9 @@ public class ProjectsService(
     /// <returns>A Result containing a list of projects shared with the user.</returns>
     public async Task<Result<List<Project>>> GetProjectsAsCollaboratorAsync(Guid userId)
     {
-        List<Project> sharedProjects = await _projectRepository.Query()
+        List<Project> sharedProjects = await _unitOfWork.Projects.Query()
             .Join(
-                _collaboratorRepository.Query(),
+                _unitOfWork.Collaborators.Query(),
                 p => p.Id,
                 c => c.ProjectId,
                 (p, c) => new { Project = p, Collaborator = c })
@@ -120,7 +113,7 @@ public class ProjectsService(
     /// <returns>A Result containing an array of tasks or failure details.</returns>
     public async Task<Result<List<Models.Task>>> GetTasksAsCollaboratorAsync(Guid projectId)
     {
-        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
 
         if (project == null)
         {
@@ -131,7 +124,7 @@ public class ProjectsService(
         }
         int? first_task = project.FirstTask;
 
-        var tasks = await _taskRepository.FindAsync(t => t.ProjectId == projectId);
+        var tasks = await _unitOfWork.Tasks.FindAsync(t => t.ProjectId == projectId);
         var taskArray = tasks.ToArray();
 
         taskArray.OrderTasks(first_task);
@@ -146,7 +139,7 @@ public class ProjectsService(
     /// <returns>A Result containing a success message or failure details.</returns>
     public async Task<Result<string>> GrantPublicAccessAsync(Guid projectId)
     {
-        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
 
         if (project == null)
         {
@@ -159,7 +152,7 @@ public class ProjectsService(
         }
 
         project.IsPublic = true;
-        _projectRepository.Update(project);
+        _unitOfWork.Projects.Update(project);
         await _unitOfWork.SaveChangesAsync();
 
         return Result.Success("Project sharing is enabled.");
@@ -172,7 +165,7 @@ public class ProjectsService(
     /// <returns>A Result containing a success message or failure details.</returns>
     public async Task<Result<string>> RevokePublicAccessAsync(Guid projectId)
     {
-        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
 
         if (project == null)
         {
@@ -185,7 +178,7 @@ public class ProjectsService(
         }
 
         project.IsPublic = false;
-        _projectRepository.Update(project);
+        _unitOfWork.Projects.Update(project);
         await _unitOfWork.SaveChangesAsync();
 
         return Result.Success("Project sharing is disabled.");
@@ -199,7 +192,7 @@ public class ProjectsService(
     /// <returns>A Result containing a success message or failure details.</returns>
     public async Task<Result<string>> UpdateProjectNameAsync(Guid projectId, CreateUpdateProjectRequest request)
     {
-        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
 
         if (project == null)
         {
@@ -207,7 +200,7 @@ public class ProjectsService(
         }
 
         project.Name = request.Name;
-        _projectRepository.Update(project);
+        _unitOfWork.Projects.Update(project);
         await _unitOfWork.SaveChangesAsync();
 
         return Result.Success($"Project with ID {projectId} successfully updated.");

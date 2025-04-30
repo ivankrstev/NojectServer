@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NojectServer.Hubs;
 using NojectServer.Models;
-using NojectServer.Repositories.Interfaces;
 using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Collaborators.Interfaces;
 using NojectServer.Utils.ResultPattern;
@@ -21,12 +20,6 @@ public class CollaboratorsService(IUnitOfWork unitOfWork, IHubContext<SharedProj
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IHubContext<SharedProjectsHub> _hubContext = hubContext;
-    private readonly IUserRepository _userRepository = unitOfWork.GetRepository<User>() as IUserRepository
-        ?? throw new InvalidOperationException("Failed to get user repository");
-    private readonly ICollaboratorRepository _collaboratorRepository = unitOfWork.GetRepository<Collaborator>() as ICollaboratorRepository
-        ?? throw new InvalidOperationException("Failed to get collaborator repository");
-    private readonly IProjectRepository _projectRepository = unitOfWork.GetRepository<Project>() as IProjectRepository
-        ?? throw new InvalidOperationException("Failed to get project repository");
 
     /// <summary>
     /// Adds a user as a collaborator to a project.
@@ -48,14 +41,14 @@ public class CollaboratorsService(IUnitOfWork unitOfWork, IHubContext<SharedProj
     public async Task<Result<string>> AddCollaboratorAsync(Guid projectId, string userEmailToAdd)
     {
         // Check if the project exists
-        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
         if (project == null)
         {
             return Result.Failure<string>("NotFound", "The specified project doesn't exist", 404);
         }
 
         // Check if the user to add exists
-        var userToAdd = await _userRepository.GetByEmailAsync(userEmailToAdd);
+        var userToAdd = await _unitOfWork.Users.GetByEmailAsync(userEmailToAdd);
         if (userToAdd == null)
         {
             return Result.Failure<string>("NotFound", "The specified user doesn't exist", 404);
@@ -68,13 +61,13 @@ public class CollaboratorsService(IUnitOfWork unitOfWork, IHubContext<SharedProj
         }
 
         // Check if the user is already a collaborator
-        if (await _collaboratorRepository.AnyAsync(c => c.ProjectId == projectId && c.CollaboratorId == userToAdd.Id))
+        if (await _unitOfWork.Collaborators.AnyAsync(c => c.ProjectId == projectId && c.CollaboratorId == userToAdd.Id))
         {
             return Result.Failure<string>("Conflict", "This collaborator is already associated with this project", 409);
         }
 
         var collaborator = new Collaborator { ProjectId = projectId, CollaboratorId = userToAdd.Id };
-        await _collaboratorRepository.AddAsync(collaborator);
+        await _unitOfWork.Collaborators.AddAsync(collaborator);
         await _unitOfWork.SaveChangesAsync();
 
         await _hubContext.Clients.Groups(userEmailToAdd).SendAsync(
@@ -102,7 +95,7 @@ public class CollaboratorsService(IUnitOfWork unitOfWork, IHubContext<SharedProj
     /// </remarks>
     public async Task<Result<List<string>>> SearchCollaboratorsAsync(Guid projectId, string userEmailToFind)
     {
-        var project = await _projectRepository.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
         if (project == null)
         {
             return Result.Failure<List<string>>("NotFound", "The specified project doesn't exist", 404);
@@ -110,8 +103,8 @@ public class CollaboratorsService(IUnitOfWork unitOfWork, IHubContext<SharedProj
 
         var projectOwnerId = project.CreatedBy;
 
-        var query = from user in _userRepository.Query()
-                    join collaborator in _collaboratorRepository.Query()
+        var query = from user in _unitOfWork.Users.Query()
+                    join collaborator in _unitOfWork.Collaborators.Query()
                     on new { UserId = user.Id, ProjectId = projectId } equals new
                     {
                         UserId = collaborator.CollaboratorId,
@@ -134,7 +127,7 @@ public class CollaboratorsService(IUnitOfWork unitOfWork, IHubContext<SharedProj
     /// <returns>A Result containing a list of collaborator emails for the project.</returns>
     public async Task<Result<List<string>>> GetAllCollaboratorsAsync(Guid projectId)
     {
-        var collaborators = await _collaboratorRepository.FindAsync(c => c.ProjectId == projectId);
+        var collaborators = await _unitOfWork.Collaborators.FindAsync(c => c.ProjectId == projectId);
         var collaboratorIds = collaborators.Select(c => c.CollaboratorId.ToString()).ToList();
         return Result.Success(collaboratorIds);
     }
@@ -154,14 +147,14 @@ public class CollaboratorsService(IUnitOfWork unitOfWork, IHubContext<SharedProj
     /// </remarks>
     public async Task<Result<string>> RemoveCollaboratorAsync(Guid projectId, string userEmailToRemove)
     {
-        var user = await _userRepository.GetByEmailAsync(userEmailToRemove);
+        var user = await _unitOfWork.Users.GetByEmailAsync(userEmailToRemove);
 
         if (user == null)
         {
             return Result.Failure<string>("NotFound", "The specified user doesn't exist", 404);
         }
 
-        var collaborators = await _collaboratorRepository.FindAsync(
+        var collaborators = await _unitOfWork.Collaborators.FindAsync(
             c => c.ProjectId == projectId && c.CollaboratorId == user.Id);
 
         var collaborator = collaborators.FirstOrDefault();
@@ -170,7 +163,7 @@ public class CollaboratorsService(IUnitOfWork unitOfWork, IHubContext<SharedProj
             return Result.Failure<string>("NotFound", "The specified collaborator doesn't exist", 404);
         }
 
-        _collaboratorRepository.Remove(collaborator);
+        _unitOfWork.Collaborators.Remove(collaborator);
         await _unitOfWork.SaveChangesAsync();
 
         await _hubContext.Clients.Group(userEmailToRemove).SendAsync(

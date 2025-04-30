@@ -1,5 +1,4 @@
 ﻿using NojectServer.Models;
-using NojectServer.Repositories.Interfaces;
 using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Utils.ResultPattern;
@@ -18,8 +17,6 @@ public class RefreshTokenService(IUnitOfWork unitOfWork, ITokenService tokenServ
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly ITokenService _tokenService = tokenService;
-    private readonly IRefreshTokenRepository _refreshTokenRepository = unitOfWork.GetRepository<RefreshToken>() as IRefreshTokenRepository
-        ?? throw new InvalidOperationException("Failed to get refresh token repository");
 
     /// <summary>
     /// Generates a new refresh token for a user and stores it in the database.
@@ -41,7 +38,7 @@ public class RefreshTokenService(IUnitOfWork unitOfWork, ITokenService tokenServ
                 Token = _tokenService.CreateRefreshToken(userId, email),
                 ExpireDate = DateTime.UtcNow.AddDays(14)
             };
-            await _refreshTokenRepository.AddAsync(refreshToken);
+            await _unitOfWork.RefreshTokens.AddAsync(refreshToken);
             await _unitOfWork.SaveChangesAsync();
             return Result.Success(refreshToken.Token);
         }
@@ -63,7 +60,7 @@ public class RefreshTokenService(IUnitOfWork unitOfWork, ITokenService tokenServ
     {
         ArgumentNullException.ThrowIfNull(token);
 
-        var refreshToken = await _refreshTokenRepository.GetByTokenAsync(token);
+        var refreshToken = await _unitOfWork.RefreshTokens.GetByTokenAsync(token);
 
         if (refreshToken == null)
             return Result.Failure<RefreshToken>("InvalidToken", "Invalid refresh token.", 401);
@@ -91,11 +88,11 @@ public class RefreshTokenService(IUnitOfWork unitOfWork, ITokenService tokenServ
 
         try
         {
-            var refreshToken = await _refreshTokenRepository.GetByTokenAsync(token);
+            var refreshToken = await _unitOfWork.RefreshTokens.GetByTokenAsync(token);
 
             if (refreshToken != null)
             {
-                _refreshTokenRepository.Remove(refreshToken);
+                _unitOfWork.RefreshTokens.Remove(refreshToken);
                 await _unitOfWork.SaveChangesAsync();
             }
 
