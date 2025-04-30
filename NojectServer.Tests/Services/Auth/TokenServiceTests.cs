@@ -10,10 +10,11 @@ namespace NojectServer.Tests.Services.Auth;
 
 public class TokenServiceTests
 {
-    private readonly Mock<IOptions<JwtTokenOptions>> _mockOptions;
     private readonly TokenService _tokenService;
+    private readonly Mock<IOptions<JwtTokenOptions>> _mockOptions;
     private readonly JwtSecurityTokenHandler _tokenHandler;
     private readonly JwtTokenOptions _jwtTokenOptions;
+    private readonly Guid _testUserId = Guid.NewGuid();
 
     public TokenServiceTests()
     {
@@ -47,6 +48,8 @@ public class TokenServiceTests
         _tokenHandler = new JwtSecurityTokenHandler();
     }
 
+    #region Token Creation - Success Cases
+
     [Fact]
     public void CreateAccessToken_ShouldCreateValidTokenAsync()
     {
@@ -54,7 +57,7 @@ public class TokenServiceTests
         string email = "test@example.com";
 
         // Act
-        string token = _tokenService.CreateAccessToken(email);
+        string token = _tokenService.CreateAccessToken(_testUserId, email);
 
         // Assert
         Assert.NotNull(token);
@@ -63,9 +66,13 @@ public class TokenServiceTests
         JwtSecurityToken jwtToken = _tokenHandler.ReadJwtToken(token);
 
         // Verify claims
-        Claim? claim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
-        Assert.NotNull(claim);
-        Assert.Equal(email, claim.Value);
+        Claim? userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+        Assert.NotNull(userIdClaim);
+        Assert.Equal(_testUserId.ToString(), userIdClaim.Value);
+
+        Claim? emailClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
+        Assert.NotNull(emailClaim);
+        Assert.Equal(email, emailClaim.Value);
 
         // Verify expiration (should be ~10 minutes)
         TimeSpan timeToExpiry = jwtToken.ValidTo - DateTime.UtcNow;
@@ -79,7 +86,7 @@ public class TokenServiceTests
         string email = "test@example.com";
 
         // Act
-        string token = _tokenService.CreateRefreshToken(email);
+        string token = _tokenService.CreateRefreshToken(_testUserId, email);
 
         // Assert
         Assert.NotNull(token);
@@ -88,9 +95,13 @@ public class TokenServiceTests
         var jwtToken = _tokenHandler.ReadJwtToken(token);
 
         // Verify claims
-        var claim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
-        Assert.NotNull(claim);
-        Assert.Equal(email, claim.Value);
+        var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+        Assert.NotNull(userIdClaim);
+        Assert.Equal(_testUserId.ToString(), userIdClaim.Value);
+
+        var emailClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
+        Assert.NotNull(emailClaim);
+        Assert.Equal(email, emailClaim.Value);
 
         // Verify expiration (should be ~14 days)
         TimeSpan timeToExpiry = jwtToken.ValidTo - DateTime.UtcNow;
@@ -104,7 +115,7 @@ public class TokenServiceTests
         string email = "test@example.com";
 
         // Act
-        string token = _tokenService.CreateTfaToken(email);
+        string token = _tokenService.CreateTfaToken(_testUserId, email);
 
         // Assert
         Assert.NotNull(token);
@@ -113,13 +124,41 @@ public class TokenServiceTests
         var jwtToken = _tokenHandler.ReadJwtToken(token);
 
         // Verify claims
-        var claim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
-        Assert.NotNull(claim);
-        Assert.Equal(email, claim.Value);
+        var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+        Assert.NotNull(userIdClaim);
+        Assert.Equal(_testUserId.ToString(), userIdClaim.Value);
+
+        var emailClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
+        Assert.NotNull(emailClaim);
+        Assert.Equal(email, emailClaim.Value);
 
         // Verify expiration (should be ~2 minutes)
         TimeSpan timeToExpiry = jwtToken.ValidTo - DateTime.UtcNow;
         Assert.True(timeToExpiry.TotalMinutes > 1.9 && timeToExpiry.TotalMinutes <= 2);
+    }
+
+    #endregion
+
+    #region Token Validation Parameters
+
+    [Fact]
+    public void GetAccessTokenValidationParameters_ShouldReturnValidParametersAsync()
+    {
+        // Act
+        var parameters = _tokenService.GetAccessTokenValidationParameters();
+
+        // Assert
+        Assert.NotNull(parameters);
+        Assert.True(parameters.ValidateIssuerSigningKey);
+        Assert.True(parameters.ValidateIssuer);
+        Assert.True(parameters.ValidateAudience);
+        Assert.True(parameters.ValidateLifetime);
+        Assert.Equal(TimeSpan.Zero, parameters.ClockSkew);
+
+        // Verify the signing key was created correctly
+        var securityKey = parameters.IssuerSigningKey as SymmetricSecurityKey;
+        Assert.NotNull(securityKey);
+        Assert.IsType<SymmetricSecurityKey>(parameters.IssuerSigningKey);
     }
 
     [Fact]
@@ -144,6 +183,10 @@ public class TokenServiceTests
         Assert.IsType<SymmetricSecurityKey>(parameters.IssuerSigningKey);
     }
 
+    #endregion
+
+    #region Missing Configuration Tests
+
     /// <summary>
     /// Tests that verify proper exception handling when JWT configuration is missing.
     /// These tests ensure the service fails early with clear error messages when
@@ -167,7 +210,7 @@ public class TokenServiceTests
         var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => tokenService.CreateAccessToken("test@example.com"));
+        Assert.Throws<InvalidOperationException>(() => tokenService.CreateAccessToken(_testUserId, "test@example.com"));
     }
 
     [Fact]
@@ -188,7 +231,7 @@ public class TokenServiceTests
         var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => tokenService.CreateRefreshToken("test@example.com"));
+        Assert.Throws<InvalidOperationException>(() => tokenService.CreateRefreshToken(_testUserId, "test@example.com"));
     }
 
     [Fact]
@@ -209,7 +252,28 @@ public class TokenServiceTests
         var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => tokenService.CreateTfaToken("test@example.com"));
+        Assert.Throws<InvalidOperationException>(() => tokenService.CreateTfaToken(_testUserId, "test@example.com"));
+    }
+
+    [Fact]
+    public void GetAccessTokenValidationParameters_WithMissingConfiguration_ThrowsInvalidOperationExceptionAsync()
+    {
+        // Arrange
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = null!, // Invalid configuration
+            Refresh = _jwtTokenOptions.Refresh,
+            Tfa = _jwtTokenOptions.Tfa
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
+
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(() => tokenService.GetAccessTokenValidationParameters());
     }
 
     [Fact]
@@ -232,6 +296,10 @@ public class TokenServiceTests
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() => tokenService.GetTfaTokenValidationParameters());
     }
+
+    #endregion
+
+    #region Empty Configuration Values Tests
 
     /// <summary>
     /// Tests that verify behavior when configuration values are empty strings.
@@ -259,7 +327,7 @@ public class TokenServiceTests
         var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => tokenService.CreateAccessToken("test@example.com"));
+        var exception = Assert.Throws<ArgumentException>(() => tokenService.CreateAccessToken(_testUserId, "test@example.com"));
         Assert.Contains("JWT Access token secret key", exception.Message);
     }
 
@@ -285,7 +353,7 @@ public class TokenServiceTests
         var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => tokenService.CreateRefreshToken("test@example.com"));
+        var exception = Assert.Throws<ArgumentException>(() => tokenService.CreateRefreshToken(_testUserId, "test@example.com"));
         Assert.Contains("JWT Refresh token secret key", exception.Message);
     }
 
@@ -311,8 +379,34 @@ public class TokenServiceTests
         var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => tokenService.CreateTfaToken("test@example.com"));
+        var exception = Assert.Throws<ArgumentException>(() => tokenService.CreateTfaToken(_testUserId, "test@example.com"));
         Assert.Contains("JWT Tfa token secret key", exception.Message);
+    }
+
+    [Fact]
+    public void GetAccessTokenValidationParameters_WithEmptyConfiguration_ThrowsArgumentExceptionAsync()
+    {
+        // Arrange
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = string.Empty,
+                ExpirationInSeconds = 600
+            },
+            Refresh = _jwtTokenOptions.Refresh,
+            Tfa = _jwtTokenOptions.Tfa
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => tokenService.GetAccessTokenValidationParameters());
+        Assert.Contains("JWT Access token secret key", exception.Message);
     }
 
     [Fact]
@@ -341,6 +435,10 @@ public class TokenServiceTests
         Assert.Contains("JWT Tfa token secret key", exception.Message);
     }
 
+    #endregion
+
+    #region Invalid Key Length Tests
+
     /// <summary>
     /// Tests for key length requirements when using HMAC-SHA512.
     /// Verifies that cryptographically insecure short keys are rejected.
@@ -367,7 +465,7 @@ public class TokenServiceTests
         var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => tokenService.CreateAccessToken("test@example.com"));
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => tokenService.CreateAccessToken(_testUserId, "test@example.com"));
         Assert.Contains("IDX10653", exception.Message); // Key size error
     }
 
@@ -393,7 +491,7 @@ public class TokenServiceTests
         var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => tokenService.CreateRefreshToken("test@example.com"));
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => tokenService.CreateRefreshToken(_testUserId, "test@example.com"));
         Assert.Contains("IDX10653", exception.Message); // Key size error
     }
 
@@ -419,9 +517,65 @@ public class TokenServiceTests
         var tokenService = new TokenService(invalidOptions.Object);
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => tokenService.CreateTfaToken("test@example.com"));
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => tokenService.CreateTfaToken(_testUserId, "test@example.com"));
         Assert.Contains("IDX10653", exception.Message); // Key size error
     }
+
+    [Fact]
+    public void GetAccessTokenValidationParameters_WithInvalidKeyLength_ThrowsInvalidOperationExceptionAsync()
+    {
+        // Arrange - Key that's too short for HMAC-SHA512
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = "short-key",
+                ExpirationInSeconds = 600
+            },
+            Refresh = _jwtTokenOptions.Refresh,
+            Tfa = _jwtTokenOptions.Tfa
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => tokenService.GetAccessTokenValidationParameters());
+        Assert.Contains("JWT Access token secret key has invalid length", exception.Message);
+    }
+
+    [Fact]
+    public void GetTfaTokenValidationParameters_WithInvalidKeyLength_ThrowsInvalidOperationExceptionAsync()
+    {
+        // Arrange - Key that's too short for HMAC-SHA512
+        var invalidOptions = new Mock<IOptions<JwtTokenOptions>>();
+        var invalidTokenOptions = new JwtTokenOptions
+        {
+            Issuer = "test-issuer",
+            Audience = "test-audience",
+            Access = _jwtTokenOptions.Access,
+            Refresh = _jwtTokenOptions.Refresh,
+            Tfa = new JwtTokenOptions.JwtSigningCredentials
+            {
+                SecretKey = "short-key",
+                ExpirationInSeconds = 120
+            }
+        };
+
+        invalidOptions.Setup(o => o.Value).Returns(invalidTokenOptions);
+        var tokenService = new TokenService(invalidOptions.Object);
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => tokenService.GetTfaTokenValidationParameters());
+        Assert.Contains("JWT Tfa token secret key has invalid length", exception.Message);
+    }
+
+    #endregion
+
+    #region Input Parameter Validation Tests
 
     /// <summary>
     /// Tests for input parameter validation.
@@ -431,20 +585,43 @@ public class TokenServiceTests
     public void CreateAccessToken_WithNullEmail_ThrowsArgumentNullExceptionAsync()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateAccessToken(null!));
+        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateAccessToken(_testUserId, null!));
     }
 
     [Fact]
     public void CreateRefreshToken_WithNullEmail_ThrowsArgumentNullExceptionAsync()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateRefreshToken(null!));
+        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateRefreshToken(_testUserId, null!));
     }
 
     [Fact]
     public void CreateTfaToken_WithNullEmail_ThrowsArgumentNullExceptionAsync()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateTfaToken(null!));
+        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateTfaToken(_testUserId, null!));
     }
+
+    [Fact]
+    public void CreateAccessToken_WithEmptyUserId_ThrowsArgumentNullExceptionAsync()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateAccessToken(Guid.Empty, "test@example.com"));
+    }
+
+    [Fact]
+    public void CreateRefreshToken_WithEmptyUserId_ThrowsArgumentNullExceptionAsync()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateRefreshToken(Guid.Empty, "test@example.com"));
+    }
+
+    [Fact]
+    public void CreateTfaToken_WithEmptyUserId_ThrowsArgumentNullExceptionAsync()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateTfaToken(Guid.Empty, "test@example.com"));
+    }
+
+    #endregion
 }
