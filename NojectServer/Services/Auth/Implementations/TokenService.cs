@@ -39,7 +39,7 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
     public string CreateAccessToken(Guid userId, string email)
     {
         if (userId == Guid.Empty)
-            throw new ArgumentNullException(nameof(userId), "UserId cannot be empty");
+            throw new ArgumentException("userId cannot be empty", nameof(userId));
         if (email == null)
             throw new ArgumentNullException(nameof(email), "Email cannot be null");
 
@@ -103,7 +103,7 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
     public string CreateRefreshToken(Guid userId, string email)
     {
         if (userId == Guid.Empty)
-            throw new ArgumentNullException(nameof(userId), "UserId cannot be empty");
+            throw new ArgumentException("userId cannot be empty", nameof(userId));
         if (email == null)
             throw new ArgumentNullException(nameof(email), "Email cannot be null");
 
@@ -167,7 +167,7 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
     public string CreateTfaToken(Guid userId, string email)
     {
         if (userId == Guid.Empty)
-            throw new ArgumentNullException(nameof(userId), "UserId cannot be empty");
+            throw new ArgumentException("userId cannot be empty", nameof(userId));
         if (email == null)
             throw new ArgumentNullException(nameof(email), "Email cannot be null");
 
@@ -243,6 +243,11 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
             if (string.IsNullOrEmpty(_jwtTokenOptions.Audience))
                 throw new ArgumentException("JWT audience cannot be empty");
 
+            // Check for valid key size for HMAC-SHA512 (minimum 64 bytes)
+            var keyBytes = Encoding.UTF8.GetBytes(_jwtTokenOptions.Access.SecretKey);
+            if (keyBytes.Length < 64)
+                throw new ArgumentException("The key size is insufficient for HMAC-SHA512. It must be at least 64 bytes (512 bits).");
+
             // Create and return new token validation parameters
             return new()
             {
@@ -288,6 +293,11 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
 
             if (string.IsNullOrEmpty(_jwtTokenOptions.Audience))
                 throw new ArgumentException("JWT audience cannot be empty");
+
+            // Check for valid key size for HMAC-SHA512 (minimum 64 bytes)
+            var keyBytes = Encoding.UTF8.GetBytes(_jwtTokenOptions.Tfa.SecretKey);
+            if (keyBytes.Length < 64)
+                throw new ArgumentException("The key size is insufficient for HMAC-SHA512. It must be at least 64 bytes (512 bits).");
 
             // Create and return new token validation parameters
             return new()

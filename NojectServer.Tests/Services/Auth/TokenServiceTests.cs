@@ -606,21 +606,21 @@ public class TokenServiceTests
     public void CreateAccessToken_WithEmptyUserId_ThrowsArgumentNullExceptionAsync()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateAccessToken(Guid.Empty, "test@example.com"));
+        Assert.Throws<ArgumentException>(() => _tokenService.CreateAccessToken(Guid.Empty, "test@example.com"));
     }
 
     [Fact]
     public void CreateRefreshToken_WithEmptyUserId_ThrowsArgumentNullExceptionAsync()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateRefreshToken(Guid.Empty, "test@example.com"));
+        Assert.Throws<ArgumentException>(() => _tokenService.CreateRefreshToken(Guid.Empty, "test@example.com"));
     }
 
     [Fact]
     public void CreateTfaToken_WithEmptyUserId_ThrowsArgumentNullExceptionAsync()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => _tokenService.CreateTfaToken(Guid.Empty, "test@example.com"));
+        Assert.Throws<ArgumentException>(() => _tokenService.CreateTfaToken(Guid.Empty, "test@example.com"));
     }
 
     #endregion
