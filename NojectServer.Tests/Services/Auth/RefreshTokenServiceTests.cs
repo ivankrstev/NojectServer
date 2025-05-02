@@ -75,19 +75,36 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task GenerateRefreshTokenAsync_WithNullUserId_ShouldThrowArgumentNullExceptionAsync()
+    public async Task GenerateRefreshTokenAsync_WithEmptyUserId_ShouldThrowArgumentNullExceptionAsync()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>("userId",
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
             async () => await _refreshTokenService.GenerateRefreshTokenAsync(Guid.Empty, "test@example.com"));
+
+        Assert.Equal("userId", exception.ParamName);
+        Assert.Contains("cannot be empty", exception.Message);
     }
 
     [Fact]
-    public async Task GenerateRefreshTokenAsync_WithNullEmail_ShouldThrowArgumentNullExceptionAsync()
+    public async Task GenerateRefreshTokenAsync_WithNullEmail_ShouldThrowArgumentExceptionAsync()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>("email",
+        var exception = await Assert.ThrowsAsync<ArgumentNullException>(
             async () => await _refreshTokenService.GenerateRefreshTokenAsync(_testUserId, null!));
+
+        Assert.Equal("email", exception.ParamName);
+        Assert.Contains("cannot be null", exception.Message);
+    }
+
+    [Fact]
+    public async Task GenerateRefreshTokenAsync_WithEmptyEmail_ShouldThrowArgumentExceptionAsync()
+    {
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            async () => await _refreshTokenService.GenerateRefreshTokenAsync(_testUserId, ""));
+
+        Assert.Equal("email", exception.ParamName);
+        Assert.Contains("cannot be an empty", exception.Message);
     }
 
     [Fact]
@@ -210,6 +227,14 @@ public class RefreshTokenServiceTests
             ExpireDate = DateTime.UtcNow.AddDays(7)
         };
         _refreshTokenList.Add(token);
+
+        // Set up the mock to return the token when GetByTokenAsync is called
+        _mockRefreshTokenRepository.Setup(r => r.GetByTokenAsync("valid-token"))
+            .ReturnsAsync(token);
+
+        // Set up the remove callback to actually remove from our list
+        _mockRefreshTokenRepository.Setup(r => r.Remove(It.IsAny<RefreshToken>()))
+            .Callback<RefreshToken>(t => _refreshTokenList.Remove(t));
 
         // Act
         var result = await _refreshTokenService.RevokeRefreshTokenAsync("valid-token");

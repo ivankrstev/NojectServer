@@ -28,8 +28,9 @@ public class RefreshTokenService(IUnitOfWork unitOfWork, ITokenService tokenServ
     /// <exception cref="ArgumentNullException">Thrown when email is null</exception>
     public async Task<Result<string>> GenerateRefreshTokenAsync(Guid userId, string email)
     {
-        ArgumentNullException.ThrowIfNull(userId);
-        ArgumentNullException.ThrowIfNull(email);
+        if (userId == Guid.Empty) throw new ArgumentException("userId cannot be empty.", nameof(userId));
+        ArgumentException.ThrowIfNullOrEmpty(email);
+
         try
         {
             var refreshToken = new RefreshToken
