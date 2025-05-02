@@ -1,8 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Moq;
-using Moq.EntityFrameworkCore;
-using NojectServer.Data;
 using NojectServer.Models;
+using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Services.Auth.Validation.Interfaces;
@@ -14,18 +13,19 @@ namespace NojectServer.Tests.Services.Auth;
 public class TwoFactorAuthServiceTests
 {
     private readonly Mock<IConfiguration> _mockConfig;
-    private readonly Mock<DataContext> _mockDataContext;
+    private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<ITotpValidator> _mockTotpValidator;
     private readonly TwoFactorAuthService _service;
 
     public TwoFactorAuthServiceTests()
     {
         _mockConfig = new Mock<IConfiguration>();
-        _mockDataContext = new Mock<DataContext>();
+        _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockTotpValidator = new Mock<ITotpValidator>();
+
         _service = new TwoFactorAuthService(
             _mockConfig.Object,
-            _mockDataContext.Object,
+            _mockUnitOfWork.Object,
             _mockTotpValidator.Object);
 
         // Configure default configuration values
@@ -40,11 +40,12 @@ public class TwoFactorAuthServiceTests
     public async Task DisableTwoFactorAsync_UserNotFound_ReturnsNotFoundFailureAsync()
     {
         // Arrange
-        var users = new List<User>();
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
+        var userId = Guid.NewGuid();
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync((User?)null);
 
         // Act
-        var result = await _service.DisableTwoFactorAsync("nonexistent@email.com", "123456");
+        var result = await _service.DisableTwoFactorAsync(userId, "123456");
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -59,17 +60,18 @@ public class TwoFactorAuthServiceTests
     public async Task DisableTwoFactorAsync_TwoFactorAlreadyDisabled_ReturnsBadRequestFailureAsync()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var user = new User
         {
-            Email = "test@example.com",
+            Id = userId,
             TwoFactorEnabled = false
         };
 
-        var users = new List<User> { user };
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync(user);
 
         // Act
-        var result = await _service.DisableTwoFactorAsync("test@example.com", "123456");
+        var result = await _service.DisableTwoFactorAsync(userId, "123456");
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -84,18 +86,22 @@ public class TwoFactorAuthServiceTests
     public async Task DisableTwoFactorAsync_InvalidCode_ReturnsUnauthorizedFailureAsync()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var user = new User
         {
-            Email = "test@example.com",
+            Id = userId,
             TwoFactorEnabled = true,
             TwoFactorSecretKey = "JBSWY3DPEHPK3PXP" // This is a valid Base32 string for testing
         };
 
-        var users = new List<User> { user };
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync(user);
+
+        _mockTotpValidator.Setup(v => v.ValidateCode(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(false);
 
         // Act
-        var result = await _service.DisableTwoFactorAsync("test@example.com", "111111"); // Invalid code
+        var result = await _service.DisableTwoFactorAsync(userId, "111111"); // Invalid code
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -110,24 +116,22 @@ public class TwoFactorAuthServiceTests
     public async Task DisableTwoFactorAsync_ValidCode_DisablesTwoFactorAndReturnsSuccessAsync()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var user = new User
         {
-            Email = "test@example.com",
+            Id = userId,
             TwoFactorEnabled = true,
             TwoFactorSecretKey = "JBSWY3DPEHPK3PXP"
         };
 
-        var users = new List<User> { user };
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
-
-        _mockDataContext.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync(user);
 
         _mockTotpValidator.Setup(v => v.ValidateCode(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(true);
 
         // Act
-        var result = await _service.DisableTwoFactorAsync("test@example.com", "123456");
+        var result = await _service.DisableTwoFactorAsync(userId, "123456");
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -138,7 +142,8 @@ public class TwoFactorAuthServiceTests
 
         Assert.False(user.TwoFactorEnabled);
         Assert.Null(user.TwoFactorSecretKey);
-        _mockDataContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _mockUnitOfWork.Verify(u => u.Users.Update(It.IsAny<User>()), Times.Once);
+        _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     #endregion
@@ -149,11 +154,12 @@ public class TwoFactorAuthServiceTests
     public async Task EnableTwoFactorAsync_UserNotFound_ReturnsNotFoundFailureAsync()
     {
         // Arrange
-        var users = new List<User>();
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
+        var userId = Guid.NewGuid();
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync((User?)null);
 
         // Act
-        var result = await _service.EnableTwoFactorAsync("nonexistent@email.com", "123456");
+        var result = await _service.EnableTwoFactorAsync(userId, "123456");
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -168,17 +174,18 @@ public class TwoFactorAuthServiceTests
     public async Task EnableTwoFactorAsync_NoSecretKey_ReturnsBadRequestFailureAsync()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var user = new User
         {
-            Email = "test@example.com",
+            Id = userId,
             TwoFactorSecretKey = null
         };
 
-        var users = new List<User> { user };
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync(user);
 
         // Act
-        var result = await _service.EnableTwoFactorAsync("test@example.com", "123456");
+        var result = await _service.EnableTwoFactorAsync(userId, "123456");
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -192,18 +199,22 @@ public class TwoFactorAuthServiceTests
     public async Task EnableTwoFactorAsync_InvalidCode_ReturnsUnauthorizedFailureAsync()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var user = new User
         {
-            Email = "test@example.com",
+            Id = userId,
             TwoFactorSecretKey = "JBSWY3DPEHPK3PXP",
             TwoFactorEnabled = false
         };
 
-        var users = new List<User> { user };
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync(user);
+
+        _mockTotpValidator.Setup(v => v.ValidateCode(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(false);
 
         // Act
-        var result = await _service.EnableTwoFactorAsync("test@example.com", "111111"); // Invalid code
+        var result = await _service.EnableTwoFactorAsync(userId, "111111"); // Invalid code
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -217,24 +228,22 @@ public class TwoFactorAuthServiceTests
     public async Task EnableTwoFactorAsync_ValidCode_EnablesTwoFactorAndReturnsSuccessAsync()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var user = new User
         {
-            Email = "test@example.com",
+            Id = userId,
             TwoFactorSecretKey = "JBSWY3DPEHPK3PXP",
             TwoFactorEnabled = false
         };
 
-        var users = new List<User> { user };
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
-
-        _mockDataContext.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync(user);
 
         _mockTotpValidator.Setup(v => v.ValidateCode(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(true);
 
         // Act
-        var result = await _service.EnableTwoFactorAsync("test@example.com", "123456");
+        var result = await _service.EnableTwoFactorAsync(userId, "123456");
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -245,7 +254,8 @@ public class TwoFactorAuthServiceTests
 
         Assert.True(user.TwoFactorEnabled);
         Assert.NotNull(user.TwoFactorSecretKey);
-        _mockDataContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _mockUnitOfWork.Verify(u => u.Users.Update(It.IsAny<User>()), Times.Once);
+        _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     #endregion
@@ -256,11 +266,12 @@ public class TwoFactorAuthServiceTests
     public async Task GenerateSetupCodeAsync_UserNotFound_ReturnsNotFoundFailureAsync()
     {
         // Arrange
-        var users = new List<User>();
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
+        var userId = Guid.NewGuid();
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync((User?)null);
 
         // Act
-        var result = await _service.GenerateSetupCodeAsync("nonexistent@email.com");
+        var result = await _service.GenerateSetupCodeAsync(userId);
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -275,17 +286,18 @@ public class TwoFactorAuthServiceTests
     public async Task GenerateSetupCodeAsync_TwoFactorAlreadyEnabled_ReturnsBadRequestFailureAsync()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var user = new User
         {
-            Email = "test@example.com",
+            Id = userId,
             TwoFactorEnabled = true
         };
 
-        var users = new List<User> { user };
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync(user);
 
         // Act
-        var result = await _service.GenerateSetupCodeAsync("test@example.com");
+        var result = await _service.GenerateSetupCodeAsync(userId);
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -300,19 +312,19 @@ public class TwoFactorAuthServiceTests
     public async Task GenerateSetupCodeAsync_Success_GeneratesCodeAndReturnsSetupDataAsync()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var user = new User
         {
+            Id = userId,
             Email = "test@example.com",
             TwoFactorEnabled = false
         };
 
-        var users = new List<User> { user };
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
-        _mockDataContext.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync(user);
 
         // Act
-        var result = await _service.GenerateSetupCodeAsync("test@example.com");
+        var result = await _service.GenerateSetupCodeAsync(userId);
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -325,7 +337,8 @@ public class TwoFactorAuthServiceTests
         Assert.Contains("otpauth://totp/", successResult.Value.QrCodeImageUrl);
         Assert.Contains("test%40example.com", successResult.Value.QrCodeImageUrl);
         Assert.Equal(successResult.Value.ManualKey, user.TwoFactorSecretKey);
-        _mockDataContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _mockUnitOfWork.Verify(u => u.Users.Update(It.IsAny<User>()), Times.Once);
+        _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     #endregion
@@ -336,11 +349,12 @@ public class TwoFactorAuthServiceTests
     public async Task ValidateTwoFactorCodeAsync_UserNotFound_ReturnsNotFoundFailureAsync()
     {
         // Arrange
-        var users = new List<User>();
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
+        var userId = Guid.NewGuid();
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync((User?)null);
 
         // Act
-        var result = await _service.ValidateTwoFactorCodeAsync("nonexistent@email.com", "123456");
+        var result = await _service.ValidateTwoFactorCodeAsync(userId, "123456");
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -355,17 +369,18 @@ public class TwoFactorAuthServiceTests
     public async Task ValidateTwoFactorCodeAsync_NoSecretKey_ReturnsBadRequestFailureAsync()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var user = new User
         {
-            Email = "test@example.com",
+            Id = userId,
             TwoFactorSecretKey = null
         };
 
-        var users = new List<User> { user };
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync(user);
 
         // Act
-        var result = await _service.ValidateTwoFactorCodeAsync("test@example.com", "123456");
+        var result = await _service.ValidateTwoFactorCodeAsync(userId, "123456");
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -380,21 +395,22 @@ public class TwoFactorAuthServiceTests
     public async Task ValidateTwoFactorCodeAsync_WithValidCode_ReturnsTrueAsync()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var user = new User
         {
-            Email = "test@example.com",
+            Id = userId,
             TwoFactorSecretKey = "JBSWY3DPEHPK3PXP"
         };
 
-        var users = new List<User> { user };
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync(user);
 
         // Setup the validator to return true (valid code)
         _mockTotpValidator.Setup(v => v.ValidateCode("JBSWY3DPEHPK3PXP", "123456"))
             .Returns(true);
 
         // Act
-        var result = await _service.ValidateTwoFactorCodeAsync("test@example.com", "123456");
+        var result = await _service.ValidateTwoFactorCodeAsync(userId, "123456");
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -408,21 +424,22 @@ public class TwoFactorAuthServiceTests
     public async Task ValidateTwoFactorCodeAsync_WithInvalidCode_ReturnsFalseAsync()
     {
         // Arrange
+        var userId = Guid.NewGuid();
         var user = new User
         {
-            Email = "test@example.com",
+            Id = userId,
             TwoFactorSecretKey = "JBSWY3DPEHPK3PXP"
         };
 
-        var users = new List<User> { user };
-        _mockDataContext.Setup(c => c.Users).ReturnsDbSet(users);
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+            .ReturnsAsync(user);
 
-        // Setup the validator to return true (valid code)
-        _mockTotpValidator.Setup(v => v.ValidateCode("JBSWY3DPEHPK3PXP", "123456"))
-            .Returns(true);
+        // Setup the validator to return false (invalid code)
+        _mockTotpValidator.Setup(v => v.ValidateCode("JBSWY3DPEHPK3PXP", "111111"))
+            .Returns(false);
 
         // Act
-        var result = await _service.ValidateTwoFactorCodeAsync("test@example.com", "111111");
+        var result = await _service.ValidateTwoFactorCodeAsync(userId, "111111");
 
         // Assert
         Assert.True(result.IsSuccess);
