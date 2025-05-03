@@ -1,49 +1,32 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Moq;
-using NojectServer.Data;
+﻿using Moq;
 using NojectServer.Models;
 using NojectServer.Models.Requests.Auth;
+using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Common.Interfaces;
 using NojectServer.Services.Email.Interfaces;
-using NojectServer.Tests.MockHelpers;
 using NojectServer.Utils.ResultPattern;
+using System.Linq.Expressions;
 using Task = System.Threading.Tasks.Task;
 
 namespace NojectServer.Tests.Services.Auth;
 
 public class AuthServiceTests
 {
-    private readonly Mock<DataContext> _mockDataContext;
+    private readonly Mock<IUnitOfWork> _mockUnitOfWork;
     private readonly Mock<IPasswordService> _mockPasswordService;
     private readonly Mock<IEmailService> _mockEmailService;
-    private readonly List<User> _users;
     private readonly AuthService _authService;
 
     public AuthServiceTests()
     {
-        // Initialize test data
-        _users = [];
-
         // Set up mocks
-        _mockDataContext = new Mock<DataContext>(new DbContextOptions<DataContext>());
+        _mockUnitOfWork = new Mock<IUnitOfWork>();
         _mockPasswordService = new Mock<IPasswordService>();
         _mockEmailService = new Mock<IEmailService>();
 
-        // Set up the mock DbSet with our helper class
-        var mockUsersDbSet = DbSetMockHelper.MockDbSet(_users);
-        _mockDataContext.Setup(c => c.Users).Returns(mockUsersDbSet.Object);
-
-        // Mock Database and Transaction
-        var mockDatabase = new Mock<DatabaseFacade>(_mockDataContext.Object);
-        _mockDataContext.Setup(c => c.Database).Returns(mockDatabase.Object);
-
-        var mockTransaction = new Mock<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction>();
-        mockDatabase.Setup(d => d.BeginTransactionAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockTransaction.Object);
-
-        _authService = new AuthService(_mockDataContext.Object, _mockPasswordService.Object, _mockEmailService.Object);
+        // Initialize the service with mocked dependencies
+        _authService = new AuthService(_mockUnitOfWork.Object, _mockPasswordService.Object, _mockEmailService.Object);
     }
 
     #region RegisterAsync Tests
@@ -60,8 +43,9 @@ public class AuthServiceTests
             ConfirmPassword = "Password123"
         };
 
-        // Add existing user to the collection
-        _users.Add(new User { Email = "existing@example.com" });
+        // Setup mock to return true for user existence check
+        _mockUnitOfWork.Setup(u => u.Users.AnyAsync(It.IsAny<Expression<Func<User, bool>>>()))
+            .ReturnsAsync(true);
 
         // Act
         var result = await _authService.RegisterAsync(request);
@@ -85,6 +69,10 @@ public class AuthServiceTests
             Password = "Pass",  // Too short, will fail validation
             ConfirmPassword = "Password123" // Doesn't match password
         };
+
+        // Setup mock to return false for user existence check
+        _mockUnitOfWork.Setup(u => u.Users.AnyAsync(It.IsAny<Expression<Func<User, bool>>>()))
+            .ReturnsAsync(false);
 
         // Act
         var result = await _authService.RegisterAsync(request);
@@ -110,13 +98,26 @@ public class AuthServiceTests
         byte[] passwordHash = [1, 2, 3];
         byte[] passwordSalt = [4, 5, 6];
 
+        // Setup mocks
+        _mockUnitOfWork.Setup(u => u.Users.AnyAsync(It.IsAny<Expression<Func<User, bool>>>()))
+            .ReturnsAsync(false);
+
         _mockPasswordService
             .Setup(s => s.CreatePasswordHash(request.Password, out passwordHash, out passwordSalt));
 
-        _mockDataContext.Setup(m => m.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+        _mockUnitOfWork.Setup(u => u.BeginTransactionAsync())
+            .Returns(Task.CompletedTask);
+
+        _mockUnitOfWork.Setup(u => u.Users.AddAsync(It.IsAny<User>()))
+            .Returns(Task.CompletedTask);
+
+        _mockUnitOfWork.Setup(u => u.SaveChangesAsync())
+            .Returns(Task.CompletedTask);
 
         _mockEmailService.Setup(m => m.SendVerificationLinkAsync(It.IsAny<User>()))
+            .Returns(Task.CompletedTask);
+
+        _mockUnitOfWork.Setup(u => u.CommitTransactionAsync())
             .Returns(Task.CompletedTask);
 
         // Act
@@ -128,6 +129,13 @@ public class AuthServiceTests
         Assert.NotNull(successResult.Value);
         Assert.Equal(request.Email, successResult.Value.Email);
         Assert.Equal(request.FullName, successResult.Value.FullName);
+
+        // Verify transaction operations were called
+        _mockUnitOfWork.Verify(u => u.BeginTransactionAsync(), Times.Once);
+        _mockUnitOfWork.Verify(u => u.Users.AddAsync(It.IsAny<User>()), Times.Once);
+        _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        _mockEmailService.Verify(e => e.SendVerificationLinkAsync(It.IsAny<User>()), Times.Once);
+        _mockUnitOfWork.Verify(u => u.CommitTransactionAsync(), Times.Once);
     }
 
     [Fact]
@@ -145,14 +153,17 @@ public class AuthServiceTests
         byte[] passwordHash = [1, 2, 3];
         byte[] passwordSalt = [4, 5, 6];
 
+        // Setup mocks
+        _mockUnitOfWork.Setup(u => u.Users.AnyAsync(It.IsAny<Expression<Func<User, bool>>>()))
+            .ReturnsAsync(false);
+
         _mockPasswordService
             .Setup(s => s.CreatePasswordHash(request.Password, out passwordHash, out passwordSalt));
 
-        var mockTransaction = new Mock<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction>();
-        _mockDataContext.Setup(c => c.Database.BeginTransactionAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockTransaction.Object);
+        _mockUnitOfWork.Setup(u => u.BeginTransactionAsync())
+            .Returns(Task.CompletedTask);
 
-        _mockDataContext.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
+        _mockUnitOfWork.Setup(u => u.SaveChangesAsync())
             .ThrowsAsync(new Exception("Database error"));
 
         // Act
@@ -163,7 +174,9 @@ public class AuthServiceTests
         var failureResult = Assert.IsType<FailureResult<User>>(result);
         Assert.Equal("ServerError", failureResult.Error.Error);
         Assert.Equal(500, failureResult.Error.StatusCode);
-        mockTransaction.Verify(m => m.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
+
+        // Verify rollback was called
+        _mockUnitOfWork.Verify(u => u.RollbackTransactionAsync(), Times.Once);
     }
 
     #endregion
@@ -180,12 +193,16 @@ public class AuthServiceTests
             Password = "Password123"
         };
 
+        // Setup mock to return null for user lookup
+        _mockUnitOfWork.Setup(u => u.Users.GetByEmailAsync(request.Email))
+            .ReturnsAsync(value: null);
+
         // Act
         var result = await _authService.LoginAsync(request);
 
         // Assert
         Assert.False(result.IsSuccess);
-        var failureResult = Assert.IsType<FailureResult<string>>(result);
+        var failureResult = Assert.IsType<FailureResult<User>>(result);
         Assert.Equal("Unauthorized", failureResult.Error.Error);
         Assert.Equal("Invalid credentials.", failureResult.Error.Message);
         Assert.Equal(401, failureResult.Error.StatusCode);
@@ -201,29 +218,29 @@ public class AuthServiceTests
             Password = "WrongPassword"
         };
 
-        // Add user to test data
-        _users.Add(new User
+        // Create user for the test
+        var user = new User
         {
             Email = "user@example.com",
             Password = [1, 2, 3],
             PasswordSalt = [4, 5, 6],
             VerifiedAt = DateTime.UtcNow
-        });
+        };
+
+        // Setup mocks
+        _mockUnitOfWork.Setup(u => u.Users.GetByEmailAsync(request.Email))
+            .ReturnsAsync(user);
 
         _mockPasswordService
-            .Setup(s => s.VerifyPasswordHash(request.Password, It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+            .Setup(s => s.VerifyPasswordHash(request.Password, user.Password, user.PasswordSalt))
             .Returns(false);
-
-        //_mockPasswordService.Setup(s => s.VerifyPasswordHash(
-        //    request.Password, user.Password, user.PasswordSalt))
-        //    .Returns(false);
 
         // Act
         var result = await _authService.LoginAsync(request);
 
         // Assert
         Assert.False(result.IsSuccess);
-        var failureResult = Assert.IsType<FailureResult<string>>(result);
+        var failureResult = Assert.IsType<FailureResult<User>>(result);
         Assert.Equal("Unauthorized", failureResult.Error.Error);
         Assert.Equal("Invalid credentials.", failureResult.Error.Message);
         Assert.Equal(401, failureResult.Error.StatusCode);
@@ -239,17 +256,21 @@ public class AuthServiceTests
             Password = "Password123"
         };
 
-        // Add unverified user to test data
-        _users.Add(new User
+        // Create unverified user
+        var user = new User
         {
             Email = "unverified@example.com",
             Password = [1, 2, 3],
             PasswordSalt = [4, 5, 6],
             VerifiedAt = null
-        });
+        };
+
+        // Setup mocks
+        _mockUnitOfWork.Setup(u => u.Users.GetByEmailAsync(request.Email))
+            .ReturnsAsync(user);
 
         _mockPasswordService
-            .Setup(s => s.VerifyPasswordHash(request.Password, It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+            .Setup(s => s.VerifyPasswordHash(request.Password, user.Password, user.PasswordSalt))
             .Returns(true);
 
         // Act
@@ -257,7 +278,7 @@ public class AuthServiceTests
 
         // Assert
         Assert.False(result.IsSuccess);
-        var failureResult = Assert.IsType<FailureResult<string>>(result);
+        var failureResult = Assert.IsType<FailureResult<User>>(result);
         Assert.Equal("Unauthorized", failureResult.Error.Error);
         Assert.Equal("Email not verified.", failureResult.Error.Message);
         Assert.Equal(401, failureResult.Error.StatusCode);
@@ -273,17 +294,21 @@ public class AuthServiceTests
             Password = "Password123"
         };
 
-        // Add verified user to test data
-        _users.Add(new User
+        // Create verified user
+        var user = new User
         {
             Email = "verified@example.com",
             Password = [1, 2, 3],
             PasswordSalt = [4, 5, 6],
             VerifiedAt = DateTime.UtcNow
-        });
+        };
+
+        // Setup mocks
+        _mockUnitOfWork.Setup(u => u.Users.GetByEmailAsync(request.Email))
+            .ReturnsAsync(user);
 
         _mockPasswordService
-            .Setup(s => s.VerifyPasswordHash(request.Password, It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+            .Setup(s => s.VerifyPasswordHash(request.Password, user.Password, user.PasswordSalt))
             .Returns(true);
 
         // Act
@@ -291,8 +316,8 @@ public class AuthServiceTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        var successResult = Assert.IsType<SuccessResult<string>>(result);
-        Assert.Equal("verified@example.com", successResult.Value);
+        var successResult = Assert.IsType<SuccessResult<User>>(result);
+        Assert.Equal(user, successResult.Value);
     }
 
     #endregion
@@ -305,6 +330,10 @@ public class AuthServiceTests
         // Arrange
         var email = "user@example.com";
         var token = "invalid_token";
+
+        // Setup mock to return empty list
+        _mockUnitOfWork.Setup(u => u.Users.FindAsync(It.IsAny<Expression<Func<User, bool>>>()))
+            .ReturnsAsync([]);
 
         // Act
         var result = await _authService.VerifyEmailAsync(email, token);
@@ -323,13 +352,17 @@ public class AuthServiceTests
         var email = "verified@example.com";
         var token = "valid_token";
 
-        // Add already verified user
-        _users.Add(new User
+        // Create already verified user
+        var user = new User
         {
             Email = email,
             VerificationToken = token,
             VerifiedAt = DateTime.UtcNow
-        });
+        };
+
+        // Setup mock to return the user
+        _mockUnitOfWork.Setup(u => u.Users.FindAsync(It.IsAny<Expression<Func<User, bool>>>()))
+            .ReturnsAsync([user]);
 
         // Act
         var result = await _authService.VerifyEmailAsync(email, token);
@@ -348,16 +381,20 @@ public class AuthServiceTests
         var email = "unverified@example.com";
         var token = "valid_token";
 
-        // Add unverified user
-        _users.Add(new User
+        // Create unverified user
+        var user = new User
         {
             Email = email,
             VerificationToken = token,
             VerifiedAt = null
-        });
+        };
 
-        _mockDataContext.Setup(m => m.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+        // Setup mocks
+        _mockUnitOfWork.Setup(u => u.Users.FindAsync(It.IsAny<Expression<Func<User, bool>>>()))
+            .ReturnsAsync([user]);
+
+        _mockUnitOfWork.Setup(u => u.SaveChangesAsync())
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _authService.VerifyEmailAsync(email, token);
@@ -366,6 +403,11 @@ public class AuthServiceTests
         Assert.True(result.IsSuccess);
         var successResult = Assert.IsType<SuccessResult<string>>(result);
         Assert.Contains("successfully verified", successResult.Value.ToLowerInvariant());
+
+        // Verify user was updated
+        _mockUnitOfWork.Verify(u => u.Users.Update(It.IsAny<User>()), Times.Once);
+        _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        Assert.NotNull(user.VerifiedAt);
     }
 
     #endregion
@@ -377,6 +419,10 @@ public class AuthServiceTests
     {
         // Arrange
         var email = "nonexistent@example.com";
+
+        // Setup mock to return null for user lookup
+        _mockUnitOfWork.Setup(u => u.Users.GetByEmailAsync(email))
+            .ReturnsAsync(value: null);
 
         // Act
         var result = await _authService.ForgotPasswordAsync(email);
@@ -394,14 +440,18 @@ public class AuthServiceTests
         // Arrange
         var email = "user@example.com";
 
-        // Add user to test data
-        _users.Add(new User
+        // Create user for the test
+        var user = new User
         {
             Email = email
-        });
+        };
 
-        _mockDataContext.Setup(m => m.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+        // Setup mocks
+        _mockUnitOfWork.Setup(u => u.Users.GetByEmailAsync(email))
+            .ReturnsAsync(user);
+
+        _mockUnitOfWork.Setup(u => u.SaveChangesAsync())
+            .Returns(Task.CompletedTask);
 
         _mockEmailService.Setup(m => m.SendResetPasswordLinkAsync(It.IsAny<User>()))
             .Returns(Task.CompletedTask);
@@ -413,6 +463,46 @@ public class AuthServiceTests
         Assert.True(result.IsSuccess);
         var successResult = Assert.IsType<SuccessResult<string>>(result);
         Assert.Contains("Reset link", successResult.Value);
+
+        // Verify user was updated
+        _mockUnitOfWork.Verify(u => u.Users.Update(It.IsAny<User>()), Times.Once);
+        _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        _mockEmailService.Verify(e => e.SendResetPasswordLinkAsync(It.IsAny<User>()), Times.Once);
+        Assert.NotNull(user.PasswordResetToken);
+        Assert.NotNull(user.ResetTokenExpires);
+    }
+
+    [Fact]
+    public async Task ForgotPasswordAsync_EmailSendingFails_ReturnsFailureAsync()
+    {
+        // Arrange
+        var email = "user@example.com";
+
+        // Create user for the test
+        var user = new User
+        {
+            Email = email
+        };
+
+        // Setup mocks
+        _mockUnitOfWork.Setup(u => u.Users.GetByEmailAsync(email))
+            .ReturnsAsync(user);
+
+        _mockUnitOfWork.Setup(u => u.SaveChangesAsync())
+            .Returns(Task.CompletedTask);
+
+        _mockEmailService.Setup(m => m.SendResetPasswordLinkAsync(It.IsAny<User>()))
+            .ThrowsAsync(new Exception("Email sending failed"));
+
+        // Act
+        var result = await _authService.ForgotPasswordAsync(email);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        var failureResult = Assert.IsType<FailureResult<string>>(result);
+        Assert.Equal("ServerError", failureResult.Error.Error);
+        Assert.Contains("Failed to send reset email", failureResult.Error.Message);
+        Assert.Equal(500, failureResult.Error.StatusCode);
     }
 
     #endregion
