@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
@@ -51,8 +50,7 @@ public class Program
         builder.Services.ConfigureOptions<ApiBehaviorOptionsSetup>();
 
         // Register the JWT bearer authentication scheme
-        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer();
+        builder.Services.AddJwtAuthentication();
 
         var app = builder.Build();
 
