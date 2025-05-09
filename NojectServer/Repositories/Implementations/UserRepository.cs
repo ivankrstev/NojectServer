@@ -6,7 +6,7 @@ using NojectServer.Repositories.Interfaces;
 
 namespace NojectServer.Repositories.Implementations;
 
-public class UserRepository(DataContext dataContext) : GenericRepository<User>(dataContext), IUserRepository
+public class UserRepository(DataContext dataContext) : GenericRepository<User, Guid>(dataContext), IUserRepository
 {
     public async Task<User?> GetByEmailAsync(string email)
     {

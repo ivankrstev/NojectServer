@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using NojectServer.Configurations;
 using NojectServer.Middlewares;
-using NojectServer.OptionsSetup;
 using NojectServer.Repositories.Base;
 using NojectServer.Repositories.Implementations;
 using NojectServer.Repositories.Interfaces;
@@ -45,7 +44,7 @@ public static class ServiceCollectionExtensions
     public static void AddServices(this IServiceCollection services)
     {
         // Register generic repository
-        services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        services.AddScoped(typeof(IGenericRepository<,>), typeof(GenericRepository<,>));
         // Register unit of work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         // Register specialized repositories
@@ -95,8 +94,5 @@ public static class ServiceCollectionExtensions
 
         // Register options validators
         services.AddSingleton<IValidateOptions<JwtTokenOptions>, JwtTokenOptionsValidator>();
-
-        // Configure JWT bearer options
-        services.ConfigureOptions<JwtBearerOptionsSetup>();
     }
 }

@@ -55,7 +55,7 @@ public class ProjectsService(
     /// TODO: Implement notification to collaborators about project deletion(update their UI properly).
     public async Task<Result<string>> DeleteProjectAsync(Guid projectId)
     {
-        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId);
 
         if (project == null)
         {
@@ -113,7 +113,7 @@ public class ProjectsService(
     /// <returns>A Result containing an array of tasks or failure details.</returns>
     public async Task<Result<List<Models.Task>>> GetTasksAsCollaboratorAsync(Guid projectId)
     {
-        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId);
 
         if (project == null)
         {
@@ -139,7 +139,7 @@ public class ProjectsService(
     /// <returns>A Result containing a success message or failure details.</returns>
     public async Task<Result<string>> GrantPublicAccessAsync(Guid projectId)
     {
-        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId);
 
         if (project == null)
         {
@@ -165,7 +165,7 @@ public class ProjectsService(
     /// <returns>A Result containing a success message or failure details.</returns>
     public async Task<Result<string>> RevokePublicAccessAsync(Guid projectId)
     {
-        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId);
 
         if (project == null)
         {
@@ -192,7 +192,7 @@ public class ProjectsService(
     /// <returns>A Result containing a success message or failure details.</returns>
     public async Task<Result<string>> UpdateProjectNameAsync(Guid projectId, CreateUpdateProjectRequest request)
     {
-        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId);
 
         if (project == null)
         {

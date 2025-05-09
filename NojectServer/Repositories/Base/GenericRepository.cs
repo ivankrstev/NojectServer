@@ -10,7 +10,8 @@ namespace NojectServer.Repositories.Base;
 /// abstracting the underlying data access details.
 /// </summary>
 /// <typeparam name="T">The entity type the repository works with.</typeparam>
-public class GenericRepository<T>(DataContext dataContext) : IGenericRepository<T> where T : class
+/// <typeparam name="TId">The type of the entity's primary key.</typeparam>
+public class GenericRepository<T, TId>(DataContext dataContext) : IGenericRepository<T, TId> where T : class
 {
     protected readonly DbContext _dataContext = dataContext;
     protected readonly DbSet<T> _dbSet = dataContext.Set<T>();
@@ -50,11 +51,7 @@ public class GenericRepository<T>(DataContext dataContext) : IGenericRepository<
     /// </summary>
     /// <param name="id">The unique identifier of the entity to retrieve.</param>
     /// <returns>The entity if found; otherwise, null.</returns>
-    /// <remarks>
-    /// TODO: Consider changing the ID parameter type from string to a more specific type
-    /// based on the actual primary key types used in the application's entities.
-    /// </remarks>
-    public virtual async Task<T?> GetByIdAsync(string id) => await _dbSet.FindAsync(id);
+    public virtual async Task<T?> GetByIdAsync(TId id) => await _dbSet.FindAsync(id);
 
     /// <summary>
     /// Provides direct queryable access to the entities for more complex operations.
@@ -101,11 +98,7 @@ public class GenericRepository<T>(DataContext dataContext) : IGenericRepository<
     /// </summary>
     /// <param name="id">The unique identifier of the entity to remove.</param>
     /// <returns>True if the entity was found and removed; otherwise, false.</returns>
-    /// <remarks>
-    /// TODO: Consider changing the ID parameter type from string to a more specific type
-    /// based on the actual primary key types used in the application's entities.
-    /// </remarks>
-    public virtual async Task<bool> SafeRemoveAsync(string id)
+    public virtual async Task<bool> SafeRemoveAsync(TId id)
     {
         var entity = await _dbSet.FindAsync(id);
         if (entity == null)

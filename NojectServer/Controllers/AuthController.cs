@@ -145,7 +145,7 @@ public class AuthController(
 
         return result.ToActionResult(this, validToken =>
         {
-            var user = _userRepository.GetByIdAsync(validToken.UserId.ToString()).Result;
+            var user = _userRepository.GetByIdAsync(validToken.UserId).Result;
             if (user == null)
             {
                 return Unauthorized(new { error = "Unauthorized", message = "User not found." });

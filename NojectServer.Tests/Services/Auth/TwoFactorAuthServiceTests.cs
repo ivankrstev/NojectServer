@@ -41,7 +41,7 @@ public class TwoFactorAuthServiceTests
     {
         // Arrange
         var userId = Guid.NewGuid();
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync((User?)null);
 
         // Act
@@ -67,7 +67,7 @@ public class TwoFactorAuthServiceTests
             TwoFactorEnabled = false
         };
 
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync(user);
 
         // Act
@@ -94,7 +94,7 @@ public class TwoFactorAuthServiceTests
             TwoFactorSecretKey = "JBSWY3DPEHPK3PXP" // This is a valid Base32 string for testing
         };
 
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync(user);
 
         _mockTotpValidator.Setup(v => v.ValidateCode(It.IsAny<string>(), It.IsAny<string>()))
@@ -124,7 +124,7 @@ public class TwoFactorAuthServiceTests
             TwoFactorSecretKey = "JBSWY3DPEHPK3PXP"
         };
 
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync(user);
 
         _mockTotpValidator.Setup(v => v.ValidateCode(It.IsAny<string>(), It.IsAny<string>()))
@@ -155,7 +155,7 @@ public class TwoFactorAuthServiceTests
     {
         // Arrange
         var userId = Guid.NewGuid();
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync((User?)null);
 
         // Act
@@ -181,7 +181,7 @@ public class TwoFactorAuthServiceTests
             TwoFactorSecretKey = null
         };
 
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync(user);
 
         // Act
@@ -207,7 +207,7 @@ public class TwoFactorAuthServiceTests
             TwoFactorEnabled = false
         };
 
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync(user);
 
         _mockTotpValidator.Setup(v => v.ValidateCode(It.IsAny<string>(), It.IsAny<string>()))
@@ -236,7 +236,7 @@ public class TwoFactorAuthServiceTests
             TwoFactorEnabled = false
         };
 
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync(user);
 
         _mockTotpValidator.Setup(v => v.ValidateCode(It.IsAny<string>(), It.IsAny<string>()))
@@ -267,7 +267,7 @@ public class TwoFactorAuthServiceTests
     {
         // Arrange
         var userId = Guid.NewGuid();
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync((User?)null);
 
         // Act
@@ -293,7 +293,7 @@ public class TwoFactorAuthServiceTests
             TwoFactorEnabled = true
         };
 
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync(user);
 
         // Act
@@ -320,7 +320,7 @@ public class TwoFactorAuthServiceTests
             TwoFactorEnabled = false
         };
 
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync(user);
 
         // Act
@@ -350,7 +350,7 @@ public class TwoFactorAuthServiceTests
     {
         // Arrange
         var userId = Guid.NewGuid();
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync((User?)null);
 
         // Act
@@ -376,7 +376,7 @@ public class TwoFactorAuthServiceTests
             TwoFactorSecretKey = null
         };
 
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync(user);
 
         // Act
@@ -402,7 +402,7 @@ public class TwoFactorAuthServiceTests
             TwoFactorSecretKey = "JBSWY3DPEHPK3PXP"
         };
 
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync(user);
 
         // Setup the validator to return true (valid code)
@@ -431,7 +431,7 @@ public class TwoFactorAuthServiceTests
             TwoFactorSecretKey = "JBSWY3DPEHPK3PXP"
         };
 
-        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId.ToString()))
+        _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(userId))
             .ReturnsAsync(user);
 
         // Setup the validator to return false (invalid code)

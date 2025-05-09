@@ -41,7 +41,7 @@ public class CollaboratorsService(IUnitOfWork unitOfWork, IHubContext<SharedProj
     public async Task<Result<string>> AddCollaboratorAsync(Guid projectId, string userEmailToAdd)
     {
         // Check if the project exists
-        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId);
         if (project == null)
         {
             return Result.Failure<string>("NotFound", "The specified project doesn't exist", 404);
@@ -95,7 +95,7 @@ public class CollaboratorsService(IUnitOfWork unitOfWork, IHubContext<SharedProj
     /// </remarks>
     public async Task<Result<List<string>>> SearchCollaboratorsAsync(Guid projectId, string userEmailToFind)
     {
-        var project = await _unitOfWork.Projects.GetByIdAsync(projectId.ToString());
+        var project = await _unitOfWork.Projects.GetByIdAsync(projectId);
         if (project == null)
         {
             return Result.Failure<List<string>>("NotFound", "The specified project doesn't exist", 404);

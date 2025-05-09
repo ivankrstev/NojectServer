@@ -37,7 +37,7 @@ public class TwoFactorAuthService(
     /// </returns>
     public async Task<Result<string>> DisableTwoFactorAsync(Guid userId, string code)
     {
-        var user = await _unitOfWork.Users.GetByIdAsync(userId.ToString());
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
         if (user == null)
             return Result.Failure<string>("NotFound", "User not found.", 404);
 
@@ -68,7 +68,7 @@ public class TwoFactorAuthService(
     /// </returns>
     public async Task<Result<string>> EnableTwoFactorAsync(Guid userId, string code)
     {
-        var user = await _unitOfWork.Users.GetByIdAsync(userId.ToString());
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
         if (user == null)
             return Result.Failure<string>("NotFound", "User not found.", 404);
 
@@ -97,7 +97,7 @@ public class TwoFactorAuthService(
     /// </returns>
     public async Task<Result<TwoFactorSetupResult>> GenerateSetupCodeAsync(Guid userId)
     {
-        var user = await _unitOfWork.Users.GetByIdAsync(userId.ToString());
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
         if (user == null)
             return Result.Failure<TwoFactorSetupResult>("NotFound", "User not found.", 404);
 
@@ -136,7 +136,7 @@ public class TwoFactorAuthService(
     /// </returns>
     public async Task<Result<bool>> ValidateTwoFactorCodeAsync(Guid userId, string code)
     {
-        var user = await _unitOfWork.Users.GetByIdAsync(userId.ToString());
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
         if (user == null)
             return Result.Failure<bool>("NotFound", "User not found.", 404);
         if (string.IsNullOrEmpty(user.TwoFactorSecretKey))

@@ -6,7 +6,8 @@ using NojectServer.Repositories.Interfaces;
 
 namespace NojectServer.Repositories.Implementations;
 
-public class CollaboratorRepository(DataContext dataContext) : GenericRepository<Collaborator>(dataContext), ICollaboratorRepository
+public class CollaboratorRepository(DataContext dataContext)
+    : GenericRepository<Collaborator, (Guid ProjectId, Guid CollaboratorId)>(dataContext), ICollaboratorRepository
 {
     public async Task<IEnumerable<Collaborator>> GetCollaboratorsByProjectIdAsync(Guid projectId)
     {

@@ -199,7 +199,7 @@ public class ProjectsServiceTests
         var request = new CreateUpdateProjectRequest { Name = "Updated Project Name" };
         var project = new Project { Id = projectId, Name = "Original Name" };
 
-        _mockProjectRepository.Setup(r => r.GetByIdAsync(projectId.ToString()))
+        _mockProjectRepository.Setup(r => r.GetByIdAsync(projectId))
             .ReturnsAsync(project);
 
         _mockProjectRepository.Setup(r => r.Update(It.IsAny<Project>()));
@@ -225,7 +225,7 @@ public class ProjectsServiceTests
         var projectId = Guid.NewGuid();
         var request = new CreateUpdateProjectRequest { Name = "Updated Project Name" };
 
-        _mockProjectRepository.Setup(r => r.GetByIdAsync(projectId.ToString()))
+        _mockProjectRepository.Setup(r => r.GetByIdAsync(projectId))
             .ReturnsAsync((Project?)null);
 
         // Act
@@ -251,7 +251,7 @@ public class ProjectsServiceTests
         var projectId = Guid.NewGuid();
         var project = new Project { Id = projectId, Name = "Project to delete" };
 
-        _mockProjectRepository.Setup(r => r.GetByIdAsync(projectId.ToString()))
+        _mockProjectRepository.Setup(r => r.GetByIdAsync(projectId))
             .ReturnsAsync(project);
 
         _mockProjectRepository.Setup(r => r.Remove(project));
@@ -275,7 +275,7 @@ public class ProjectsServiceTests
         // Arrange
         var projectId = Guid.NewGuid();
 
-        _mockProjectRepository.Setup(r => r.GetByIdAsync(projectId.ToString()))
+        _mockProjectRepository.Setup(r => r.GetByIdAsync(projectId))
             .ReturnsAsync((Project?)null);
 
         // Act

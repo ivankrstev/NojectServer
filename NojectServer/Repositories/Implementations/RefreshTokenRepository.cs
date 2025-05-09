@@ -7,7 +7,7 @@ using NojectServer.Repositories.Interfaces;
 namespace NojectServer.Repositories.Implementations;
 
 public class RefreshTokenRepository(DataContext dataContext)
-    : GenericRepository<RefreshToken>(dataContext), IRefreshTokenRepository
+    : GenericRepository<RefreshToken, (Guid UserId, string Token)>(dataContext), IRefreshTokenRepository
 {
     public async Task<RefreshToken?> GetByUserIdAndTokenAsync(Guid userId, string token)
     {

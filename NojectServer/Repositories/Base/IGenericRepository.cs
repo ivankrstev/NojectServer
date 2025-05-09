@@ -8,14 +8,15 @@ namespace NojectServer.Repositories.Base;
 /// abstracting the underlying data access technology.
 /// </summary>
 /// <typeparam name="T">The entity type the repository works with.</typeparam>
-public interface IGenericRepository<T> where T : class
+/// <typeparam name="TId">The type of the entity's primary key.</typeparam>
+public interface IGenericRepository<T, TId> where T : class
 {
     /// <summary>
     /// Asynchronously retrieves an entity by its ID.
     /// </summary>
     /// <param name="id">The unique identifier of the entity to retrieve.</param>
     /// <returns>The entity if found; otherwise, null.</returns>
-    Task<T?> GetByIdAsync(string id);
+    Task<T?> GetByIdAsync(TId id);
 
     /// <summary>
     /// Asynchronously finds all entities that satisfy the specified expression.
@@ -63,7 +64,7 @@ public interface IGenericRepository<T> where T : class
     /// </summary>
     /// <param name="id">The unique identifier of the entity to remove.</param>
     /// <returns>True if the entity was found and removed; otherwise, false.</returns>
-    Task<bool> SafeRemoveAsync(string id);
+    Task<bool> SafeRemoveAsync(TId id);
 
     /// <summary>
     /// Marks an entity as modified for an update operation.

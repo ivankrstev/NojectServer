@@ -3,7 +3,7 @@ using NojectServer.Repositories.Base;
 
 namespace NojectServer.Repositories.Interfaces;
 
-public interface IUserRepository : IGenericRepository<User>
+public interface IUserRepository : IGenericRepository<User, Guid>
 {
     Task<User?> GetByEmailAsync(string email);
 }

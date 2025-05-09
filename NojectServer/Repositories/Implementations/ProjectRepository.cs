@@ -7,7 +7,7 @@ using NojectServer.Repositories.Interfaces;
 namespace NojectServer.Repositories.Implementations;
 
 public class ProjectRepository(DataContext dataContext)
-    : GenericRepository<Project>(dataContext), IProjectRepository
+    : GenericRepository<Project, Guid>(dataContext), IProjectRepository
 {
     private new readonly DataContext _dataContext = dataContext;
 

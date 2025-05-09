@@ -65,7 +65,8 @@ public class CollaboratorsServiceTests
             .ReturnsAsync((User?)null);
 
         // Configure Project repository
-        _mockProjectRepository.Setup(r => r.GetByIdAsync(projectId.ToString()))
+        _mockProjectRepository.Setup(r => r.GetByIdAsync(projectId
+            ))
             .ReturnsAsync(_projectsList[0]);
 
         // Configure Collaborator repository
@@ -244,7 +245,7 @@ public class CollaboratorsServiceTests
     {
         // Arrange
         var nonExistentProjectId = Guid.NewGuid();
-        _mockProjectRepository.Setup(r => r.GetByIdAsync(nonExistentProjectId.ToString()))
+        _mockProjectRepository.Setup(r => r.GetByIdAsync(nonExistentProjectId))
             .ReturnsAsync((Project?)null);
 
         // Act

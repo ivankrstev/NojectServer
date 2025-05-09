@@ -7,7 +7,7 @@ using Task = NojectServer.Models.Task;
 namespace NojectServer.Repositories.Implementations;
 
 public class TaskRepository(DataContext dataContext)
-    : GenericRepository<Task>(dataContext), ITaskRepository
+    : GenericRepository<Task, (int Id, Guid ProjectId)>(dataContext), ITaskRepository
 {
     public async Task<Task?> GetByProjectAndTaskIdAsync(Guid projectId, int taskId)
     {
