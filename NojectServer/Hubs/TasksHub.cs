@@ -56,7 +56,7 @@ public class TasksHub(ITasksService tasksService) : Hub
         {
             Guid id = new(projectId);
 
-            var updatedTask = await _tasksService.ChangeValueAsync(id, taskId, newValue);
+            await _tasksService.ChangeValueAsync(id, taskId, newValue);
 
             await Clients.OthersInGroup(projectId).SendAsync("ChangedValue",
                 new { task = new { id = taskId, newValue } });

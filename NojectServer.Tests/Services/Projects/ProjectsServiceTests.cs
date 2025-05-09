@@ -44,7 +44,7 @@ public class ProjectsServiceTests
     #region CreateProjectAsync
 
     [Fact]
-    public async Task CreateProjectAsync_ShouldCreateProjectAndReturnSuccess()
+    public async Task CreateProjectAsync_ShouldCreateProjectAndReturnSuccessAsync()
     {
         // Arrange
         var request = new CreateUpdateProjectRequest { Name = "Test Project" };
@@ -79,7 +79,7 @@ public class ProjectsServiceTests
     #region GetOwnProjectsAsync
 
     [Fact]
-    public async Task GetOwnProjectsAsync_ShouldReturnProjectsOwnedByUser()
+    public async Task GetOwnProjectsAsync_ShouldReturnProjectsOwnedByUserAsync()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -105,11 +105,11 @@ public class ProjectsServiceTests
     }
 
     [Fact]
-    public async Task GetOwnProjectsAsync_ShouldReturnEmptyListWhenNoProjects()
+    public async Task GetOwnProjectsAsync_ShouldReturnEmptyListWhenNoProjectsAsync()
     {
         // Arrange
         var userId = Guid.NewGuid();
-        _mockProjectRepository.Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Project, bool>>>()))
+        _mockProjectRepository.Setup(r => r.FindAsync(It.IsAny<Expression<Func<Project, bool>>>()))
             .ReturnsAsync([]);
 
         // Act
@@ -126,7 +126,7 @@ public class ProjectsServiceTests
     #region GetProjectsAsCollaboratorAsync
 
     [Fact]
-    public async Task GetProjectsAsCollaboratorAsync_ShouldReturnSharedProjects()
+    public async Task GetProjectsAsCollaboratorAsync_ShouldReturnSharedProjectsAsync()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -164,7 +164,7 @@ public class ProjectsServiceTests
     }
 
     [Fact]
-    public async Task GetProjectsAsCollaboratorAsync_ShouldReturnEmptyListWhenNoSharedProjects()
+    public async Task GetProjectsAsCollaboratorAsync_ShouldReturnEmptyListWhenNoSharedProjectsAsync()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -192,7 +192,7 @@ public class ProjectsServiceTests
     #region UpdateProjectNameAsync
 
     [Fact]
-    public async Task UpdateProjectNameAsync_WithValidId_ShouldUpdateNameAndReturnSuccess()
+    public async Task UpdateProjectNameAsync_WithValidId_ShouldUpdateNameAndReturnSuccessAsync()
     {
         // Arrange
         var projectId = Guid.NewGuid();
@@ -219,7 +219,7 @@ public class ProjectsServiceTests
     }
 
     [Fact]
-    public async Task UpdateProjectNameAsync_WithInvalidId_ShouldReturnNotFoundFailure()
+    public async Task UpdateProjectNameAsync_WithInvalidId_ShouldReturnNotFoundFailureAsync()
     {
         // Arrange
         var projectId = Guid.NewGuid();
@@ -245,7 +245,7 @@ public class ProjectsServiceTests
     #region DeleteProjectAsync
 
     [Fact]
-    public async Task DeleteProjectAsync_WithValidId_ShouldDeleteAndReturnSuccess()
+    public async Task DeleteProjectAsync_WithValidId_ShouldDeleteAndReturnSuccessAsync()
     {
         // Arrange
         var projectId = Guid.NewGuid();
@@ -270,7 +270,7 @@ public class ProjectsServiceTests
     }
 
     [Fact]
-    public async Task DeleteProjectAsync_WithInvalidId_ShouldReturnNotFoundFailure()
+    public async Task DeleteProjectAsync_WithInvalidId_ShouldReturnNotFoundFailureAsync()
     {
         // Arrange
         var projectId = Guid.NewGuid();

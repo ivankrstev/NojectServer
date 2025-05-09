@@ -241,7 +241,7 @@ public class CollaboratorsServiceTests
     }
 
     [Fact]
-    public async Task SearchCollaboratorsAsync_ProjectNotFound_ReturnsFailure()
+    public async Task SearchCollaboratorsAsync_ProjectNotFound_ReturnsFailureAsync()
     {
         // Arrange
         var nonExistentProjectId = Guid.NewGuid();

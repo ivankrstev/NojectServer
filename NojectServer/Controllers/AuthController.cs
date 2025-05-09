@@ -85,8 +85,6 @@ public class AuthController(
     [HttpPost("tfa/verify", Name = "Verify the two-factor code to login")]
     public async Task<ActionResult> VerifyTfa(LoginTfaVerificationRequest request)
     {
-        var principal = new JwtSecurityTokenHandler().ValidateToken(request.JwtToken,
-            _tokenService.GetTfaTokenValidationParameters(), out _);
         var userId = User.GetUserId();
         var email = User.GetUserEmail();
 
