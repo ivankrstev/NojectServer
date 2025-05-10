@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NojectServer.Models;
@@ -22,11 +23,11 @@ public class User
 
     [Column("password")]
     [Required]
-    public byte[] Password { get; set; } = [];
+    public ImmutableArray<byte> Password { get; set; } = [];
 
     [Column("password_salt")]
     [Required]
-    public byte[] PasswordSalt { get; set; } = [];
+    public ImmutableArray<byte> PasswordSalt { get; set; } = [];
 
     [Column("verification_token", TypeName = "char(128)")]
     public string? VerificationToken { get; set; }

@@ -6,6 +6,7 @@ using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Common.Interfaces;
 using NojectServer.Services.Email.Interfaces;
 using NojectServer.Utils.ResultPattern;
+using System.Collections.Immutable;
 using System.Linq.Expressions;
 using Task = System.Threading.Tasks.Task;
 
@@ -95,8 +96,8 @@ public class AuthServiceTests
             ConfirmPassword = "Password123"
         };
 
-        byte[] passwordHash = [1, 2, 3];
-        byte[] passwordSalt = [4, 5, 6];
+        ImmutableArray<byte> passwordHash = [1, 2, 3];
+        ImmutableArray<byte> passwordSalt = [4, 5, 6];
 
         // Setup mocks
         _mockUnitOfWork.Setup(u => u.Users.AnyAsync(It.IsAny<Expression<Func<User, bool>>>()))
@@ -150,8 +151,8 @@ public class AuthServiceTests
             ConfirmPassword = "Password123"
         };
 
-        byte[] passwordHash = [1, 2, 3];
-        byte[] passwordSalt = [4, 5, 6];
+        ImmutableArray<byte> passwordHash = [1, 2, 3];
+        ImmutableArray<byte> passwordSalt = [4, 5, 6];
 
         // Setup mocks
         _mockUnitOfWork.Setup(u => u.Users.AnyAsync(It.IsAny<Expression<Func<User, bool>>>()))
