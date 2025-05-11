@@ -1,6 +1,8 @@
-﻿using NojectServer.Repositories.UnitOfWork;
+﻿using NojectServer.Exceptions;
+using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Tasks.Interfaces;
 using NojectServer.Utils;
+using System.Runtime.InteropServices;
 
 namespace NojectServer.Services.Tasks.Implementations;
 
@@ -15,7 +17,7 @@ public class TasksService(IUnitOfWork unitOfWork) : ITasksService
             await _unitOfWork.BeginTransactionAsync();
 
             var project = await _unitOfWork.Projects.GetByIdAsync(projectId)
-                ?? throw new Exception($"Project {projectId} not found.");
+                ?? throw new ProjectNotFoundException(projectId);
 
             var tasks = (await _unitOfWork.Tasks.GetByProjectIdAsync(projectId)).ToArray();
             tasks.OrderTasks(project.FirstTask);
@@ -69,10 +71,15 @@ public class TasksService(IUnitOfWork unitOfWork) : ITasksService
 
             return task;
         }
+        catch (ProjectNotFoundException)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            throw new Exception($"Error adding task to Project {projectId}", ex);
+            throw new TaskOperationException("adding", projectId, null, ex);
         }
     }
 
@@ -81,7 +88,7 @@ public class TasksService(IUnitOfWork unitOfWork) : ITasksService
         try
         {
             var taskToUpdate = await _unitOfWork.Tasks.GetByProjectAndTaskIdAsync(projectId, taskId)
-                ?? throw new Exception($"Task ID {taskId} of project {projectId} not found.");
+                ?? throw new TaskNotFoundException(projectId, taskId);
 
             taskToUpdate.Value = newValue;
             taskToUpdate.LastModifiedOn = DateTime.UtcNow;
@@ -91,9 +98,13 @@ public class TasksService(IUnitOfWork unitOfWork) : ITasksService
 
             return taskToUpdate;
         }
+        catch (TaskNotFoundException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            throw new Exception($"Error changing value of Task {taskId} of Project {projectId}", ex);
+            throw new TaskOperationException("changing value of", projectId, taskId, ex);
         }
     }
 
@@ -104,10 +115,10 @@ public class TasksService(IUnitOfWork unitOfWork) : ITasksService
             await _unitOfWork.BeginTransactionAsync();
 
             var project = await _unitOfWork.Projects.GetByIdAsync(projectId)
-                ?? throw new Exception($"Project {projectId} not found.");
+                ?? throw new ProjectNotFoundException(projectId);
 
             var taskToDelete = await _unitOfWork.Tasks.GetByProjectAndTaskIdAsync(projectId, taskId)
-                ?? throw new Exception($"Task ID {taskId} of project {projectId} not found.");
+                ?? throw new TaskNotFoundException(projectId, taskId);
 
             var tasks = (await _unitOfWork.Tasks.GetByProjectIdAsync(projectId)).ToArray();
             tasks.OrderTasks(project.FirstTask);
@@ -147,7 +158,8 @@ public class TasksService(IUnitOfWork unitOfWork) : ITasksService
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            throw new Exception($"Error deleting Task {taskId} of Project {projectId}", ex);
+            if (ex is ProjectNotFoundException || ex is TaskNotFoundException) throw;
+            throw new TaskOperationException("deleting", projectId, taskId, ex);
         }
     }
 
@@ -210,7 +222,8 @@ public class TasksService(IUnitOfWork unitOfWork) : ITasksService
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            throw new Exception($"Error increasing level of task {taskId} of Project {projectId}", ex);
+            if (ex is ProjectNotFoundException || ex is TaskNotFoundException || ex is TaskLevelException) throw;
+            throw new TaskOperationException("increasing level of", projectId, taskId, ex);
         }
     }
 
@@ -266,7 +279,8 @@ public class TasksService(IUnitOfWork unitOfWork) : ITasksService
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            throw new Exception($"Error decreasing level of task {taskId} of Project {projectId}", ex);
+            if (ex is ProjectNotFoundException || ex is TaskNotFoundException || ex is TaskLevelException) throw;
+            throw new TaskOperationException("decreasing level of", projectId, taskId, ex);
         }
     }
 
@@ -322,7 +336,8 @@ public class TasksService(IUnitOfWork unitOfWork) : ITasksService
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            throw new Exception($"Error completing task {taskId} of Project {projectId}", ex);
+            if (ex is ProjectNotFoundException || ex is TaskNotFoundException) throw;
+            throw new TaskOperationException("completing", projectId, taskId, ex);
         }
     }
 
@@ -376,7 +391,8 @@ public class TasksService(IUnitOfWork unitOfWork) : ITasksService
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            throw new Exception($"Error uncompleting task {taskId} of Project {projectId}", ex);
+            if (ex is ProjectNotFoundException || ex is TaskNotFoundException) throw;
+            throw new TaskOperationException("uncompleting", projectId, taskId, ex);
         }
     }
 }
