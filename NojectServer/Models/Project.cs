@@ -1,6 +1,6 @@
-﻿using System.Text.Json.Serialization;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace NojectServer.Models;
 
@@ -20,7 +20,7 @@ public class Project
     [Column("created_by")]
     [ForeignKey("User")]
     [Required]
-    public string CreatedBy { get; set; } = string.Empty;
+    public Guid CreatedBy { get; set; } = Guid.Empty;
 
     [JsonIgnore]
     public virtual User? User { get; set; }

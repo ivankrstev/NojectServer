@@ -14,16 +14,17 @@ public interface IRefreshTokenService
     /// <summary>
     /// Generates a new refresh token for a user and stores it in the database.
     /// </summary>
-    /// <param name="email">The email address of the user to create the token for</param>
-    /// <returns>A Task representing the asynchronous operation, containing the generated refresh token string</returns>
+    /// <param name="userId">The ID of the user to create the token for</param>
+    /// <param name="email">The email address of the user (used for claims)</param>
+    /// <returns>A Result containing the generated refresh token string</returns>
     /// <exception cref="ArgumentNullException">Thrown when email is null</exception>
-    Task<Result<string>> GenerateRefreshTokenAsync(string email);
+    Task<Result<string>> GenerateRefreshTokenAsync(Guid userId, string email);
 
     /// <summary>
     /// Validates a refresh token by checking its existence and expiration date.
     /// </summary>
     /// <param name="token">The refresh token string to validate</param>
-    /// <returns>A Task representing the asynchronous operation, containing the valid RefreshToken entity</returns>
+    /// <returns>A Result containing the valid RefreshToken entity</returns>
     /// <exception cref="ArgumentNullException">Thrown when token is null</exception>
     /// <exception cref="SecurityTokenException">Thrown when the token is invalid or expired</exception>
     Task<Result<RefreshToken>> ValidateRefreshTokenAsync(string token);
@@ -33,7 +34,7 @@ public interface IRefreshTokenService
     /// This should be called during logout or when refresh tokens need to be invalidated.
     /// </summary>
     /// <param name="token">The refresh token string to revoke</param>
-    /// <returns>A Task representing the asynchronous operation</returns>
+    /// <returns>A Result indicating success or failure of the operation</returns>
     /// <exception cref="ArgumentNullException">Thrown when token is null</exception>
     Task<Result<bool>> RevokeRefreshTokenAsync(string token);
 }

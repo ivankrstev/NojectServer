@@ -4,8 +4,8 @@ using NojectServer.Middlewares;
 using NojectServer.Models;
 using NojectServer.Models.Requests.Projects;
 using NojectServer.Services.Projects.Interfaces;
+using NojectServer.Utils;
 using NojectServer.Utils.ResultPattern;
-using System.Security.Claims;
 
 namespace NojectServer.Controllers;
 
@@ -20,8 +20,8 @@ public class ProjectsController(IProjectsService projectsService) : ControllerBa
     [HttpPost("", Name = "Create a Project")]
     public async Task<ActionResult<Project>> Create(CreateUpdateProjectRequest request)
     {
-        var userEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
-        var result = await _projectsService.CreateProjectAsync(request, userEmail);
+        var userId = User.GetUserId();
+        var result = await _projectsService.CreateProjectAsync(request, userId);
 
         return result.ToActionResult(this, project => Created(nameof(project), project));
     }
@@ -29,8 +29,8 @@ public class ProjectsController(IProjectsService projectsService) : ControllerBa
     [HttpGet("", Name = "Get all own projects")]
     public async Task<IActionResult> GetOwnProjects()
     {
-        var userEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
-        var result = await _projectsService.GetOwnProjectsAsync(userEmail);
+        var userId = User.GetUserId();
+        var result = await _projectsService.GetOwnProjectsAsync(userId);
 
         return result.ToActionResult(this, projects => Ok(new { projects }));
     }
@@ -38,8 +38,8 @@ public class ProjectsController(IProjectsService projectsService) : ControllerBa
     [HttpGet("shared", Name = "Get all shared projects")]
     public async Task<IActionResult> GetSharedProjects()
     {
-        var userEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
-        var result = await _projectsService.GetProjectsAsCollaboratorAsync(userEmail);
+        var userId = User.GetUserId();
+        var result = await _projectsService.GetProjectsAsCollaboratorAsync(userId);
 
         return result.ToActionResult(this, sharedProjects => Ok(new { sharedProjects }));
     }

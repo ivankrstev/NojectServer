@@ -86,10 +86,10 @@ public class EmailServiceTests
         };
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<Exception>(
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _emailService.SendVerificationLinkAsync(user));
 
-        Assert.Equal("Verification token is null", exception.Message);
+        Assert.Contains("User does not have a verification token", exception.Message);
         _mockEmailSender.Verify(s => s.SendAsync(It.IsAny<MimeMessage>()), Times.Never);
     }
 
@@ -174,10 +174,10 @@ public class EmailServiceTests
         };
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<Exception>(
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _emailService.SendResetPasswordLinkAsync(user));
 
-        Assert.Equal("Password reset token is null", exception.Message);
+        Assert.Contains("User does not have a password reset token", exception.Message);
         _mockEmailSender.Verify(s => s.SendAsync(It.IsAny<MimeMessage>()), Times.Never);
     }
 

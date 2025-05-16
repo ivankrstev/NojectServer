@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using NojectServer.Data;
+﻿using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Services.Auth.Validation.Interfaces;
 using NojectServer.Utils;
@@ -18,11 +17,11 @@ namespace NojectServer.Services.Auth.Implementations;
 /// </summary>
 public class TwoFactorAuthService(
     IConfiguration config,
-    DataContext dataContext,
+    IUnitOfWork unitOfWork,
     ITotpValidator totpValidator) : ITwoFactorAuthService
 {
     private readonly IConfiguration _config = config;
-    private readonly DataContext _dataContext = dataContext;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly ITotpValidator _totpValidator = totpValidator;
 
     /// <summary>
@@ -30,15 +29,15 @@ public class TwoFactorAuthService(
     /// This method validates the code using the TOTP validator before disabling 2FA
     /// and removing the secret key from the user's account.
     /// </summary>
-    /// <param name="email">The email address of the user</param>
+    /// <param name="userId"> The ID of the user to disable 2FA for</param>
     /// <param name="code">The verification code from the user's TOTP app</param>
     /// <returns>
     /// A Result containing a success message if 2FA was disabled successfully,
     /// or an error message with appropriate status code if the operation fails
     /// </returns>
-    public async Task<Result<string>> DisableTwoFactorAsync(string email, string code)
+    public async Task<Result<string>> DisableTwoFactorAsync(Guid userId, string code)
     {
-        var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
         if (user == null)
             return Result.Failure<string>("NotFound", "User not found.", 404);
 
@@ -50,7 +49,8 @@ public class TwoFactorAuthService(
 
         user.TwoFactorEnabled = false;
         user.TwoFactorSecretKey = null;
-        await _dataContext.SaveChangesAsync();
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.SaveChangesAsync();
 
         return Result.Success("2FA disabled successfully.");
     }
@@ -60,15 +60,15 @@ public class TwoFactorAuthService(
     /// This method checks if the user has a secret key generated and validates the code
     /// using the TOTP validator before enabling 2FA for the user's account.
     /// </summary>
-    /// <param name="email">The email address of the user</param>
+    /// <param name="userId"> The ID of the user to enable 2FA for</param>
     /// <param name="code">The verification code from the user's TOTP app</param>
     /// <returns>
     /// A Result containing a success message if 2FA was enabled successfully,
     /// or an error message if the operation fails
     /// </returns>
-    public async Task<Result<string>> EnableTwoFactorAsync(string email, string code)
+    public async Task<Result<string>> EnableTwoFactorAsync(Guid userId, string code)
     {
-        var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
         if (user == null)
             return Result.Failure<string>("NotFound", "User not found.", 404);
 
@@ -79,7 +79,8 @@ public class TwoFactorAuthService(
             return Result.Failure<string>("Unauthorized", "Invalid security code.");
 
         user.TwoFactorEnabled = true;
-        await _dataContext.SaveChangesAsync();
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.SaveChangesAsync();
 
         return Result.Success("2FA enabled successfully.");
     }
@@ -89,14 +90,14 @@ public class TwoFactorAuthService(
     /// This method creates a new secret key and generates a QR code URL that can be
     /// displayed to the user for scanning with a TOTP app.
     /// </summary>
-    /// <param name="email">The email address of the user</param>
+    /// <param name="userId"> The ID of the user to create the setup code for</param>
     /// <returns>
     /// A Result containing TwoFactorSetupResult with the manual key and QR code URL if successful,
     /// or an error message if the operation fails
     /// </returns>
-    public async Task<Result<TwoFactorSetupResult>> GenerateSetupCodeAsync(string email)
+    public async Task<Result<TwoFactorSetupResult>> GenerateSetupCodeAsync(Guid userId)
     {
-        var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
         if (user == null)
             return Result.Failure<TwoFactorSetupResult>("NotFound", "User not found.", 404);
 
@@ -108,11 +109,12 @@ public class TwoFactorAuthService(
         var appName = _config["AppName"] ?? "Noject";
 
         // Create QR code URL
-        string qrCodeUrl = $"otpauth://totp/{Uri.EscapeDataString(appName)}:{Uri.EscapeDataString(email)}?secret={secretKey}&issuer={Uri.EscapeDataString(appName)}&digits=6&period=30";
+        string qrCodeUrl = $"otpauth://totp/{Uri.EscapeDataString(appName)}:{Uri.EscapeDataString(user.Email)}?secret={secretKey}&issuer={Uri.EscapeDataString(appName)}&digits=6&period=30";
 
         // Save the secret key to the user
         user.TwoFactorSecretKey = secretKey;
-        await _dataContext.SaveChangesAsync();
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.SaveChangesAsync();
 
         return Result.Success(new TwoFactorSetupResult
         {
@@ -126,15 +128,15 @@ public class TwoFactorAuthService(
     /// This method checks if the user has 2FA enabled and validates the code
     /// using the TOTP validator.
     /// </summary>
-    /// <param name="email">The email address of the user</param>
+    /// <param name="userId"> The ID of the user to validate the code for</param>
     /// <param name="code">The verification code from the user's TOTP app</param>
     /// <returns>
     /// A Result containing a boolean indicating whether the code is valid,
     /// or an error message if the validation process fails
     /// </returns>
-    public async Task<Result<bool>> ValidateTwoFactorCodeAsync(string email, string code)
+    public async Task<Result<bool>> ValidateTwoFactorCodeAsync(Guid userId, string code)
     {
-        var user = await _dataContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
         if (user == null)
             return Result.Failure<bool>("NotFound", "User not found.", 404);
         if (string.IsNullOrEmpty(user.TwoFactorSecretKey))

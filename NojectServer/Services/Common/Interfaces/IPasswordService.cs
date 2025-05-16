@@ -1,4 +1,6 @@
-﻿namespace NojectServer.Services.Common.Interfaces;
+﻿using System.Collections.Immutable;
+
+namespace NojectServer.Services.Common.Interfaces;
 
 /// <summary>
 /// Provides functionality for password hashing and verification.
@@ -11,7 +13,7 @@ public interface IPasswordService
     /// <param name="password">The plain text password to hash.</param>
     /// <param name="passwordHash">The output parameter that will contain the generated password hash.</param>
     /// <param name="passwordSalt">The output parameter that will contain the generated salt used for hashing.</param>
-    void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt);
+    void CreatePasswordHash(string password, out ImmutableArray<byte> passwordHash, out ImmutableArray<byte> passwordSalt);
 
     /// <summary>
     /// Verifies if a plain text password matches a stored password hash.
@@ -20,5 +22,5 @@ public interface IPasswordService
     /// <param name="passwordHash">The stored password hash to compare against.</param>
     /// <param name="passwordSalt">The salt used when the hash was created.</param>
     /// <returns>True if the password matches the hash; otherwise, false.</returns>
-    bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt);
+    bool VerifyPasswordHash(string password, ImmutableArray<byte> passwordHash, ImmutableArray<byte> passwordSalt);
 }

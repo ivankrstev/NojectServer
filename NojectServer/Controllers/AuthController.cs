@@ -2,11 +2,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using NojectServer.Configurations;
+using NojectServer.Models;
 using NojectServer.Models.Requests.Auth;
+using NojectServer.Repositories.Interfaces;
 using NojectServer.Services.Auth.Interfaces;
+using NojectServer.Utils;
 using NojectServer.Utils.ResultPattern;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 
 namespace NojectServer.Controllers;
 
@@ -14,12 +16,14 @@ namespace NojectServer.Controllers;
 [Route("[controller]")]
 [Produces("application/json")]
 public class AuthController(
+    IUserRepository userRepository,
     IAuthService authService,
     ITokenService tokenService,
     IRefreshTokenService refreshTokenService,
     ITwoFactorAuthService twoFactorAuthService,
     IOptions<JwtTokenOptions> options) : ControllerBase
 {
+    private readonly IUserRepository _userRepository = userRepository;
     private readonly IAuthService _authService = authService;
     private readonly IRefreshTokenService _refreshTokenService = refreshTokenService;
     private readonly ITokenService _tokenService = tokenService;
@@ -47,16 +51,16 @@ public class AuthController(
         var authResult = await _authService.LoginAsync(request);
 
         // Custom handling for login due to cookie setting and token generation
-        if (authResult is not SuccessResult<string> success)
+        if (authResult is not SuccessResult<User> success)
         {
-            var failure = (FailureResult<string>)authResult;
+            var failure = (FailureResult<User>)authResult;
             return StatusCode(failure.Error.StatusCode,
                 new { error = failure.Error.Error, message = failure.Error.Message });
         }
 
-        var email = success.Value;
-        var accessToken = _tokenService.CreateAccessToken(email);
-        var refreshTokenResult = await _refreshTokenService.GenerateRefreshTokenAsync(email);
+        var user = success.Value;
+        var accessToken = _tokenService.CreateAccessToken(user.Id, user.Email);
+        var refreshTokenResult = await _refreshTokenService.GenerateRefreshTokenAsync(user.Id, user.Email);
 
         if (refreshTokenResult is not SuccessResult<string> refreshSuccess)
         {
@@ -81,14 +85,13 @@ public class AuthController(
     [HttpPost("tfa/verify", Name = "Verify the two-factor code to login")]
     public async Task<ActionResult> VerifyTfa(LoginTfaVerificationRequest request)
     {
-        var principal = new JwtSecurityTokenHandler().ValidateToken(request.JwtToken,
-            _tokenService.GetTfaTokenValidationParameters(), out _);
-        var email = principal.FindFirst(ClaimTypes.Name)?.Value!;
+        var userId = User.GetUserId();
+        var email = User.GetUserEmail();
 
-        var result = await _twoFactorAuthService.ValidateTwoFactorCodeAsync(email, request.TwoFactorCode.Trim());
+        var result = await _twoFactorAuthService.ValidateTwoFactorCodeAsync(userId, request.TwoFactorCode.Trim());
 
         return result.ToActionResult(this, isValid =>
-            isValid ? Ok(new { access_token = _tokenService.CreateAccessToken(email) })
+            isValid ? Ok(new { access_token = _tokenService.CreateAccessToken(userId, email) })
                     : BadRequest(new { error = "Bad Request", message = "Invalid security code." }));
     }
 
@@ -96,8 +99,8 @@ public class AuthController(
     [Authorize]
     public async Task<ActionResult> Generate2FaSetup()
     {
-        var email = User.FindFirst(ClaimTypes.Name)?.Value!;
-        var result = await _twoFactorAuthService.GenerateSetupCodeAsync(email);
+        var userId = User.GetUserId();
+        var result = await _twoFactorAuthService.GenerateSetupCodeAsync(userId);
 
         return result.ToActionResult(this);
     }
@@ -106,8 +109,8 @@ public class AuthController(
     [Authorize]
     public async Task<ActionResult> Enable2Fa(ToggleTfaRequest request)
     {
-        var email = User.FindFirst(ClaimTypes.Name)?.Value!;
-        var result = await _twoFactorAuthService.EnableTwoFactorAsync(email, request.TwoFactorCode);
+        var userId = User.GetUserId();
+        var result = await _twoFactorAuthService.EnableTwoFactorAsync(userId, request.TwoFactorCode);
 
         return result.ToActionResult(this);
     }
@@ -116,8 +119,8 @@ public class AuthController(
     [Authorize]
     public async Task<ActionResult> Disable2Fa(ToggleTfaRequest request)
     {
-        var email = User.FindFirst(ClaimTypes.Name)?.Value!;
-        var result = await _twoFactorAuthService.DisableTwoFactorAsync(email, request.TwoFactorCode);
+        var userId = User.GetUserId();
+        var result = await _twoFactorAuthService.DisableTwoFactorAsync(userId, request.TwoFactorCode);
 
         return result.ToActionResult(this, value => Ok(new { message = value }));
     }
@@ -140,7 +143,12 @@ public class AuthController(
 
         return result.ToActionResult(this, validToken =>
         {
-            var accessToken = _tokenService.CreateAccessToken(validToken.Email);
+            var user = _userRepository.GetByIdAsync(validToken.UserId).Result;
+            if (user == null)
+            {
+                return Unauthorized(new { error = "Unauthorized", message = "User not found." });
+            }
+            var accessToken = _tokenService.CreateAccessToken(validToken.UserId, user.Email);
             return Ok(new { access_token = accessToken });
         });
     }

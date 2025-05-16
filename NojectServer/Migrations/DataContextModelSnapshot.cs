@@ -17,7 +17,7 @@ namespace NojectServer.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.12")
+                .HasAnnotation("ProductVersion", "8.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -28,9 +28,9 @@ namespace NojectServer.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("project_id");
 
-                    b.Property<string>("CollaboratorId")
-                        .HasColumnType("character varying(62)")
-                        .HasColumnName("user_id");
+                    b.Property<Guid>("CollaboratorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("collaborator_id");
 
                     b.HasKey("ProjectId", "CollaboratorId");
 
@@ -55,9 +55,8 @@ namespace NojectServer.Migrations
                         .HasColumnType("char(7)")
                         .HasColumnName("color");
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("character varying(62)")
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
                         .HasColumnName("created_by");
 
                     b.Property<DateTime>("CreatedOn")
@@ -89,9 +88,9 @@ namespace NojectServer.Migrations
 
             modelBuilder.Entity("NojectServer.Models.RefreshToken", b =>
                 {
-                    b.Property<string>("Email")
+                    b.Property<Guid>("UserId")
                         .HasMaxLength(62)
-                        .HasColumnType("character varying(62)")
+                        .HasColumnType("uuid")
                         .HasColumnName("user_id");
 
                     b.Property<string>("Token")
@@ -102,7 +101,7 @@ namespace NojectServer.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("valid_until");
 
-                    b.HasKey("Email", "Token");
+                    b.HasKey("UserId", "Token");
 
                     b.ToTable("refresh_tokens");
                 });
@@ -121,13 +120,12 @@ namespace NojectServer.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("completed");
 
-                    b.Property<string>("CompletedBy")
-                        .HasColumnType("character varying(62)")
+                    b.Property<Guid?>("CompletedBy")
+                        .HasColumnType("uuid")
                         .HasColumnName("completed_by");
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("character varying(62)")
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
                         .HasColumnName("created_by");
 
                     b.Property<DateTime>("CreatedOn")
@@ -166,10 +164,16 @@ namespace NojectServer.Migrations
 
             modelBuilder.Entity("NojectServer.Models.User", b =>
                 {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
                     b.Property<string>("Email")
+                        .IsRequired()
                         .HasMaxLength(62)
                         .HasColumnType("character varying(62)")
-                        .HasColumnName("user_id");
+                        .HasColumnName("email");
 
                     b.Property<string>("FullName")
                         .IsRequired()
@@ -211,7 +215,10 @@ namespace NojectServer.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("verified_at");
 
-                    b.HasKey("Email");
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
 
                     b.ToTable("users");
                 });
@@ -256,7 +263,7 @@ namespace NojectServer.Migrations
                 {
                     b.HasOne("NojectServer.Models.User", "User")
                         .WithMany()
-                        .HasForeignKey("Email")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

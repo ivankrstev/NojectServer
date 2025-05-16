@@ -1,11 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Moq;
-using NojectServer.Data;
+﻿using Moq;
 using NojectServer.Models;
+using NojectServer.Repositories.Interfaces;
+using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Auth.Implementations;
 using NojectServer.Services.Auth.Interfaces;
-using NojectServer.Tests.MockHelpers;
 using NojectServer.Utils.ResultPattern;
 using Task = System.Threading.Tasks.Task;
 
@@ -13,62 +11,124 @@ namespace NojectServer.Tests.Services.Auth;
 
 public class RefreshTokenServiceTests
 {
-    private readonly Mock<DataContext> _mockDataContext;
+    private readonly Mock<IUnitOfWork> _mockUnitOfWork;
+    private readonly Mock<IRefreshTokenRepository> _mockRefreshTokenRepository;
     private readonly Mock<ITokenService> _mockTokenService;
-    private readonly Mock<DbSet<RefreshToken>> _mockRefreshTokens;
     private readonly RefreshTokenService _refreshTokenService;
     private readonly List<RefreshToken> _refreshTokenList;
+    private readonly Guid _testUserId = Guid.NewGuid();
 
     public RefreshTokenServiceTests()
     {
         // Set up test data
         _refreshTokenList = [];
 
-        // Set up mock DbSet
-        _mockRefreshTokens = DbSetMockHelper.MockDbSet(_refreshTokenList);
+        // Set up mock repositories
+        _mockRefreshTokenRepository = new Mock<IRefreshTokenRepository>();
 
-        // Set up mock DataContext
-        _mockDataContext = new Mock<DataContext>(new DbContextOptions<DataContext>());
-        _mockDataContext.Setup(c => c.RefreshTokens).Returns(_mockRefreshTokens.Object);
-        _mockDataContext.Setup(c => c.SaveChangesAsync(default))
-            .ReturnsAsync(1)
-            .Callback(() => { /* Mock SaveChanges by not doing anything */ });
+        // Set up mock UnitOfWork
+        _mockUnitOfWork = new Mock<IUnitOfWork>();
+        _mockUnitOfWork.Setup(uow => uow.RefreshTokens).Returns(_mockRefreshTokenRepository.Object);
+        _mockUnitOfWork.Setup(uow => uow.SaveChangesAsync())
+            .Returns(Task.CompletedTask);
 
         // Set up mock TokenService
         _mockTokenService = new Mock<ITokenService>();
-        _mockTokenService.Setup(ts => ts.CreateRefreshToken(It.IsAny<string>()))
-            .Returns((string email) => $"mock-refresh-token-{email}");
+        _mockTokenService.Setup(ts => ts.CreateRefreshToken(It.IsAny<Guid>(), It.IsAny<string>()))
+            .Returns((Guid userId, string email) => $"mock-refresh-token-{userId}-{email}");
 
         // Create the service to test
-        _refreshTokenService = new RefreshTokenService(_mockDataContext.Object, _mockTokenService.Object);
+        _refreshTokenService = new RefreshTokenService(_mockUnitOfWork.Object, _mockTokenService.Object);
     }
+
+    #region GenerateRefreshToken Tests
 
     [Fact]
     public async Task GenerateRefreshTokenAsync_ShouldCreateAndReturnTokenAsync()
     {
         // Arrange
         string email = "test123@example.com";
-        string expectedToken = $"mock-refresh-token-{email}";
+        string expectedToken = $"mock-refresh-token-{_testUserId}-{email}";
+
+        _mockRefreshTokenRepository.Setup(r => r.AddAsync(It.IsAny<RefreshToken>()))
+            .Callback<RefreshToken>(token => _refreshTokenList.Add(token))
+            .Returns(Task.CompletedTask);
 
         // Act
-        var result = await _refreshTokenService.GenerateRefreshTokenAsync(email);
+        var result = await _refreshTokenService.GenerateRefreshTokenAsync(_testUserId, email);
 
         // Assert
         Assert.True(result.IsSuccess);
         var successResult = Assert.IsType<SuccessResult<string>>(result);
         Assert.Equal(expectedToken, successResult.Value);
-        _mockTokenService.Verify(ts => ts.CreateRefreshToken(email), Times.Once);
-        _mockDataContext.Verify(dc => dc.RefreshTokens.Add(It.IsAny<RefreshToken>()), Times.Once);
-        _mockDataContext.Verify(dc => dc.SaveChangesAsync(default), Times.Once);
+        _mockTokenService.Verify(ts => ts.CreateRefreshToken(_testUserId, email), Times.Once);
+        _mockRefreshTokenRepository.Verify(r => r.AddAsync(It.IsAny<RefreshToken>()), Times.Once);
+        _mockUnitOfWork.Verify(uow => uow.SaveChangesAsync(), Times.Once);
 
         // Verify token was added with correct properties
         var addedToken = _refreshTokenList.FirstOrDefault();
         Assert.NotNull(addedToken);
-        Assert.Equal(email, addedToken.Email);
+        Assert.Equal(_testUserId, addedToken.UserId);
         Assert.Equal(expectedToken, addedToken.Token);
         Assert.True(addedToken.ExpireDate > DateTime.UtcNow.AddDays(13) &&
                     addedToken.ExpireDate <= DateTime.UtcNow.AddDays(14));
     }
+
+    [Fact]
+    public async Task GenerateRefreshTokenAsync_WithEmptyUserId_ShouldThrowArgumentNullExceptionAsync()
+    {
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            async () => await _refreshTokenService.GenerateRefreshTokenAsync(Guid.Empty, "test@example.com"));
+
+        Assert.Equal("userId", exception.ParamName);
+        Assert.Contains("cannot be empty", exception.Message);
+    }
+
+    [Fact]
+    public async Task GenerateRefreshTokenAsync_WithNullEmail_ShouldThrowArgumentExceptionAsync()
+    {
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentNullException>(
+            async () => await _refreshTokenService.GenerateRefreshTokenAsync(_testUserId, null!));
+
+        Assert.Equal("email", exception.ParamName);
+        Assert.Contains("cannot be null", exception.Message);
+    }
+
+    [Fact]
+    public async Task GenerateRefreshTokenAsync_WithEmptyEmail_ShouldThrowArgumentExceptionAsync()
+    {
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentException>(
+            async () => await _refreshTokenService.GenerateRefreshTokenAsync(_testUserId, ""));
+
+        Assert.Equal("email", exception.ParamName);
+        Assert.Contains("cannot be an empty", exception.Message);
+    }
+
+    [Fact]
+    public async Task GenerateRefreshTokenAsync_WhenExceptionOccurs_ShouldReturnFailureResultAsync()
+    {
+        // Arrange
+        string email = "test@example.com";
+        _mockRefreshTokenRepository.Setup(r => r.AddAsync(It.IsAny<RefreshToken>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _refreshTokenService.GenerateRefreshTokenAsync(_testUserId, email);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        var failureResult = Assert.IsType<FailureResult<string>>(result);
+        Assert.Equal("TokenGenerationFailed", failureResult.Error.Error);
+        Assert.Contains("Failed to generate refresh token: Database error", failureResult.Error.Message);
+        Assert.Equal(500, failureResult.Error.StatusCode);
+    }
+
+    #endregion
+
+    #region ValidateRefreshToken Tests
 
     [Fact]
     public async Task ValidateRefreshTokenAsync_WithValidToken_ShouldReturnRefreshTokenAsync()
@@ -76,21 +136,26 @@ public class RefreshTokenServiceTests
         // Arrange
         var validToken = new RefreshToken
         {
-            Email = "test@example.com",
+            UserId = _testUserId,
             Token = "valid-token",
             ExpireDate = DateTime.UtcNow.AddDays(7) // Not expired
         };
         _refreshTokenList.Add(validToken);
+
+        _mockRefreshTokenRepository.Setup(r => r.GetByTokenAsync("valid-token"))
+            .ReturnsAsync(validToken);
 
         // Act
         var result = await _refreshTokenService.ValidateRefreshTokenAsync("valid-token");
 
         // Assert
         Assert.NotNull(result);
+        Assert.True(result.IsSuccess);
         var successResult = Assert.IsType<SuccessResult<RefreshToken>>(result);
-        Assert.Equal(validToken.Email, successResult.Value.Email);
+        Assert.Equal(validToken.UserId, successResult.Value.UserId);
         Assert.Equal(validToken.Token, successResult.Value.Token);
         Assert.Equal(validToken.ExpireDate, successResult.Value.ExpireDate);
+        _mockRefreshTokenRepository.Verify(r => r.GetByTokenAsync("valid-token"), Times.Once);
     }
 
     [Fact]
@@ -99,11 +164,14 @@ public class RefreshTokenServiceTests
         // Arrange
         var expiredToken = new RefreshToken
         {
-            Email = "test@example.com",
+            UserId = _testUserId,
             Token = "expired-token",
             ExpireDate = DateTime.UtcNow.AddDays(-1) // Expired
         };
         _refreshTokenList.Add(expiredToken);
+
+        _mockRefreshTokenRepository.Setup(r => r.GetByTokenAsync("expired-token"))
+            .ReturnsAsync(expiredToken);
 
         // Act
         var result = await _refreshTokenService.ValidateRefreshTokenAsync("expired-token");
@@ -114,12 +182,15 @@ public class RefreshTokenServiceTests
         Assert.Equal("ExpiredToken", failureResult.Error.Error);
         Assert.Equal("Refresh token has expired.", failureResult.Error.Message);
         Assert.Equal(401, failureResult.Error.StatusCode);
+        _mockRefreshTokenRepository.Verify(r => r.GetByTokenAsync("expired-token"), Times.Once);
     }
 
     [Fact]
     public async Task ValidateRefreshTokenAsync_WithInvalidToken_ShouldReturnFailureResultAsync()
     {
-        // Arrange - No tokens in the list matches "invalid-token"
+        // Arrange
+        _mockRefreshTokenRepository.Setup(r => r.GetByTokenAsync("invalid-token"))
+            .ReturnsAsync((RefreshToken?)null);
 
         // Act
         var result = await _refreshTokenService.ValidateRefreshTokenAsync("invalid-token");
@@ -130,48 +201,7 @@ public class RefreshTokenServiceTests
         Assert.Equal("InvalidToken", failureResult.Error.Error);
         Assert.Equal("Invalid refresh token.", failureResult.Error.Message);
         Assert.Equal(401, failureResult.Error.StatusCode);
-    }
-
-    [Fact]
-    public async Task RevokeRefreshTokenAsync_WithValidToken_ShouldRemoveTokenAsync()
-    {
-        // Arrange
-        var token = new RefreshToken
-        {
-            Email = "test@example.com",
-            Token = "valid-token",
-            ExpireDate = DateTime.UtcNow.AddDays(7)
-        };
-        _refreshTokenList.Add(token);
-
-        // Act
-        await _refreshTokenService.RevokeRefreshTokenAsync("valid-token");
-
-        // Assert
-        _mockDataContext.Verify(dc => dc.RefreshTokens.Remove(It.IsAny<RefreshToken>()), Times.Once);
-        _mockDataContext.Verify(dc => dc.SaveChangesAsync(default), Times.Once);
-        Assert.Empty(_refreshTokenList); // Verify token was removed
-    }
-
-    [Fact]
-    public async Task RevokeRefreshTokenAsync_WithInvalidToken_ShouldNotThrowExceptionAsync()
-    {
-        // Arrange - No tokens in list
-
-        // Act - Should not throw exception
-        await _refreshTokenService.RevokeRefreshTokenAsync("invalid-toke");
-
-        // Assert - Verify no removal happened
-        _mockDataContext.Verify(dc => dc.RefreshTokens.Remove(It.IsAny<RefreshToken>()), Times.Never);
-        _mockDataContext.Verify(dc => dc.SaveChangesAsync(default), Times.Never);
-    }
-
-    [Fact]
-    public async Task GenerateRefreshTokenAsync_WithNullEmail_ShouldThrowArgumentNullExceptionAsync()
-    {
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>("email",
-            async () => await _refreshTokenService.GenerateRefreshTokenAsync(null!));
+        _mockRefreshTokenRepository.Verify(r => r.GetByTokenAsync("invalid-token"), Times.Once);
     }
 
     [Fact]
@@ -182,6 +212,58 @@ public class RefreshTokenServiceTests
             async () => await _refreshTokenService.ValidateRefreshTokenAsync(null!));
     }
 
+    #endregion
+
+    #region RevokeRefreshToken Tests
+
+    [Fact]
+    public async Task RevokeRefreshTokenAsync_WithValidToken_ShouldRemoveTokenAsync()
+    {
+        // Arrange
+        var token = new RefreshToken
+        {
+            UserId = _testUserId,
+            Token = "valid-token",
+            ExpireDate = DateTime.UtcNow.AddDays(7)
+        };
+        _refreshTokenList.Add(token);
+
+        // Set up the mock to return the token when GetByTokenAsync is called
+        _mockRefreshTokenRepository.Setup(r => r.GetByTokenAsync("valid-token"))
+            .ReturnsAsync(token);
+
+        // Set up the remove callback to actually remove from our list
+        _mockRefreshTokenRepository.Setup(r => r.Remove(It.IsAny<RefreshToken>()))
+            .Callback<RefreshToken>(t => _refreshTokenList.Remove(t));
+
+        // Act
+        var result = await _refreshTokenService.RevokeRefreshTokenAsync("valid-token");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        _mockRefreshTokenRepository.Verify(r => r.GetByTokenAsync("valid-token"), Times.Once);
+        _mockRefreshTokenRepository.Verify(r => r.Remove(token), Times.Once);
+        _mockUnitOfWork.Verify(uow => uow.SaveChangesAsync(), Times.Once);
+        Assert.Empty(_refreshTokenList); // Verify token was removed
+    }
+
+    [Fact]
+    public async Task RevokeRefreshTokenAsync_WithInvalidToken_ShouldCompleteSuccessfullyAsync()
+    {
+        // Arrange
+        _mockRefreshTokenRepository.Setup(r => r.GetByTokenAsync("invalid-token"))
+            .ReturnsAsync((RefreshToken?)null);
+
+        // Act
+        var result = await _refreshTokenService.RevokeRefreshTokenAsync("invalid-token");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        _mockRefreshTokenRepository.Verify(r => r.GetByTokenAsync("invalid-token"), Times.Once);
+        _mockRefreshTokenRepository.Verify(r => r.Remove(It.IsAny<RefreshToken>()), Times.Never);
+        _mockUnitOfWork.Verify(uow => uow.SaveChangesAsync(), Times.Never);
+    }
+
     [Fact]
     public async Task RevokeRefreshTokenAsync_WithNullToken_ShouldThrowArgumentNullExceptionAsync()
     {
@@ -189,4 +271,33 @@ public class RefreshTokenServiceTests
         await Assert.ThrowsAsync<ArgumentNullException>("token",
             async () => await _refreshTokenService.RevokeRefreshTokenAsync(null!));
     }
+
+    [Fact]
+    public async Task RevokeRefreshTokenAsync_WhenExceptionOccurs_ShouldReturnFailureResultAsync()
+    {
+        // Arrange
+        var token = new RefreshToken
+        {
+            UserId = _testUserId,
+            Token = "valid-token",
+            ExpireDate = DateTime.UtcNow.AddDays(7)
+        };
+
+        _mockRefreshTokenRepository.Setup(r => r.GetByTokenAsync("valid-token"))
+            .ReturnsAsync(token);
+        _mockRefreshTokenRepository.Setup(r => r.Remove(token))
+            .Throws(new Exception("Database error"));
+
+        // Act
+        var result = await _refreshTokenService.RevokeRefreshTokenAsync("valid-token");
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        var failureResult = Assert.IsType<FailureResult<bool>>(result);
+        Assert.Equal("RevocationFailed", failureResult.Error.Error);
+        Assert.Contains("Failed to revoke refresh token: Database error", failureResult.Error.Message);
+        Assert.Equal(500, failureResult.Error.StatusCode);
+    }
+
+    #endregion
 }

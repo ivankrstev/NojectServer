@@ -6,7 +6,6 @@ using NojectServer.Models.Requests.Collaborators;
 using NojectServer.ResponseMessages;
 using NojectServer.Services.Collaborators.Interfaces;
 using NojectServer.Utils.ResultPattern;
-using System.Security.Claims;
 
 namespace NojectServer.Controllers;
 
@@ -26,8 +25,7 @@ public class CollaboratorsController(ICollaboratorsService collaboratorsService)
     [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Add(Guid id, AddCollaboratorRequest request)
     {
-        string projectOwnerEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
-        var result = await _collaboratorsService.AddCollaboratorAsync(id, request.UserId, projectOwnerEmail);
+        var result = await _collaboratorsService.AddCollaboratorAsync(id, request.UserEmail);
 
         return result.ToActionResult(this);
     }
@@ -35,10 +33,9 @@ public class CollaboratorsController(ICollaboratorsService collaboratorsService)
     [HttpGet("search/{id}")]
     [ProducesResponseType(typeof(SuccessMessage), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorWithDetailedMessage), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Search(Guid id, [FromQuery, BindRequired] string userToFind)
+    public async Task<IActionResult> Search(Guid id, [FromQuery, BindRequired] string userEmailToFind)
     {
-        string projectOwnerEmail = User.FindFirst(ClaimTypes.Name)?.Value!;
-        var result = await _collaboratorsService.SearchCollaboratorsAsync(id, userToFind, projectOwnerEmail);
+        var result = await _collaboratorsService.SearchCollaboratorsAsync(id, userEmailToFind);
 
         return result.ToActionResult(this, users => Ok(new { users }));
     }

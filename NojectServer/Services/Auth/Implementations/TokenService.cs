@@ -26,17 +26,20 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
     private readonly JwtSecurityTokenHandler _tokenHandler = new();
 
     /// <summary>
-    /// Creates a JWT access token containing the user's email as a claim.
+    /// Creates a JWT access token containing the user's ID and email as claims.
     /// The token is signed with the access token secret key and includes configured
     /// issuer, audience, and expiration time.
     /// </summary>
-    /// <param name="email">The email address of the user to create the token for</param>
+    /// <param name="userId">The ID of the user to create the token for</param>
+    /// <param name="email">The email address of the user for additional claims</param>
     /// <returns>A signed JWT token string</returns>
-    /// <exception cref="ArgumentNullException">Thrown when email is null</exception>
+    /// <exception cref="ArgumentNullException">Thrown when userId or email is null</exception>
     /// <exception cref="InvalidOperationException">Thrown when JWT configuration is incomplete or invalid</exception>
     /// <exception cref="ArgumentException">Thrown when required JWT settings are empty or invalid</exception>
-    public string CreateAccessToken(string email)
+    public string CreateAccessToken(Guid userId, string email)
     {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("userId cannot be empty", nameof(userId));
         if (email == null)
             throw new ArgumentNullException(nameof(email), "Email cannot be null");
 
@@ -57,8 +60,11 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
             if (string.IsNullOrEmpty(_jwtTokenOptions.Audience))
                 throw new ArgumentException("JWT audience cannot be empty");
 
-            // Create a list of claims with the user's email
-            List<Claim> claims = [new Claim(ClaimTypes.Name, email)];
+            // Create a list of claims with both the user's ID and email
+            List<Claim> claims = [
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(ClaimTypes.Name, email)
+            ];
 
             // Create a new symmetric security key from the secret key
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtTokenOptions.Access.SecretKey));
@@ -84,17 +90,20 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
     }
 
     /// <summary>
-    /// Creates a JWT refresh token containing the user's email as a claim.
+    /// Creates a JWT refresh token containing the user's ID and email as claims.
     /// The token is signed with the refresh token secret key and includes configured
     /// issuer, audience, and expiration time (typically longer than access tokens).
     /// </summary>
-    /// <param name="email">The email address of the user to create the token for</param>
+    /// <param name="userId">The ID of the user to create the token for</param>
+    /// <param name="email">The email address of the user for additional claims</param>
     /// <returns>A signed JWT token string</returns>
-    /// <exception cref="ArgumentNullException">Thrown when email is null</exception>
+    /// <exception cref="ArgumentNullException">Thrown when userId or email is null</exception>
     /// <exception cref="InvalidOperationException">Thrown when JWT configuration is incomplete or invalid</exception>
     /// <exception cref="ArgumentException">Thrown when required JWT settings are empty or invalid</exception>
-    public string CreateRefreshToken(string email)
+    public string CreateRefreshToken(Guid userId, string email)
     {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("userId cannot be empty", nameof(userId));
         if (email == null)
             throw new ArgumentNullException(nameof(email), "Email cannot be null");
 
@@ -115,8 +124,11 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
             if (string.IsNullOrEmpty(_jwtTokenOptions.Audience))
                 throw new ArgumentException("JWT audience cannot be empty");
 
-            // Create a list of claims with the user's email
-            List<Claim> claims = [new Claim(ClaimTypes.Name, email)];
+            // Create a list of claims with both the user's ID and email
+            List<Claim> claims = [
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(ClaimTypes.Name, email)
+            ];
 
             // Create a new symmetric security key from the secret key
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtTokenOptions.Refresh.SecretKey));
@@ -142,17 +154,20 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
     }
 
     /// <summary>
-    /// Creates a JWT token for two-factor authentication containing the user's email as a claim.
+    /// Creates a JWT token for two-factor authentication containing the user's ID and email as claims.
     /// The token is signed with the TFA token secret key and includes configured issuer, audience,
     /// and a short expiration time suitable for TFA flows.
     /// </summary>
-    /// <param name="email">The email address of the user to create the token for</param>
+    /// <param name="userId">The ID of the user to create the token for</param>
+    /// <param name="email">The email address of the user for additional claims</param>
     /// <returns>A signed JWT token string</returns>
-    /// <exception cref="ArgumentNullException">Thrown when email is null</exception>
+    /// <exception cref="ArgumentNullException">Thrown when userId or email is null</exception>
     /// <exception cref="InvalidOperationException">Thrown when JWT configuration is incomplete or invalid</exception>
     /// <exception cref="ArgumentException">Thrown when required JWT settings are empty or invalid</exception>
-    public string CreateTfaToken(string email)
+    public string CreateTfaToken(Guid userId, string email)
     {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("userId cannot be empty", nameof(userId));
         if (email == null)
             throw new ArgumentNullException(nameof(email), "Email cannot be null");
 
@@ -173,8 +188,11 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
             if (string.IsNullOrEmpty(_jwtTokenOptions.Audience))
                 throw new ArgumentException("JWT audience cannot be empty");
 
-            // Create a list of claims with the user's email
-            List<Claim> claims = [new Claim(ClaimTypes.Name, email)];
+            // Create a list of claims with both the user's ID and email
+            List<Claim> claims = [
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(ClaimTypes.Name, email)
+            ];
 
             // Create a new symmetric security key from the secret key
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtTokenOptions.Tfa.SecretKey));
@@ -225,6 +243,11 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
             if (string.IsNullOrEmpty(_jwtTokenOptions.Audience))
                 throw new ArgumentException("JWT audience cannot be empty");
 
+            // Check for valid key size for HMAC-SHA512 (minimum 64 bytes)
+            var keyBytes = Encoding.UTF8.GetBytes(_jwtTokenOptions.Access.SecretKey);
+            if (keyBytes.Length < 64)
+                throw new ArgumentException("The key size is insufficient for HMAC-SHA512. It must be at least 64 bytes (512 bits).");
+
             // Create and return new token validation parameters
             return new()
             {
@@ -270,6 +293,11 @@ public class TokenService(IOptions<JwtTokenOptions> options) : ITokenService
 
             if (string.IsNullOrEmpty(_jwtTokenOptions.Audience))
                 throw new ArgumentException("JWT audience cannot be empty");
+
+            // Check for valid key size for HMAC-SHA512 (minimum 64 bytes)
+            var keyBytes = Encoding.UTF8.GetBytes(_jwtTokenOptions.Tfa.SecretKey);
+            if (keyBytes.Length < 64)
+                throw new ArgumentException("The key size is insufficient for HMAC-SHA512. It must be at least 64 bytes (512 bits).");
 
             // Create and return new token validation parameters
             return new()

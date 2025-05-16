@@ -1,4 +1,5 @@
 ﻿using NojectServer.Services.Common.Interfaces;
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -20,11 +21,11 @@ public class PasswordService : IPasswordService
     /// <param name="password">The plain text password to hash. If null, an empty string is used.</param>
     /// <param name="passwordHash">The output parameter that will contain the generated password hash.</param>
     /// <param name="passwordSalt">The output parameter that will contain the generated salt used for hashing.</param>
-    public void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
+    public void CreatePasswordHash(string password, out ImmutableArray<byte> passwordHash, out ImmutableArray<byte> passwordSalt)
     {
         using var hmac = new HMACSHA512();
-        passwordSalt = hmac.Key;
-        passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password ?? string.Empty));
+        passwordSalt = ImmutableArray.Create(hmac.Key);
+        passwordHash = ImmutableArray.Create(hmac.ComputeHash(Encoding.UTF8.GetBytes(password ?? string.Empty)));
     }
 
     /// <summary>
@@ -34,12 +35,13 @@ public class PasswordService : IPasswordService
     /// <param name="passwordHash">The stored password hash to compare against.</param>
     /// <param name="passwordSalt">The salt used when the hash was created.</param>
     /// <returns>True if the password matches the hash; otherwise, false. Returns false if passwordHash or passwordSalt is null.</returns>
-    public bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt)
+    public bool VerifyPasswordHash(string password, ImmutableArray<byte> passwordHash, ImmutableArray<byte> passwordSalt)
     {
         // Check for null hash or salt
-        if (passwordHash == null || passwordSalt == null)
+        if (passwordHash.IsDefaultOrEmpty || passwordSalt.IsDefaultOrEmpty)
             return false;
-        using var hmac = new HMACSHA512(passwordSalt);
+
+        using var hmac = new HMACSHA512([.. passwordSalt]);
         var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password ?? string.Empty));
         return computedHash.SequenceEqual(passwordHash);
     }

@@ -1,4 +1,5 @@
 ﻿using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using NojectServer.Configurations;
@@ -31,7 +32,8 @@ public class SmtpEmailSender(IOptions<EmailSettings> options) : IEmailSender
     public async Task SendAsync(MimeMessage message)
     {
         using var smtp = new SmtpClient();
-        await smtp.ConnectAsync(_emailSettings.Host, _emailSettings.Port, _emailSettings.UseSsl);
+        SecureSocketOptions secureSocketOptions = _emailSettings.UseSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None;
+        await smtp.ConnectAsync(_emailSettings.Host, _emailSettings.Port, secureSocketOptions);
         await smtp.AuthenticateAsync(_emailSettings.UserName, _emailSettings.Password);
         await smtp.SendAsync(message);
         await smtp.DisconnectAsync(true);

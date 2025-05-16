@@ -1,6 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using NojectServer.Data;
-using NojectServer.Models;
+﻿using NojectServer.Models;
+using NojectServer.Repositories.UnitOfWork;
 using NojectServer.Services.Auth.Interfaces;
 using NojectServer.Utils.ResultPattern;
 
@@ -14,28 +13,34 @@ namespace NojectServer.Services.Auth.Implementations;
 /// persisting them in the database and enforcing their expiration policies.
 /// It works together with the TokenService to generate the actual JWT refresh tokens.
 /// </summary>
-public class RefreshTokenService(DataContext dataContext, ITokenService tokenService) : IRefreshTokenService
+public class RefreshTokenService(IUnitOfWork unitOfWork, ITokenService tokenService) : IRefreshTokenService
 {
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly ITokenService _tokenService = tokenService;
+
     /// <summary>
     /// Generates a new refresh token for a user and stores it in the database.
     /// The token is created with a 14-day expiration period from the current UTC time.
     /// </summary>
-    /// <param name="email">The email address of the user to create the token for</param>
-    /// <returns>The generated refresh token string</returns>
+    /// <param name="userId">The ID of the user to create the token for</param>
+    /// <param name="email">The email address of the user used for claims</param>
+    /// <returns>A Result containing the generated refresh token string</returns>
     /// <exception cref="ArgumentNullException">Thrown when email is null</exception>
-    public async Task<Result<string>> GenerateRefreshTokenAsync(string email)
+    public async Task<Result<string>> GenerateRefreshTokenAsync(Guid userId, string email)
     {
-        ArgumentNullException.ThrowIfNull(email);
+        if (userId == Guid.Empty) throw new ArgumentException("userId cannot be empty.", nameof(userId));
+        ArgumentException.ThrowIfNullOrEmpty(email);
+
         try
         {
             var refreshToken = new RefreshToken
             {
-                Email = email,
-                Token = tokenService.CreateRefreshToken(email),
+                UserId = userId,
+                Token = _tokenService.CreateRefreshToken(userId, email),
                 ExpireDate = DateTime.UtcNow.AddDays(14)
             };
-            dataContext.RefreshTokens.Add(refreshToken);
-            await dataContext.SaveChangesAsync();
+            await _unitOfWork.RefreshTokens.AddAsync(refreshToken);
+            await _unitOfWork.SaveChangesAsync();
             return Result.Success(refreshToken.Token);
         }
         catch (Exception ex)
@@ -56,8 +61,7 @@ public class RefreshTokenService(DataContext dataContext, ITokenService tokenSer
     {
         ArgumentNullException.ThrowIfNull(token);
 
-        var refreshToken = await dataContext.RefreshTokens
-            .FirstOrDefaultAsync(rt => rt.Token == token);
+        var refreshToken = await _unitOfWork.RefreshTokens.GetByTokenAsync(token);
 
         if (refreshToken == null)
             return Result.Failure<RefreshToken>("InvalidToken", "Invalid refresh token.", 401);
@@ -74,6 +78,7 @@ public class RefreshTokenService(DataContext dataContext, ITokenService tokenSer
     /// to be invalidated for security reasons.
     /// </summary>
     /// <param name="token">The refresh token string to revoke</param>
+    /// <returns>A Result indicating success or failure of the operation</returns>
     /// <exception cref="ArgumentNullException">Thrown when token is null</exception>
     /// <remarks>
     /// If the token doesn't exist in the database, this method completes without throwing an exception.
@@ -84,13 +89,12 @@ public class RefreshTokenService(DataContext dataContext, ITokenService tokenSer
 
         try
         {
-            var refreshToken = await dataContext.RefreshTokens
-                .FirstOrDefaultAsync(rt => rt.Token == token);
+            var refreshToken = await _unitOfWork.RefreshTokens.GetByTokenAsync(token);
 
             if (refreshToken != null)
             {
-                dataContext.RefreshTokens.Remove(refreshToken);
-                await dataContext.SaveChangesAsync();
+                _unitOfWork.RefreshTokens.Remove(refreshToken);
+                await _unitOfWork.SaveChangesAsync();
             }
 
             return Result.Success(true);
