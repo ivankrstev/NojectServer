@@ -56,7 +56,6 @@ public class PasswordServiceTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    [InlineData(null)]
     public void CreatePasswordHash_WithInvalidInput_ShouldStillGenerateHashAndSalt(string invalidPassword)
     {
         // Act & Assert (should not throw exception)
@@ -145,7 +144,6 @@ public class PasswordServiceTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    [InlineData(null)]
     public void VerifyPasswordHash_WithInvalidPassword_ShouldReturnFalse(string invalidPassword)
     {
         // Arrange

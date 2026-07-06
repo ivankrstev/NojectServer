@@ -117,6 +117,7 @@ public class EmailServiceTests
 
         // Assert
         Assert.NotNull(capturedMessage);
+        Assert.NotNull(capturedMessage.Body);
         var body = capturedMessage.Body.ToString();
 
         // Check for the expected link format in the email body
@@ -205,6 +206,7 @@ public class EmailServiceTests
 
         // Assert
         Assert.NotNull(capturedMessage);
+        Assert.NotNull(capturedMessage.Body);
         var body = capturedMessage.Body.ToString();
 
         // Check for the expected link format in the email body
