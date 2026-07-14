@@ -19,8 +19,6 @@ public class Program
             options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
         );
 
-        // Add application services using the extension method
-        builder.Services.AddServices();
         // Configure application options using the extension method
         builder.Services.AddAppOptions(builder.Configuration);
 
