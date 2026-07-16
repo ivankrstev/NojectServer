@@ -4,6 +4,7 @@ using NojectServer.Data;
 using NojectServer.DependencyInjection;
 using NojectServer.Hubs;
 using NojectServer.Middlewares;
+using NojectServer.Modules.Identity;
 using NojectServer.OptionsSetup;
 
 namespace NojectServer;
@@ -12,7 +13,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
         // Register the database context
         builder.Services.AddDbContext<DataContext>(options =>
@@ -22,11 +23,13 @@ public class Program
         // Configure application options using the extension method
         builder.Services.AddAppOptions(builder.Configuration);
 
+        builder.Services.AddIdentityModule();
+
         // Add filter for verifying project access to the Tasks SignalR hub
-        builder.Services.AddSignalR().AddHubOptions<TasksHub>(options =>
-        {
-            options.AddFilter<VerifyProjectAccessHub>();
-        });
+        // builder.Services.AddSignalR().AddHubOptions<TasksHub>(options =>
+        // {
+        //     options.AddFilter<VerifyProjectAccessHub>();
+        // });
 
         // Add a controller and the API explorer
         builder.Services.AddControllers();
@@ -48,9 +51,9 @@ public class Program
         builder.Services.ConfigureOptions<ApiBehaviorOptionsSetup>();
 
         // Register the JWT bearer authentication scheme
-        builder.Services.AddJwtAuthentication();
+        // builder.Services.AddJwtAuthentication();
 
-        var app = builder.Build();
+        WebApplication app = builder.Build();
 
         if (app.Environment.IsDevelopment())
         {
@@ -68,7 +71,7 @@ public class Program
         // Use the global exception handler
         app.UseExceptionHandler();
         // Use HTTPS redirection
-        app.UseHttpsRedirection();
+        //app.UseHttpsRedirection();
 
         app.UseAuthentication();
         app.UseAuthorization();
