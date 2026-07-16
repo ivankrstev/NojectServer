@@ -19,4 +19,9 @@ public sealed class JwtOptions
     /// Token audience value.
     /// </summary>
     public string Audience { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Allowed clock skew, in seconds, when validating JWT timestamps.
+    /// </summary>
+    public int? ClockSkewInSeconds { get; init; }
 }

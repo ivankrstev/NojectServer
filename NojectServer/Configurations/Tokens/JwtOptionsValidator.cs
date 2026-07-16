@@ -7,6 +7,8 @@ namespace NojectServer.Configurations.Tokens;
 /// </summary>
 public sealed class JwtOptionsValidator : IValidateOptions<JwtOptions>
 {
+    private const int MaximumClockSkewInSeconds = 60;
+
     /// <summary>
     /// Validates the configured JWT options.
     /// </summary>
@@ -25,6 +27,15 @@ public sealed class JwtOptionsValidator : IValidateOptions<JwtOptions>
         if (string.IsNullOrWhiteSpace(options.Audience))
         {
             errors.Add($"{JwtOptions.SectionName}:Audience is required");
+        }
+
+        if (options.ClockSkewInSeconds is null)
+        {
+            errors.Add($"{JwtOptions.SectionName}:ClockSkewInSeconds is required");
+        }
+        else if (options.ClockSkewInSeconds is < 0 or > MaximumClockSkewInSeconds)
+        {
+            errors.Add($"{JwtOptions.SectionName}:ClockSkewInSeconds must be between 0 and {MaximumClockSkewInSeconds}.");
         }
 
         return errors.Count == 0
