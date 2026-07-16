@@ -5,7 +5,7 @@ namespace NojectServer.Configurations.Tokens;
 /// </summary>
 internal static class JwtSigningKeyValidator
 {
-    private const int MinimumHs512KeySizeInBytes = 64;
+    private const int MinimumHs256KeySizeInBytes = 32;
 
     /// <summary>
     /// Validates that a signing key is present, Base64 encoded, and large enough for HS512.
@@ -37,11 +37,11 @@ internal static class JwtSigningKeyValidator
             return;
         }
 
-        if (secretKeyBytes.Length < MinimumHs512KeySizeInBytes)
+        if (secretKeyBytes.Length < MinimumHs256KeySizeInBytes)
         {
             errors.Add(
                 $"{configurationPath} must decode to at least " +
-                $"{MinimumHs512KeySizeInBytes} bytes for HS512. " +
+                $"{MinimumHs256KeySizeInBytes} bytes for HS256. " +
                 $"Current size: {secretKeyBytes.Length} bytes.");
         }
     }

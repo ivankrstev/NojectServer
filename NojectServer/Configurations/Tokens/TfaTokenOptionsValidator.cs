@@ -7,6 +7,9 @@ namespace NojectServer.Configurations.Tokens;
 /// </summary>
 public sealed class TfaTokenOptionsValidator : IValidateOptions<TfaTokenOptions>
 {
+    private const int MinimumExpirationInMinutes = 1;
+    private const int MaximumExpirationInMinutes = 10;
+
     /// <summary>
     /// Validates the configured two-factor authentication token options.
     /// </summary>
@@ -22,9 +25,9 @@ public sealed class TfaTokenOptionsValidator : IValidateOptions<TfaTokenOptions>
             $"{TfaTokenOptions.SectionName}:SecretKey",
             errors);
 
-        if (options.ExpirationInMinutes is <= 0 or > 10)
+        if (options.ExpirationInMinutes is < MinimumExpirationInMinutes or > MaximumExpirationInMinutes)
         {
-            errors.Add($"{TfaTokenOptions.SectionName}:ExpirationInMinutes must be between 1 and 10. " +
+            errors.Add($"{TfaTokenOptions.SectionName}:ExpirationInMinutes must be between {MinimumExpirationInMinutes} and {MaximumExpirationInMinutes}. " +
                        $"Configured value: {options.ExpirationInMinutes}.");
         }
 

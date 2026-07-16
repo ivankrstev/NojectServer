@@ -7,6 +7,8 @@ namespace NojectServer.Configurations.Tokens;
 /// </summary>
 public sealed class RefreshTokenOptionsValidator : IValidateOptions<RefreshTokenOptions>
 {
+    private const int MaximumExpirationInDays = 90;
+
     /// <summary>
     /// Validates the configured refresh token options.
     /// </summary>
@@ -15,10 +17,10 @@ public sealed class RefreshTokenOptionsValidator : IValidateOptions<RefreshToken
     /// <returns>The validation result containing success or configuration errors.</returns>
     public ValidateOptionsResult Validate(string? name, RefreshTokenOptions options)
     {
-        if (options.ExpirationInDays is <= 0 or > 90)
+        if (options.ExpirationInDays is <= 0 or > MaximumExpirationInDays)
         {
             return ValidateOptionsResult.Fail(
-                $"{RefreshTokenOptions.SectionName}:ExpirationInDays must be between 1 and 90. " +
+                $"{RefreshTokenOptions.SectionName}:ExpirationInDays must be between 1 and {MaximumExpirationInDays}. " +
                 $"Configured value: {options.ExpirationInDays}.");
         }
 

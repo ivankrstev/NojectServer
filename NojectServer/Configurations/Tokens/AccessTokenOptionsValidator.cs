@@ -7,6 +7,9 @@ namespace NojectServer.Configurations.Tokens;
 /// </summary>
 public sealed class AccessTokenOptionsValidator : IValidateOptions<AccessTokenOptions>
 {
+    private const int MinimumExpirationInMinutes = 1;
+    private const int MaximumExpirationInMinutes = 30;
+
     /// <summary>
     /// Validates the configured access token options.
     /// </summary>
@@ -22,9 +25,9 @@ public sealed class AccessTokenOptionsValidator : IValidateOptions<AccessTokenOp
             $"{AccessTokenOptions.SectionName}:SecretKey",
             errors);
 
-        if (options.ExpirationInMinutes is <= 0 or > 30)
+        if (options.ExpirationInMinutes is < MinimumExpirationInMinutes or > MaximumExpirationInMinutes)
         {
-            errors.Add($"{AccessTokenOptions.SectionName}:ExpirationInMinutes must be between 1 and 30. " +
+            errors.Add($"{AccessTokenOptions.SectionName}:ExpirationInMinutes must be between {MinimumExpirationInMinutes} and {MaximumExpirationInMinutes}. " +
                        $"Configured value: {options.ExpirationInMinutes}.");
         }
 
