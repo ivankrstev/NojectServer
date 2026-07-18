@@ -8,7 +8,16 @@ public static class IdentityModule
     public static IServiceCollection AddIdentityModule(this IServiceCollection services)
     {
         services.AddSingleton<JwtTokenValidationParametersFactory>();
+        services.AddAuthenticationConfiguration();
 
+        services.AddAuthorization();
+
+        return services;
+    }
+
+    private static void AddAuthenticationConfiguration(
+        this IServiceCollection services)
+    {
         services
             .AddAuthentication(options =>
             {
@@ -27,12 +36,9 @@ public static class IdentityModule
                 static (options, factory) =>
                 {
                     options.MapInboundClaims = false;
+
                     options.TokenValidationParameters =
                         factory.CreateAccessTokenParameters();
                 });
-
-        services.AddAuthorization();
-
-        return services;
     }
 }
