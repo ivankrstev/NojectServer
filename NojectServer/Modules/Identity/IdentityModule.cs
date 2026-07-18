@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using NojectServer.Modules.Identity.Application.Interfaces;
 using NojectServer.Modules.Identity.Infrastructure.Tokens;
 
 namespace NojectServer.Modules.Identity;
@@ -7,9 +8,15 @@ public static class IdentityModule
 {
     public static IServiceCollection AddIdentityModule(this IServiceCollection services)
     {
+        // Shared infrastructure services
+        services.AddSingleton(TimeProvider.System);
         services.AddSingleton<JwtTokenValidationParametersFactory>();
-        services.AddAuthenticationConfiguration();
 
+        // Identity token services
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+
+        // Configure authentication and authorization
+        services.AddAuthenticationConfiguration();
         services.AddAuthorization();
 
         return services;
