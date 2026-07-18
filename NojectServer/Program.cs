@@ -15,9 +15,11 @@ public class Program
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
+        string dbConnectionString = builder.Configuration.GetConnectionString("DBConnection") ?? throw new InvalidOperationException("Database connection string is not configured.");
         // Register the database context
         builder.Services.AddDbContext<DataContext>(options =>
-            options.UseNpgsql(builder.Configuration.GetConnectionString("DBConnection"))
+            options.UseNpgsql(dbConnectionString)
+                .UseSnakeCaseNamingConvention()
         );
 
         // Configure application options using the extension method
