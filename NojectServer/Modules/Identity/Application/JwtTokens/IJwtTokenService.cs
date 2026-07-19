@@ -1,12 +1,12 @@
-﻿using NojectServer.Modules.Identity.Application.Tfa;
-using NojectServer.Utils.ResultPattern;
+﻿using NojectServer.Utils.ResultPattern;
 
-namespace NojectServer.Modules.Identity.Application.Interfaces;
+namespace NojectServer.Modules.Identity.Application.JwtTokens;
 
 /// <summary>
 /// Service for creating and validating JWT tokens used in authentication and two-factor authentication flows.
 /// Handles generation of short-lived access tokens and TFA tokens, as well as validation of TFA tokens.
 /// </summary>
+/// TODO: Longer term, split this service into AccessTokenService and TfaTokenService for better separation of concerns.
 public interface IJwtTokenService
 {
     /// <summary>
@@ -30,6 +30,6 @@ public interface IJwtTokenService
     /// Verifies token authenticity and extracts user claims.
     /// </summary>
     /// <param name="token">The JWT token string to validate</param>
-    /// <returns>Result containing TfaTokenPayload on success, or error details on failure</returns>
-    Result<TfaTokenPayload> ValidateTfaToken(string token);
+    /// <returns>Result containing TfaTokenClaims on success, or error details on failure</returns>
+    Result<TfaTokenClaims> ValidateTfaToken(string token);
 }

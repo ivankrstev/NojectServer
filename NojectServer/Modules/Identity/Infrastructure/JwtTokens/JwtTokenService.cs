@@ -3,10 +3,10 @@ using System.Security.Claims;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NojectServer.Configurations.Tokens;
-using NojectServer.Modules.Identity.Application.Interfaces;
-using NojectServer.Modules.Identity.Application.Tfa;
-using NojectServer.Modules.Identity.Infrastructure.Tokens;
+using NojectServer.Modules.Identity.Application.JwtTokens;
 using NojectServer.Utils.ResultPattern;
+
+namespace NojectServer.Modules.Identity.Infrastructure.JwtTokens;
 
 /// <summary>
 /// Implementation of JWT token service for creating and validating authentication tokens.
@@ -59,11 +59,11 @@ public sealed class JwtTokenService(
     }
 
     /// <inheritdoc/>
-    public Result<TfaTokenPayload> ValidateTfaToken(string token)
+    public Result<TfaTokenClaims> ValidateTfaToken(string token)
     {
         if (string.IsNullOrEmpty(token))
         {
-            return Result.Failure<TfaTokenPayload>(
+            return Result.Failure<TfaTokenClaims>(
                 "TfaToken.Required",
                 "The TFA token is required.");
         }
@@ -84,7 +84,7 @@ public sealed class JwtTokenService(
                 _logger.LogDebug(
                     "TFA token validation failed because the token purpose claim was missing or invalid.");
 
-                return Result.Failure<TfaTokenPayload>(
+                return Result.Failure<TfaTokenClaims>(
                     "TfaToken.InvalidPurpose",
                     "The TFA token is invalid.");
             }
@@ -98,13 +98,13 @@ public sealed class JwtTokenService(
                 _logger.LogDebug(
                     "TFA token validation failed because the subject claim did not contain a valid user ID.");
 
-                return Result.Failure<TfaTokenPayload>(
+                return Result.Failure<TfaTokenClaims>(
                     "TfaToken.InvalidSubject",
                     "The TFA token is invalid.",
                     StatusCodes.Status401Unauthorized);
             }
 
-            return Result.Success(new TfaTokenPayload(userId));
+            return Result.Success(new TfaTokenClaims(userId));
         }
         catch (SecurityTokenExpiredException exception)
         {
@@ -112,7 +112,7 @@ public sealed class JwtTokenService(
                 exception,
                 "TFA token validation failed because the token has expired.");
 
-            return Result.Failure<TfaTokenPayload>(
+            return Result.Failure<TfaTokenClaims>(
                 "TfaToken.Expired",
                 "The TFA token has expired.",
                 StatusCodes.Status401Unauthorized);
@@ -123,7 +123,7 @@ public sealed class JwtTokenService(
                 exception,
                 "TFA token validation failed because the token is invalid.");
 
-            return Result.Failure<TfaTokenPayload>(
+            return Result.Failure<TfaTokenClaims>(
                 "TfaToken.Invalid",
                 "The TFA token is invalid.",
                 StatusCodes.Status401Unauthorized);
@@ -134,7 +134,7 @@ public sealed class JwtTokenService(
                 exception,
                 "TFA token validation failed because the token was malformed.");
 
-            return Result.Failure<TfaTokenPayload>(
+            return Result.Failure<TfaTokenClaims>(
                 "TfaToken.Malformed",
                 "The TFA token is malformed.",
                 StatusCodes.Status401Unauthorized);

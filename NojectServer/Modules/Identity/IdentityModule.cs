@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using NojectServer.Modules.Identity.Application.Interfaces;
-using NojectServer.Modules.Identity.Infrastructure.Tokens;
+using NojectServer.Modules.Identity.Application.JwtTokens;
+using NojectServer.Modules.Identity.Infrastructure.JwtTokens;
 
 namespace NojectServer.Modules.Identity;
 

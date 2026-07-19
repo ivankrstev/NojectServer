@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NojectServer.Configurations.Tokens;
 
-namespace NojectServer.Modules.Identity.Infrastructure.Tokens;
+namespace NojectServer.Modules.Identity.Infrastructure.JwtTokens;
 
 public sealed class JwtTokenValidationParametersFactory(
     IOptions<JwtOptions> jwtOptions,
