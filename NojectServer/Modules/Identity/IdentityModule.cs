@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using NojectServer.Modules.Identity.Application.JwtTokens;
+using NojectServer.Modules.Identity.Application.Passwords;
 using NojectServer.Modules.Identity.Application.RefreshTokens;
 using NojectServer.Modules.Identity.Application.TwoFactorAuthentication;
 using NojectServer.Modules.Identity.Infrastructure.JwtTokens;
+using NojectServer.Modules.Identity.Infrastructure.Passwords;
 using NojectServer.Modules.Identity.Infrastructure.RefreshTokens;
 using NojectServer.Modules.Identity.Infrastructure.TwoFactorAuthentication;
 
@@ -19,6 +21,9 @@ public static class IdentityModule
             .AddDataProtection()
             .SetApplicationName("NojectServer.Identity");
         services.AddSingleton<JwtTokenValidationParametersFactory>();
+
+        // Password services
+        services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 
         // Identity token services
         services.AddScoped<IJwtTokenService, JwtTokenService>();
