@@ -1,36 +1,25 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using NojectServer.Models;
+using NojectServer.Modules.Identity.Domain;
 
 namespace NojectServer.Data;
 
-public class DataContext : DbContext
+public class DataContext(
+    DbContextOptions<DataContext> options)
+    : DbContext(options)
 {
-    public DataContext() { }
-
-    public DataContext(DbContextOptions<DataContext> options) : base(options)
-    {
-    }
-
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
-    public virtual DbSet<Project> Projects { get; set; }
-    public virtual DbSet<Collaborator> Collaborators { get; set; }
-    public virtual DbSet<Models.Task> Tasks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<User>()
-            .HasIndex(u => u.Email)
-            .IsUnique();
+        base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<Models.Task>()
-            .HasOne(t => t.NextTask)
-            .WithMany()
-            .HasForeignKey(t => new { t.Next, t.ProjectId });
-
-        modelBuilder.Entity<Project>()
-            .HasOne(p => p.Task)
-            .WithMany()
-            .HasForeignKey(p => new { p.FirstTask, p.Id });
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasOne(refreshToken => refreshToken.User)
+                .WithMany()
+                .HasForeignKey(refreshToken => refreshToken.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }
