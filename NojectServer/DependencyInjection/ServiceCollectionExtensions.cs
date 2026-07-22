@@ -1,5 +1,6 @@
-﻿using NojectServer.Configurations.Tokens;
-using NojectServer.Configurations.Email;
+﻿using NojectServer.Configurations.Email;
+using NojectServer.Configurations.Tokens;
+using NojectServer.Configurations.Totp;
 
 namespace NojectServer.DependencyInjection;
 
@@ -52,5 +53,12 @@ public static class ServiceCollectionExtensions
                 EmailOptions,
                 EmailOptionsValidator>()
             .Bind(configuration.GetRequiredSection(EmailOptions.SectionName));
+
+        // Bind and validate TOTP settings during application startup.
+        services
+            .AddOptionsWithValidateOnStart<
+                TotpOptions,
+                TotpOptionsValidator>()
+            .Bind(configuration.GetRequiredSection(TotpOptions.SectionName));
     }
 }
