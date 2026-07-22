@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using NojectServer.Modules.Identity.Application.JwtTokens;
+using NojectServer.Modules.Identity.Application.RefreshTokens;
 using NojectServer.Modules.Identity.Infrastructure.JwtTokens;
+using NojectServer.Modules.Identity.Infrastructure.RefreshTokens;
 
 namespace NojectServer.Modules.Identity;
 
@@ -14,6 +16,8 @@ public static class IdentityModule
 
         // Identity token services
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddSingleton<IRefreshTokenGenerator, RefreshTokenGenerator>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
         // Configure authentication and authorization
         services.AddAuthenticationConfiguration();
