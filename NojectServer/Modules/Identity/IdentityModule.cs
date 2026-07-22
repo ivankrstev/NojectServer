@@ -27,6 +27,7 @@ public static class IdentityModule
 
         // Two-factor authentication services
         services.AddScoped<ITwoFactorSecretProtector, TwoFactorSecretProtector>();
+        services.AddSingleton<ITotpService, OtpNetTotpService>();
 
         // Configure authentication and authorization
         services.AddAuthenticationConfiguration();
