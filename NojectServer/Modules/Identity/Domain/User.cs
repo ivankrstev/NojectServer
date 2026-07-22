@@ -49,6 +49,13 @@ public sealed class User
     /// </summary>
     public byte[]? ProtectedTwoFactorSecret { get; private set; }
 
+    /// <summary>
+    /// The last time step for which a TOTP code was accepted for this user.
+    /// This is used to prevent replay attacks by ensuring that the same TOTP code cannot be used more than once within the same time step.
+    /// </summary>
+    [ConcurrencyCheck]
+    public long? LastAcceptedTotpTimeStep { get; private set; }
+
     private User()
     {
         // Required by EF Core.
@@ -177,6 +184,7 @@ public sealed class User
 
         ProtectedTwoFactorSecret = (byte[])protectedSecret.Clone();
         TwoFactorEnabled = false;
+        LastAcceptedTotpTimeStep = null;
     }
 
     public void EnableTwoFactor()
@@ -194,6 +202,24 @@ public sealed class User
     {
         TwoFactorEnabled = false;
         ProtectedTwoFactorSecret = null;
+        LastAcceptedTotpTimeStep = null;
+    }
+
+    public void RecordAcceptedTotpTimeStep(long timeStep)
+    {
+        if (timeStep < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(timeStep));
+        }
+
+        if (LastAcceptedTotpTimeStep is long previous
+            && timeStep <= previous)
+        {
+            throw new InvalidOperationException(
+                "The TOTP time step has already been accepted.");
+        }
+
+        LastAcceptedTotpTimeStep = timeStep;
     }
 
     // Private helper methods
