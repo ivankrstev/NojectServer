@@ -92,6 +92,8 @@ public sealed class User
             passwordSalt: passwordSalt);
     }
 
+    // Email management
+
     public void ChangeEmail(string email)
     {
         SetEmail(email);
@@ -100,19 +102,6 @@ public sealed class User
         VerifiedAt = null;
         VerificationTokenHash = null;
         VerificationTokenExpiresAt = null;
-    }
-
-    public void ChangePassword(
-        byte[] passwordHash,
-        byte[] passwordSalt)
-    {
-        ValidatePasswordCredentials(passwordHash, passwordSalt);
-
-        PasswordHash = (byte[])passwordHash.Clone();
-        PasswordSalt = (byte[])passwordSalt.Clone();
-
-        PasswordResetTokenHash = null;
-        PasswordResetTokenExpiresAt = null;
     }
 
     public void SetEmailVerificationToken(
@@ -140,6 +129,21 @@ public sealed class User
         VerificationTokenExpiresAt = null;
     }
 
+    // Password management
+
+    public void ChangePassword(
+        byte[] passwordHash,
+        byte[] passwordSalt)
+    {
+        ValidatePasswordCredentials(passwordHash, passwordSalt);
+
+        PasswordHash = (byte[])passwordHash.Clone();
+        PasswordSalt = (byte[])passwordSalt.Clone();
+
+        PasswordResetTokenHash = null;
+        PasswordResetTokenExpiresAt = null;
+    }
+
     public void SetPasswordResetToken(
         byte[] tokenHash,
         DateTimeOffset issuedAt,
@@ -157,6 +161,42 @@ public sealed class User
         PasswordResetTokenHash = (byte[])tokenHash.Clone();
         PasswordResetTokenExpiresAt = expiresAt;
     }
+
+    // Two-factor authentication
+
+    public void SetProtectedTwoFactorSecret(byte[] protectedSecret)
+    {
+        ArgumentNullException.ThrowIfNull(protectedSecret);
+
+        if (protectedSecret.Length == 0)
+        {
+            throw new ArgumentException(
+                "Protected two-factor secret cannot be empty.",
+                nameof(protectedSecret));
+        }
+
+        ProtectedTwoFactorSecret = (byte[])protectedSecret.Clone();
+        TwoFactorEnabled = false;
+    }
+
+    public void EnableTwoFactor()
+    {
+        if (ProtectedTwoFactorSecret is null)
+        {
+            throw new InvalidOperationException(
+                "A two-factor secret must be configured first.");
+        }
+
+        TwoFactorEnabled = true;
+    }
+
+    public void DisableTwoFactor()
+    {
+        TwoFactorEnabled = false;
+        ProtectedTwoFactorSecret = null;
+    }
+
+    // Private helper methods
 
     private void SetEmail(string email)
     {
