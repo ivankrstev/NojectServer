@@ -48,4 +48,13 @@ public static class Result
     /// <returns>A failed result containing the specified error details.</returns>
     public static Result<T> Failure<T>(string errorType, string errorMessage, int statusCode) =>
         new FailureResult<T>(new ErrorDetails(errorType, errorMessage, statusCode));
+
+    /// <summary>
+    /// Creates a failed result containing field-specific validation errors.
+    /// </summary>
+    /// <typeparam name="T">The type of the value that would have been returned on success.</typeparam>
+    /// <param name="errors">The validation errors grouped by property name.</param>
+    /// <returns>A failed result containing the specified validation errors.</returns>
+    public static Result<T> ValidationFailure<T>(IReadOnlyDictionary<string, string[]> errors) =>
+        new ValidationFailureResult<T>(errors);
 }
