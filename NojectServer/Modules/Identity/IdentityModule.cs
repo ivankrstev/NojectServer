@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using NojectServer.Modules.Identity.Application.Email;
 using NojectServer.Modules.Identity.Application.JwtTokens;
 using NojectServer.Modules.Identity.Application.Passwords;
 using NojectServer.Modules.Identity.Application.RefreshTokens;
 using NojectServer.Modules.Identity.Application.TwoFactorAuthentication;
+using NojectServer.Modules.Identity.Infrastructure.Email;
 using NojectServer.Modules.Identity.Infrastructure.JwtTokens;
 using NojectServer.Modules.Identity.Infrastructure.Passwords;
 using NojectServer.Modules.Identity.Infrastructure.RefreshTokens;
@@ -21,6 +23,10 @@ public static class IdentityModule
             .AddDataProtection()
             .SetApplicationName("NojectServer.Identity");
         services.AddSingleton<JwtTokenValidationParametersFactory>();
+
+        // Email services
+        services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
 
         // Password services
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
