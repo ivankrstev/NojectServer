@@ -4,11 +4,13 @@ using NojectServer.Modules.Identity.Application.Email;
 using NojectServer.Modules.Identity.Application.JwtTokens;
 using NojectServer.Modules.Identity.Application.Passwords;
 using NojectServer.Modules.Identity.Application.RefreshTokens;
+using NojectServer.Modules.Identity.Application.Tokens;
 using NojectServer.Modules.Identity.Application.TwoFactorAuthentication;
 using NojectServer.Modules.Identity.Infrastructure.Email;
 using NojectServer.Modules.Identity.Infrastructure.JwtTokens;
 using NojectServer.Modules.Identity.Infrastructure.Passwords;
 using NojectServer.Modules.Identity.Infrastructure.RefreshTokens;
+using NojectServer.Modules.Identity.Infrastructure.Tokens;
 using NojectServer.Modules.Identity.Infrastructure.TwoFactorAuthentication;
 
 namespace NojectServer.Modules.Identity;
@@ -32,6 +34,7 @@ public static class IdentityModule
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 
         // Identity token services
+        services.AddSingleton<IOpaqueTokenGenerator, OpaqueTokenGenerator>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IRefreshTokenGenerator, RefreshTokenGenerator>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
