@@ -2,6 +2,9 @@ using FluentValidation;
 
 namespace NojectServer.Modules.Identity.Application.Authentication.PasswordReset;
 
+/// <summary>
+/// Validates password-reset request input.
+/// </summary>
 internal sealed class RequestPasswordResetInputValidator
     : AbstractValidator<RequestPasswordResetInput>
 {
