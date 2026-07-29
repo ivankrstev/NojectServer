@@ -63,6 +63,7 @@ public sealed class EmailService(
 
         string passwordResetLink = BuildLink(
             "reset-password",
+            ("email", email),
             ("token", passwordResetToken));
 
         return SendEmailAsync(
