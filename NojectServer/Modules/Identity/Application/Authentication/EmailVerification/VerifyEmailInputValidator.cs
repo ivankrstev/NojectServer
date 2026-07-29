@@ -1,8 +1,12 @@
 using FluentValidation;
 
-namespace NojectServer.Modules.Identity.Application.Authentication.VerifyEmail;
+namespace NojectServer.Modules.Identity.Application.Authentication.EmailVerification;
 
-internal sealed class VerifyEmailInputValidator : AbstractValidator<VerifyEmailInput>
+/// <summary>
+/// Validates email-verification input.
+/// </summary>
+internal sealed class VerifyEmailInputValidator
+    : AbstractValidator<VerifyEmailInput>
 {
     private const int MaximumEmailLength = 254;
     private const int MaximumTokenLength = 128;
