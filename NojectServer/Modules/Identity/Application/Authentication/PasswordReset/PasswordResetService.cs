@@ -3,6 +3,8 @@ using FluentValidation;
 using FluentValidation.Results;
 using NojectServer.Modules.Identity.Application.Email;
 using NojectServer.Modules.Identity.Application.Passwords;
+using NojectServer.Modules.Identity.Application.Persistence;
+using NojectServer.Modules.Identity.Application.RefreshTokens;
 using NojectServer.Modules.Identity.Application.Tokens;
 using NojectServer.Modules.Identity.Application.Users;
 using NojectServer.Modules.Identity.Domain;
@@ -21,6 +23,8 @@ internal sealed class PasswordResetService(
     IOpaqueTokenGenerator tokenGenerator,
     IPasswordHasher passwordHasher,
     IEmailService emailService,
+    IRefreshTokenService refreshTokenService,
+    IIdentityTransaction identityTransaction,
     TimeProvider timeProvider,
     ILogger<PasswordResetService> logger) : IPasswordResetService
 {
@@ -30,6 +34,8 @@ internal sealed class PasswordResetService(
     private readonly IOpaqueTokenGenerator _tokenGenerator = tokenGenerator;
     private readonly IPasswordHasher _passwordHasher = passwordHasher;
     private readonly IEmailService _emailService = emailService;
+    private readonly IRefreshTokenService _refreshTokenService = refreshTokenService;
+    private readonly IIdentityTransaction _identityTransaction = identityTransaction;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly ILogger<PasswordResetService> _logger = logger;
 
@@ -142,9 +148,25 @@ internal sealed class PasswordResetService(
             CryptographicOperations.ZeroMemory(credentials.Salt);
         }
 
-        await _userRepository.SaveChangesAsync(cancellationToken);
+        return await _identityTransaction.ExecuteAsync(
+            async transactionCancellationToken =>
+            {
+                await _userRepository.SaveChangesAsync(
+                    transactionCancellationToken);
 
-        return Result.Success();
+                Result revocationResult =
+                    await _refreshTokenService.RevokeAllForUserAsync(
+                        user.Id,
+                        transactionCancellationToken);
+
+                if (revocationResult is FailureResult failure)
+                {
+                    return Result.Failure(failure.Error);
+                }
+
+                return Result.Success();
+            },
+            cancellationToken);
     }
 
     /// <summary>

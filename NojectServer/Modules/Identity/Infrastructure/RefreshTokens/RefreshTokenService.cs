@@ -22,7 +22,9 @@ public class RefreshTokenService(
     private readonly ILogger<RefreshTokenService> _logger = logger;
 
     /// <inheritdoc />
-    public async Task<Result<IssuedRefreshToken>> IssueAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<Result<IssuedRefreshToken>> IssueAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
         if (userId == Guid.Empty)
         {
@@ -52,7 +54,9 @@ public class RefreshTokenService(
     }
 
     /// <inheritdoc />
-    public async Task<Result<RotatedRefreshToken>> RotateAsync(string token, CancellationToken cancellationToken = default)
+    public async Task<Result<RotatedRefreshToken>> RotateAsync(
+        string token,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(token))
         {
@@ -153,7 +157,9 @@ public class RefreshTokenService(
     }
 
     /// <inheritdoc />
-    public async Task<Result<bool>> RevokeAsync(string token, CancellationToken cancellationToken = default)
+    public async Task<Result<bool>> RevokeAsync(
+        string token,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(token))
         {
@@ -181,6 +187,36 @@ public class RefreshTokenService(
             cancellationToken);
 
         return Result.Success(true);
+    }
+
+    /// <inheritdoc />
+    public async Task<Result> RevokeAllForUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            return Result.Failure(
+                RefreshTokenErrors.InvalidUserId);
+        }
+
+        DateTimeOffset revokedAt = _timeProvider.GetUtcNow();
+
+        await _dbContext.RefreshTokens
+            .Where(token =>
+                token.UserId == userId &&
+                token.RevokedAt == null)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(
+                        token => token.RevokedAt,
+                        revokedAt)
+                    .SetProperty(
+                        token => token.ConcurrencyToken,
+                        Guid.NewGuid()),
+                cancellationToken);
+
+        return Result.Success();
     }
 
     // Revoke all tokens in the same family that are not already revoked,

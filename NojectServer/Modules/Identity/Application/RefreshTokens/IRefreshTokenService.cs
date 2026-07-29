@@ -18,7 +18,9 @@ public interface IRefreshTokenService
     /// <returns>
     /// A Result containing an IssuedRefreshToken with the plain-text refresh token and its expiration time on success, or error details on failure.
     /// </returns>
-    Task<Result<IssuedRefreshToken>> IssueAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<Result<IssuedRefreshToken>> IssueAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validates and consumes a refresh token, replacing it with a newly issued token.
@@ -28,7 +30,9 @@ public interface IRefreshTokenService
     /// <returns>
     /// A Result containing a RotatedRefreshToken with the user ID, the new plain-text refresh token and its expiration time on success, or error details on failure.
     /// </returns>
-    Task<Result<RotatedRefreshToken>> RotateAsync(string token, CancellationToken cancellationToken = default);
+    Task<Result<RotatedRefreshToken>> RotateAsync(
+        string token,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Revokes the login session associated with the supplied refresh token.
@@ -36,6 +40,26 @@ public interface IRefreshTokenService
     /// </summary>
     /// <param name="token">The refresh token string to revoke</param>
     /// <param name="cancellationToken">Token used to cancel the database operation.</param>
-    /// <returns>A Result indicating whether the revocation completed successfully.</returns>
-    Task<Result<bool>> RevokeAsync(string token, CancellationToken cancellationToken = default);
+    /// <returns>
+    /// A Result indicating whether the revocation completed successfully.
+    /// </returns>
+    Task<Result<bool>> RevokeAsync(
+        string token,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Revokes every active refresh token belonging to a user.
+    /// </summary>
+    /// <remarks>
+    /// Revoked tokens are retained for audit and rotation-history purposes.
+    /// The operation succeeds when the user has no active refresh tokens.
+    /// </remarks>
+    /// <param name="userId">The ID of the user whose sessions should be revoked.</param>
+    /// <param name="cancellationToken">A token used to cancel the database operation.</param>
+    /// <returns>
+    /// A result indicating whether all active refresh tokens were revoked.
+    /// </returns>
+    Task<Result> RevokeAllForUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
 }

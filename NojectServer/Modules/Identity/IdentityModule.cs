@@ -1,5 +1,7 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using NojectServer.Modules.Identity.Application.Authentication.PasswordReset;
 using NojectServer.Modules.Identity.Application.Email;
 using NojectServer.Modules.Identity.Application.JwtTokens;
 using NojectServer.Modules.Identity.Application.Passwords;
@@ -7,6 +9,7 @@ using NojectServer.Modules.Identity.Application.Persistence;
 using NojectServer.Modules.Identity.Application.RefreshTokens;
 using NojectServer.Modules.Identity.Application.Tokens;
 using NojectServer.Modules.Identity.Application.TwoFactorAuthentication;
+using NojectServer.Modules.Identity.Application.Users;
 using NojectServer.Modules.Identity.Infrastructure.Email;
 using NojectServer.Modules.Identity.Infrastructure.JwtTokens;
 using NojectServer.Modules.Identity.Infrastructure.Passwords;
@@ -48,6 +51,12 @@ public static class IdentityModule
         services.AddScoped<ITwoFactorSecretProtector, TwoFactorSecretProtector>();
         services.AddSingleton<ITotpService, OtpNetTotpService>();
         services.AddScoped<ITwoFactorAuthService, TwoFactorAuthService>();
+
+        // Authentication services
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IValidator<RequestPasswordResetInput>, RequestPasswordResetInputValidator>();
+        services.AddSingleton<IValidator<ResetPasswordInput>, ResetPasswordInputValidator>();
+        services.AddScoped<IPasswordResetService, PasswordResetService>();
 
         // Configure authentication and authorization
         services.AddAuthenticationConfiguration();
