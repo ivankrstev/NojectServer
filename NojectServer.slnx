@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
+  <Project Path="NojectServer.Tests/NojectServer.Tests.csproj" />
+  <Project Path="NojectServer/NojectServer.csproj" />
+</Solution>
