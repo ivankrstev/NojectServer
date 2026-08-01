@@ -10,6 +10,14 @@ internal sealed class UserRepository(DataContext dbContext) : IUserRepository
     private readonly DataContext _dbContext = dbContext;
 
     /// <inheritdoc />
+    public Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Users.SingleOrDefaultAsync(
+            user => user.Id == userId,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<bool> ExistsByEmailAsync(
         string email,
         CancellationToken cancellationToken = default)

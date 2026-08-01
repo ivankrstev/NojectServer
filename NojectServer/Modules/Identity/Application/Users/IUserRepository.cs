@@ -8,6 +8,13 @@ namespace NojectServer.Modules.Identity.Application.Users;
 public interface IUserRepository
 {
     /// <summary>
+    /// Finds a user by id.
+    /// </summary>
+    Task<User?> GetByIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Determines whether a user exists for the supplied email address.
     /// </summary>
     Task<bool> ExistsByEmailAsync(
