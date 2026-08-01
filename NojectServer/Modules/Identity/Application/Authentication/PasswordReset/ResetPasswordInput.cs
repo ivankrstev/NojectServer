@@ -8,7 +8,6 @@ namespace NojectServer.Modules.Identity.Application.Authentication.PasswordReset
 /// <param name="NewPassword">The replacement password.</param>
 /// <param name="ConfirmNewPassword">Confirmation of the replacement password.</param>
 public sealed record ResetPasswordInput(
-    string? Email,
     string? ResetToken,
     string? NewPassword,
     string? ConfirmNewPassword);

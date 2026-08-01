@@ -8,23 +8,12 @@ namespace NojectServer.Modules.Identity.Application.Authentication.PasswordReset
 internal sealed class ResetPasswordInputValidator
     : AbstractValidator<ResetPasswordInput>
 {
-    private const int MaximumEmailLength = 254;
     private const int MaximumTokenLength = 128;
     private const int MinimumPasswordLength = 15;
     private const int MaximumPasswordLength = 128;
 
     public ResetPasswordInputValidator()
     {
-        RuleFor(static input => input.Email)
-            .Cascade(CascadeMode.Stop)
-            .NotEmpty()
-            .WithMessage("Email is required.")
-            .MaximumLength(MaximumEmailLength)
-            .WithMessage(
-                $"Email cannot exceed {MaximumEmailLength} characters.")
-            .EmailAddress()
-            .WithMessage("Email must be a valid email address.");
-
         RuleFor(static input => input.ResetToken)
             .Cascade(CascadeMode.Stop)
             .NotEmpty()

@@ -29,6 +29,13 @@ public interface IUserRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Finds a user by the stored password reset token hash.
+    /// </summary>
+    Task<User?> GetByPasswordResetTokenHashAsync(
+        byte[] tokenHash,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Begins tracking a new user for persistence.
     /// </summary>
     void Add(User user);

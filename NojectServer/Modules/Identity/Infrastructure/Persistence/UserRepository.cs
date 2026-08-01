@@ -10,7 +10,9 @@ internal sealed class UserRepository(DataContext dbContext) : IUserRepository
     private readonly DataContext _dbContext = dbContext;
 
     /// <inheritdoc />
-    public Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    public Task<User?> GetByIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
         return _dbContext.Users.SingleOrDefaultAsync(
             user => user.Id == userId,
@@ -38,6 +40,25 @@ internal sealed class UserRepository(DataContext dbContext) : IUserRepository
 
         return _dbContext.Users.SingleOrDefaultAsync(
             user => user.NormalizedEmail == normalizedEmail,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<User?> GetByPasswordResetTokenHashAsync(
+        byte[] tokenHash,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(tokenHash);
+
+        if (tokenHash.Length == 0)
+        {
+            throw new ArgumentException(
+                "Password reset token hash cannot be empty.",
+                nameof(tokenHash));
+        }
+
+        return _dbContext.Users.SingleOrDefaultAsync(
+            user => user.PasswordResetTokenHash == tokenHash,
             cancellationToken);
     }
 

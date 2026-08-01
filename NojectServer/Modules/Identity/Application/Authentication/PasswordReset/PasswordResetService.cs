@@ -44,11 +44,6 @@ internal sealed class PasswordResetService(
     private static readonly TimeSpan s_resetTokenLifetime =
         TimeSpan.FromHours(1);
 
-    private static readonly ErrorDetails s_invalidOrExpiredToken = new(
-        "PasswordReset.InvalidOrExpiredToken",
-        "The password reset token is invalid or has expired.",
-        StatusCodes.Status400BadRequest);
-
     /// <inheritdoc />
     public async Task<Result> RequestResetAsync(
         RequestPasswordResetInput input,
@@ -125,15 +120,19 @@ internal sealed class PasswordResetService(
                 validationResult.ToErrorDictionary());
         }
 
-        User? user = await _userRepository.GetByEmailAsync(
-            input.Email!,
+        byte[] suppliedHash =
+            _tokenGenerator.ComputeHash(input.ResetToken!);
+
+        User? user = await _userRepository.GetByPasswordResetTokenHashAsync(
+            suppliedHash,
             cancellationToken);
 
         DateTimeOffset utcNow = _timeProvider.GetUtcNow();
 
         if (!HasValidResetToken(user, input.ResetToken!, utcNow))
         {
-            return Result.Failure(s_invalidOrExpiredToken);
+            return Result.Failure(
+                PasswordResetErrors.InvalidOrExpiredToken);
         }
 
         HashedPassword credentials = _passwordHasher.Hash(input.NewPassword!);
