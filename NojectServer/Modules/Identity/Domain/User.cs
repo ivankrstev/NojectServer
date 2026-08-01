@@ -202,6 +202,7 @@ public sealed class User
     {
         TwoFactorEnabled = false;
         ProtectedTwoFactorSecret = null;
+        LastAcceptedTotpTimeStep = null;
     }
 
     public void RecordAcceptedTotpTimeStep(long timeStep)
