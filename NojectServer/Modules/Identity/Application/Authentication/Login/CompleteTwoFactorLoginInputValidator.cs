@@ -1,4 +1,5 @@
 using FluentValidation;
+using NojectServer.Modules.Identity.Infrastructure.TwoFactorAuthentication;
 
 namespace NojectServer.Modules.Identity.Application.Authentication.Login;
 
@@ -8,7 +9,6 @@ namespace NojectServer.Modules.Identity.Application.Authentication.Login;
 internal sealed class CompleteTwoFactorLoginInputValidator : AbstractValidator<CompleteTwoFactorLoginInput>
 {
     private const int MaximumTfaTokenLength = 128;
-    private const int MaximumCodeLength = 6;
 
     public CompleteTwoFactorLoginInputValidator()
     {
@@ -24,8 +24,8 @@ internal sealed class CompleteTwoFactorLoginInputValidator : AbstractValidator<C
             .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .WithMessage("Code is required.")
-            .MaximumLength(MaximumCodeLength)
+            .Length(OtpNetTotpService.CodeSizeInDigits)
             .WithMessage(
-                $"Code cannot exceed {MaximumCodeLength} characters.");
+                $"Code must be exactly {OtpNetTotpService.CodeSizeInDigits} characters.");
     }
 }

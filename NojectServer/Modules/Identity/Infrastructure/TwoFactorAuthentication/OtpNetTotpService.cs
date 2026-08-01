@@ -15,7 +15,7 @@ internal sealed class OtpNetTotpService(
 {
     private const int SecretSizeInBytes = 20;
     private const int TimeStepInSeconds = 30;
-    private const int CodeSizeInDigits = 6;
+    internal const int CodeSizeInDigits = 6;
 
     private readonly string _issuer = options.Value.Issuer;
     private readonly TimeProvider _timeProvider = timeProvider;
