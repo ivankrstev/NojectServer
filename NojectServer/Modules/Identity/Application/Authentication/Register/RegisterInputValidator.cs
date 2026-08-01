@@ -1,11 +1,10 @@
 using FluentValidation;
+using NojectServer.Modules.Identity.Domain;
 
 namespace NojectServer.Modules.Identity.Application.Authentication.Register;
 
 internal sealed class RegisterInputValidator : AbstractValidator<RegisterInput>
 {
-    private const int MaximumEmailLength = 254;
-    private const int MaximumFullNameLength = 50;
     private const int MinimumPasswordLength = 15;
     private const int MaximumPasswordLength = 128;
 
@@ -15,9 +14,9 @@ internal sealed class RegisterInputValidator : AbstractValidator<RegisterInput>
             .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .WithMessage("Email is required.")
-            .MaximumLength(MaximumEmailLength)
+            .MaximumLength(User.MaximumEmailLength)
             .WithMessage(
-                $"Email cannot exceed {MaximumEmailLength} characters.")
+                $"Email cannot exceed {User.MaximumEmailLength} characters.")
             .EmailAddress()
             .WithMessage("Email must be a valid email address.");
 
@@ -25,9 +24,9 @@ internal sealed class RegisterInputValidator : AbstractValidator<RegisterInput>
             .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .WithMessage("Full name is required.")
-            .MaximumLength(MaximumFullNameLength)
+            .MaximumLength(User.MaximumFullNameLength)
             .WithMessage(
-                $"Full name cannot exceed {MaximumFullNameLength} characters.");
+                $"Full name cannot exceed {User.MaximumFullNameLength} characters.");
 
         RuleFor(static input => input.Password)
             .Cascade(CascadeMode.Stop)

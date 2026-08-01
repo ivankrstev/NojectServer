@@ -7,17 +7,18 @@ namespace NojectServer.Modules.Identity.Domain;
 public sealed class User
 {
     private const int Sha256HashSizeInBytes = 32;
-    private const int MaximumFullNameLength = 50;
+    internal const int MaximumFullNameLength = 50;
+    internal const int MaximumEmailLength = 254;
 
     [Key]
     public Guid Id { get; private set; }
 
     [Required]
-    [MaxLength(254)]
+    [MaxLength(MaximumEmailLength)]
     public string Email { get; private set; } = string.Empty;
 
     [Required]
-    [MaxLength(254)]
+    [MaxLength(MaximumEmailLength)]
     public string NormalizedEmail { get; private set; } = string.Empty;
 
     [Required]
@@ -230,10 +231,10 @@ public sealed class User
 
         string trimmedEmail = email.Trim();
 
-        if (trimmedEmail.Length > 254)
+        if (trimmedEmail.Length > MaximumEmailLength)
         {
             throw new ArgumentException(
-                "Email cannot exceed 254 characters.",
+                $"Email cannot exceed {MaximumEmailLength} characters.",
                 nameof(email));
         }
 

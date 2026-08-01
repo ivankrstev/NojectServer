@@ -1,4 +1,5 @@
 using FluentValidation;
+using NojectServer.Modules.Identity.Domain;
 
 namespace NojectServer.Modules.Identity.Application.Authentication.EmailVerification;
 
@@ -8,17 +9,15 @@ namespace NojectServer.Modules.Identity.Application.Authentication.EmailVerifica
 internal sealed class RequestEmailVerificationInputValidator
     : AbstractValidator<RequestEmailVerificationInput>
 {
-    private const int MaximumEmailLength = 254;
-
     public RequestEmailVerificationInputValidator()
     {
         RuleFor(static input => input.Email)
             .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .WithMessage("Email is required.")
-            .MaximumLength(MaximumEmailLength)
+            .MaximumLength(User.MaximumEmailLength)
             .WithMessage(
-                $"Email cannot exceed {MaximumEmailLength} characters.")
+                $"Email cannot exceed {User.MaximumEmailLength} characters.")
             .EmailAddress()
             .WithMessage("Email must be a valid email address.");
     }

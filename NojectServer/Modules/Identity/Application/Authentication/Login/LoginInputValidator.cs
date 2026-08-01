@@ -1,4 +1,5 @@
 using FluentValidation;
+using NojectServer.Modules.Identity.Domain;
 
 namespace NojectServer.Modules.Identity.Application.Authentication.Login;
 
@@ -7,7 +8,6 @@ namespace NojectServer.Modules.Identity.Application.Authentication.Login;
 /// </summary>
 internal sealed class LoginInputValidator : AbstractValidator<LoginInput>
 {
-    private const int MaximumEmailLength = 254;
     private const int MaximumPasswordLength = 128;
 
     public LoginInputValidator()
@@ -16,9 +16,9 @@ internal sealed class LoginInputValidator : AbstractValidator<LoginInput>
             .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .WithMessage("Email is required.")
-            .MaximumLength(MaximumEmailLength)
+            .MaximumLength(User.MaximumEmailLength)
             .WithMessage(
-                $"Email cannot exceed {MaximumEmailLength} characters.")
+                $"Email cannot exceed {User.MaximumEmailLength} characters.")
             .EmailAddress()
             .WithMessage("Email must be a valid email address.");
 
