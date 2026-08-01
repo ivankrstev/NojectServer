@@ -2,6 +2,9 @@ using FluentValidation;
 
 namespace NojectServer.Modules.Identity.Application.Authentication.Login;
 
+/// <summary>
+/// Validates the input for completing a two-factor login.
+/// </summary>
 internal sealed class CompleteTwoFactorLoginInputValidator : AbstractValidator<CompleteTwoFactorLoginInput>
 {
     private const int MaximumTfaTokenLength = 128;

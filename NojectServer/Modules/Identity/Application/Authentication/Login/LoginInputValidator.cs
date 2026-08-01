@@ -2,6 +2,9 @@ using FluentValidation;
 
 namespace NojectServer.Modules.Identity.Application.Authentication.Login;
 
+/// <summary>
+/// Validates the input for performing a login.
+/// </summary>
 internal sealed class LoginInputValidator : AbstractValidator<LoginInput>
 {
     private const int MaximumEmailLength = 254;

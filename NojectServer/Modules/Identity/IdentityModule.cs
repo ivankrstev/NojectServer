@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using NojectServer.Modules.Identity.Application.Authentication.EmailVerification;
+using NojectServer.Modules.Identity.Application.Authentication.Login;
 using NojectServer.Modules.Identity.Application.Authentication.PasswordReset;
 using NojectServer.Modules.Identity.Application.Authentication.TwoFactorAuthentication;
 using NojectServer.Modules.Identity.Application.Email;
@@ -57,6 +58,7 @@ public static class IdentityModule
         services.AddIdentityValidators();
 
         // Application services
+        services.AddScoped<ILoginService, LoginService>();
         services.AddScoped<ITwoFactorAuthService, TwoFactorAuthService>();
         services.AddScoped<IEmailVerificationService, EmailVerificationService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
@@ -71,6 +73,10 @@ public static class IdentityModule
     private static void AddIdentityValidators(
         this IServiceCollection services)
     {
+        // Login
+        services.AddTransient<IValidator<LoginInput>, LoginInputValidator>();
+        services.AddTransient<IValidator<CompleteTwoFactorLoginInput>, CompleteTwoFactorLoginInputValidator>();
+
         // Email verification
         services.AddTransient<IValidator<VerifyEmailInput>, VerifyEmailInputValidator>();
         services.AddTransient<IValidator<RequestEmailVerificationInput>, RequestEmailVerificationInputValidator>();
