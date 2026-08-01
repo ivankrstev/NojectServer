@@ -1,13 +1,11 @@
 using FluentValidation;
+using NojectServer.Modules.Identity.Application.Passwords;
 using NojectServer.Modules.Identity.Domain;
 
 namespace NojectServer.Modules.Identity.Application.Authentication.Register;
 
 internal sealed class RegisterInputValidator : AbstractValidator<RegisterInput>
 {
-    private const int MinimumPasswordLength = 15;
-    private const int MaximumPasswordLength = 128;
-
     public RegisterInputValidator()
     {
         RuleFor(static input => input.Email)
@@ -32,12 +30,12 @@ internal sealed class RegisterInputValidator : AbstractValidator<RegisterInput>
             .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .WithMessage("Password is required.")
-            .MinimumLength(MinimumPasswordLength)
+            .MinimumLength(PasswordPolicy.MinimumLength)
             .WithMessage(
-                $"Password must contain at least {MinimumPasswordLength} characters.")
-            .MaximumLength(MaximumPasswordLength)
+                $"Password must contain at least {PasswordPolicy.MinimumLength} characters.")
+            .MaximumLength(PasswordPolicy.MaximumLength)
             .WithMessage(
-                $"Password cannot exceed {MaximumPasswordLength} characters.");
+                $"Password cannot exceed {PasswordPolicy.MaximumLength} characters.");
 
         RuleFor(input => input.ConfirmPassword)
             .Cascade(CascadeMode.Stop)

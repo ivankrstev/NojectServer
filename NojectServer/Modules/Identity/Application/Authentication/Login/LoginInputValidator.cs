@@ -1,4 +1,5 @@
 using FluentValidation;
+using NojectServer.Modules.Identity.Application.Passwords;
 using NojectServer.Modules.Identity.Domain;
 
 namespace NojectServer.Modules.Identity.Application.Authentication.Login;
@@ -8,8 +9,6 @@ namespace NojectServer.Modules.Identity.Application.Authentication.Login;
 /// </summary>
 internal sealed class LoginInputValidator : AbstractValidator<LoginInput>
 {
-    private const int MaximumPasswordLength = 128;
-
     public LoginInputValidator()
     {
         RuleFor(static input => input.Email)
@@ -26,8 +25,8 @@ internal sealed class LoginInputValidator : AbstractValidator<LoginInput>
             .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .WithMessage("Password is required.")
-            .MaximumLength(MaximumPasswordLength)
+            .MaximumLength(PasswordPolicy.MaximumLength)
             .WithMessage(
-                $"Password cannot exceed {MaximumPasswordLength} characters.");
+                $"Password cannot exceed {PasswordPolicy.MaximumLength} characters.");
     }
 }

@@ -1,4 +1,5 @@
 using FluentValidation;
+using NojectServer.Modules.Identity.Application.Passwords;
 
 namespace NojectServer.Modules.Identity.Application.Authentication.PasswordReset;
 
@@ -9,8 +10,6 @@ internal sealed class ResetPasswordInputValidator
     : AbstractValidator<ResetPasswordInput>
 {
     private const int MaximumTokenLength = 128;
-    private const int MinimumPasswordLength = 15;
-    private const int MaximumPasswordLength = 128;
 
     public ResetPasswordInputValidator()
     {
@@ -26,12 +25,12 @@ internal sealed class ResetPasswordInputValidator
             .Cascade(CascadeMode.Stop)
             .NotEmpty()
             .WithMessage("New password is required.")
-            .MinimumLength(MinimumPasswordLength)
+            .MinimumLength(PasswordPolicy.MinimumLength)
             .WithMessage(
-                $"New password must contain at least {MinimumPasswordLength} characters.")
-            .MaximumLength(MaximumPasswordLength)
+                $"New password must contain at least {PasswordPolicy.MinimumLength} characters.")
+            .MaximumLength(PasswordPolicy.MaximumLength)
             .WithMessage(
-                $"New password cannot exceed {MaximumPasswordLength} characters.");
+                $"New password cannot exceed {PasswordPolicy.MaximumLength} characters.");
 
         RuleFor(static input => input.ConfirmNewPassword)
             .Cascade(CascadeMode.Stop)
