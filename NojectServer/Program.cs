@@ -6,6 +6,8 @@ using NojectServer.Hubs;
 using NojectServer.Middlewares;
 using NojectServer.Modules.Identity;
 using NojectServer.OptionsSetup;
+using NojectServer.Shared.Application.Persistence;
+using NojectServer.Shared.Infrastructure.Persistence;
 
 namespace NojectServer;
 
@@ -21,6 +23,9 @@ public class Program
             options.UseNpgsql(dbConnectionString)
                 .UseSnakeCaseNamingConvention()
         );
+
+        // Register the shared unit of work for coordinating multi-repository saves
+        builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // Configure application options using the extension method
         builder.Services.AddAppOptions(builder.Configuration);
