@@ -1,22 +1,21 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
-using NojectServer.Data;
-using NojectServer.Modules.Identity.Application.TwoFactorAuthentication;
+using NojectServer.Modules.Identity.Application.Users;
 using NojectServer.Modules.Identity.Domain;
 using NojectServer.Utils.ResultPattern;
 
-namespace NojectServer.Modules.Identity.Infrastructure.TwoFactorAuthentication;
+namespace NojectServer.Modules.Identity.Application.Authentication.TwoFactorAuthentication;
 
 /// <summary>
 /// Coordinates TOTP enrollment and authentication with protected secret storage.
 /// </summary>
 internal sealed class TwoFactorAuthService(
-    DataContext dbContext,
+    IUserRepository userRepository,
     ITotpService totpService,
     ITwoFactorSecretProtector secretProtector,
     ILogger<TwoFactorAuthService> logger) : ITwoFactorAuthService
 {
-    private readonly DataContext _dbContext = dbContext;
+    private readonly IUserRepository _userRepository = userRepository;
     private readonly ITotpService _totpService = totpService;
     private readonly ITwoFactorSecretProtector _secretProtector = secretProtector;
     private readonly ILogger<TwoFactorAuthService> _logger = logger;
@@ -31,7 +30,7 @@ internal sealed class TwoFactorAuthService(
             return Result.Failure<TwoFactorSetup>(TwoFactorAuthErrors.InvalidUserId);
         }
 
-        User? user = await FindUserAsync(userId, cancellationToken);
+        User? user = await _userRepository.GetByIdAsync(userId, cancellationToken);
 
         if (user is null)
         {
@@ -55,7 +54,7 @@ internal sealed class TwoFactorAuthService(
 
             try
             {
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                await _userRepository.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException exception)
             {
@@ -81,7 +80,7 @@ internal sealed class TwoFactorAuthService(
     }
 
     /// <inheritdoc />
-    public async Task<Result<string>> EnableAsync(
+    public async Task<Result> EnableAsync(
         Guid userId,
         string? code,
         CancellationToken cancellationToken = default)
@@ -93,26 +92,25 @@ internal sealed class TwoFactorAuthService(
 
         if (userResult is FailureResult<User> failure)
         {
-            return Result.Failure<string>(failure.Error);
+            return Result.Failure(failure.Error);
         }
 
         User user = ((SuccessResult<User>)userResult).Value;
 
         if (user.TwoFactorEnabled)
         {
-            return Result.Failure<string>(TwoFactorAuthErrors.AlreadyEnabled);
+            return Result.Failure(TwoFactorAuthErrors.AlreadyEnabled);
         }
 
         return await ValidateAndApplyAsync(
             user,
             code,
             static configuredUser => configuredUser.EnableTwoFactor(),
-            "Two-factor authentication enabled successfully.",
             cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<Result<string>> DisableAsync(
+    public async Task<Result> DisableAsync(
         Guid userId,
         string? code,
         CancellationToken cancellationToken = default)
@@ -124,7 +122,7 @@ internal sealed class TwoFactorAuthService(
 
         if (userResult is FailureResult<User> failure)
         {
-            return Result.Failure<string>(failure.Error);
+            return Result.Failure(failure.Error);
         }
 
         User user = ((SuccessResult<User>)userResult).Value;
@@ -133,12 +131,11 @@ internal sealed class TwoFactorAuthService(
             user,
             code,
             static configuredUser => configuredUser.DisableTwoFactor(),
-            "Two-factor authentication disabled successfully.",
             cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<Result<bool>> ValidateCodeAsync(
+    public async Task<Result> ValidateCodeAsync(
         Guid userId,
         string? code,
         CancellationToken cancellationToken = default)
@@ -150,63 +147,61 @@ internal sealed class TwoFactorAuthService(
 
         if (userResult is FailureResult<User> failure)
         {
-            return Result.Failure<bool>(failure.Error);
+            return Result.Failure(failure.Error);
         }
 
         User user = ((SuccessResult<User>)userResult).Value;
-        byte[] secret = _secretProtector.Unprotect(
-            user.Id,
-            user.ProtectedTwoFactorSecret!);
 
-        try
-        {
-            if (!TryConsumeCode(user, secret, code)
-                || !await TrySaveConsumedCodeAsync(user, cancellationToken))
-            {
-                return Result.Failure<bool>(TwoFactorAuthErrors.InvalidCode);
-            }
-
-            return Result.Success(true);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(secret);
-        }
+        return await ValidateAndApplyAsync(
+            user,
+            code,
+            static _ => { },
+            cancellationToken);
     }
 
-    private async Task<Result<string>> ValidateAndApplyAsync(
+    /// <summary>
+    /// Verifies the code against the user's TOTP secret and, if valid, applies
+    /// <paramref name="applyChange"/> and persists both changes in a single save.
+    /// </summary>
+    private async Task<Result> ValidateAndApplyAsync(
         User user,
         string? code,
         Action<User> applyChange,
-        string successMessage,
         CancellationToken cancellationToken)
     {
         byte[] secret = _secretProtector.Unprotect(
             user.Id,
             user.ProtectedTwoFactorSecret!);
 
+        bool codeConsumed;
         try
         {
-            if (!TryConsumeCode(user, secret, code))
-            {
-                return Result.Failure<string>(TwoFactorAuthErrors.InvalidCode);
-            }
-
-            applyChange(user);
-
-            if (!await TrySaveConsumedCodeAsync(user, cancellationToken))
-            {
-                return Result.Failure<string>(TwoFactorAuthErrors.InvalidCode);
-            }
-
-            return Result.Success(successMessage);
+            codeConsumed = TryConsumeCode(user, secret, code);
         }
         finally
         {
             CryptographicOperations.ZeroMemory(secret);
         }
+
+        if (!codeConsumed)
+        {
+            return Result.Failure(TwoFactorAuthErrors.InvalidCode);
+        }
+
+        applyChange(user);
+
+        if (!await TrySaveConsumedCodeAsync(user, cancellationToken))
+        {
+            return Result.Failure(TwoFactorAuthErrors.InvalidCode);
+        }
+
+        return Result.Success();
     }
 
+    /// <summary>
+    /// Loads the user by id and confirms two-factor authentication is configured,
+    /// optionally requiring that it also be enabled.
+    /// </summary>
     private async Task<Result<User>> GetConfiguredUserAsync(
         Guid userId,
         bool requireEnabled,
@@ -217,7 +212,7 @@ internal sealed class TwoFactorAuthService(
             return Result.Failure<User>(TwoFactorAuthErrors.InvalidUserId);
         }
 
-        User? user = await FindUserAsync(userId, cancellationToken);
+        User? user = await _userRepository.GetByIdAsync(userId, cancellationToken);
 
         if (user is null)
         {
@@ -237,15 +232,14 @@ internal sealed class TwoFactorAuthService(
         return Result.Success(user);
     }
 
-    private Task<User?> FindUserAsync(
-        Guid userId,
-        CancellationToken cancellationToken)
-    {
-        return _dbContext.Users.SingleOrDefaultAsync(
-            user => user.Id == userId,
-            cancellationToken);
-    }
-
+    /// <summary>
+    /// Validates the code against the secret and, if correct, records the matched time step
+    /// on the user to guard against replay. Does not persist the change.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> if the code is valid and its time step has not already been
+    /// consumed; otherwise <see langword="false"/>.
+    /// </returns>
     private bool TryConsumeCode(
         User user,
         byte[] secret,
@@ -270,13 +264,20 @@ internal sealed class TwoFactorAuthService(
         }
     }
 
+    /// <summary>
+    /// Saves pending changes on the user.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> if the save succeeded; <see langword="false"/> if a concurrent
+    /// update was detected.
+    /// </returns>
     private async Task<bool> TrySaveConsumedCodeAsync(
         User user,
         CancellationToken cancellationToken)
     {
         try
         {
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _userRepository.SaveChangesAsync(cancellationToken);
             return true;
         }
         catch (DbUpdateConcurrencyException exception)

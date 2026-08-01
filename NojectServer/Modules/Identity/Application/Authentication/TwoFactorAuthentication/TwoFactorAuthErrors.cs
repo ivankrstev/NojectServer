@@ -1,6 +1,6 @@
 using NojectServer.Utils.ResultPattern;
 
-namespace NojectServer.Modules.Identity.Application.TwoFactorAuthentication;
+namespace NojectServer.Modules.Identity.Application.Authentication.TwoFactorAuthentication;
 
 /// <summary>
 /// Contains standardized errors returned by two-factor authentication operations.

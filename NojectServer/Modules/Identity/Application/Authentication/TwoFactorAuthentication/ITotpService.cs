@@ -1,4 +1,4 @@
-namespace NojectServer.Modules.Identity.Application.TwoFactorAuthentication;
+namespace NojectServer.Modules.Identity.Application.Authentication.TwoFactorAuthentication;
 
 /// <summary>
 /// Provides the TOTP primitives used to enroll and authenticate users.

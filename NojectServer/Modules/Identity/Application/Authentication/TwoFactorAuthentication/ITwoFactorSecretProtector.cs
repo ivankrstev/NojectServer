@@ -1,4 +1,4 @@
-namespace NojectServer.Modules.Identity.Application.TwoFactorAuthentication;
+namespace NojectServer.Modules.Identity.Application.Authentication.TwoFactorAuthentication;
 
 /// <summary>
 /// Protects and restores two-factor authentication secrets for a specific user.

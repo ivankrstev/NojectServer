@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using NojectServer.Configurations.Totp;
-using NojectServer.Modules.Identity.Application.TwoFactorAuthentication;
+using NojectServer.Modules.Identity.Application.Authentication.TwoFactorAuthentication;
 using OtpNet;
 
 namespace NojectServer.Modules.Identity.Infrastructure.TwoFactorAuthentication;

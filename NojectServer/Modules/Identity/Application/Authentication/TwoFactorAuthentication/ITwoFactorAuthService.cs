@@ -1,6 +1,6 @@
 using NojectServer.Utils.ResultPattern;
 
-namespace NojectServer.Modules.Identity.Application.TwoFactorAuthentication;
+namespace NojectServer.Modules.Identity.Application.Authentication.TwoFactorAuthentication;
 
 /// <summary>
 /// Manages TOTP enrollment, activation, validation, and removal for users.
@@ -24,7 +24,7 @@ public interface ITwoFactorAuthService
     /// <param name="code">The code supplied by the user's authenticator.</param>
     /// <param name="cancellationToken">Token used to cancel the database operation.</param>
     /// <returns>A success message when two-factor authentication is enabled.</returns>
-    Task<Result<string>> EnableAsync(
+    Task<Result> EnableAsync(
         Guid userId,
         string? code,
         CancellationToken cancellationToken = default);
@@ -36,7 +36,7 @@ public interface ITwoFactorAuthService
     /// <param name="code">The code supplied by the user's authenticator.</param>
     /// <param name="cancellationToken">Token used to cancel the database operation.</param>
     /// <returns>A success message when two-factor authentication is disabled.</returns>
-    Task<Result<string>> DisableAsync(
+    Task<Result> DisableAsync(
         Guid userId,
         string? code,
         CancellationToken cancellationToken = default);
@@ -48,7 +48,7 @@ public interface ITwoFactorAuthService
     /// <param name="code">The code supplied by the user's authenticator.</param>
     /// <param name="cancellationToken">Token used to cancel the database operation.</param>
     /// <returns>A successful result containing <see langword="true" /> when the code is accepted.</returns>
-    Task<Result<bool>> ValidateCodeAsync(
+    Task<Result> ValidateCodeAsync(
         Guid userId,
         string? code,
         CancellationToken cancellationToken = default);

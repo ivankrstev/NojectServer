@@ -1,6 +1,5 @@
-using System.Text;
 using Microsoft.AspNetCore.DataProtection;
-using NojectServer.Modules.Identity.Application.TwoFactorAuthentication;
+using NojectServer.Modules.Identity.Application.Authentication.TwoFactorAuthentication;
 
 namespace NojectServer.Modules.Identity.Infrastructure.TwoFactorAuthentication;
 
