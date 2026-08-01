@@ -32,46 +32,55 @@ public static class IdentityModule
             .SetApplicationName("NojectServer.Identity");
         services.AddSingleton<JwtTokenValidationParametersFactory>();
 
-        // Persistence services
+        // Persistence
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IIdentityTransaction, IdentityTransaction>();
 
-        // Email services
-        services.AddScoped<IEmailService, EmailService>();
+        // Email infrastructure
         services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<IEmailService, EmailService>();
 
-        // Password services
+        // Password infrastructure
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 
-        // Identity token services
+        // Token infrastructure
         services.AddSingleton<IOpaqueTokenGenerator, OpaqueTokenGenerator>();
-        services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IRefreshTokenGenerator, RefreshTokenGenerator>();
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
-        // Two-factor authentication services
+        // Two-factor authentication infrastructure
         services.AddScoped<ITwoFactorSecretProtector, TwoFactorSecretProtector>();
         services.AddSingleton<ITotpService, OtpNetTotpService>();
-        services.AddScoped<ITwoFactorAuthService, TwoFactorAuthService>();
 
         // Validators
-        services.AddTransient<IValidator<VerifyEmailInput>, VerifyEmailInputValidator>();
-        services.AddTransient<IValidator<RequestEmailVerificationInput>, RequestEmailVerificationInputValidator>();
-        services.AddTransient<IValidator<RequestPasswordResetInput>, RequestPasswordResetInputValidator>();
-        services.AddTransient<IValidator<ResetPasswordInput>, ResetPasswordInputValidator>();
+        services.AddIdentityValidators();
 
-        // Application Services
+        // Application services
+        services.AddScoped<ITwoFactorAuthService, TwoFactorAuthService>();
         services.AddScoped<IEmailVerificationService, EmailVerificationService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
 
         // Configure authentication and authorization
-        services.AddAuthenticationConfiguration();
+        services.AddJwtAuthentication();
         services.AddAuthorization();
 
         return services;
     }
 
-    private static void AddAuthenticationConfiguration(
+    private static void AddIdentityValidators(
+        this IServiceCollection services)
+    {
+        // Email verification
+        services.AddTransient<IValidator<VerifyEmailInput>, VerifyEmailInputValidator>();
+        services.AddTransient<IValidator<RequestEmailVerificationInput>, RequestEmailVerificationInputValidator>();
+
+        // Password reset
+        services.AddTransient<IValidator<RequestPasswordResetInput>, RequestPasswordResetInputValidator>();
+        services.AddTransient<IValidator<ResetPasswordInput>, ResetPasswordInputValidator>();
+    }
+
+    private static void AddJwtAuthentication(
         this IServiceCollection services)
     {
         services
