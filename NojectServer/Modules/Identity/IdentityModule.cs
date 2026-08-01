@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using NojectServer.Modules.Identity.Application.Authentication.EmailVerification;
 using NojectServer.Modules.Identity.Application.Authentication.PasswordReset;
 using NojectServer.Modules.Identity.Application.Authentication.TwoFactorAuthentication;
 using NojectServer.Modules.Identity.Application.Email;
@@ -32,6 +33,7 @@ public static class IdentityModule
         services.AddSingleton<JwtTokenValidationParametersFactory>();
 
         // Persistence services
+        services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IIdentityTransaction, IdentityTransaction>();
 
         // Email services
@@ -52,10 +54,14 @@ public static class IdentityModule
         services.AddSingleton<ITotpService, OtpNetTotpService>();
         services.AddScoped<ITwoFactorAuthService, TwoFactorAuthService>();
 
-        // Authentication services
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IValidator<RequestPasswordResetInput>, RequestPasswordResetInputValidator>();
-        services.AddSingleton<IValidator<ResetPasswordInput>, ResetPasswordInputValidator>();
+        // Validators
+        services.AddTransient<IValidator<VerifyEmailInput>, VerifyEmailInputValidator>();
+        services.AddTransient<IValidator<RequestEmailVerificationInput>, RequestEmailVerificationInputValidator>();
+        services.AddTransient<IValidator<RequestPasswordResetInput>, RequestPasswordResetInputValidator>();
+        services.AddTransient<IValidator<ResetPasswordInput>, ResetPasswordInputValidator>();
+
+        // Application Services
+        services.AddScoped<IEmailVerificationService, EmailVerificationService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
 
         // Configure authentication and authorization
