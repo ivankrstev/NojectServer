@@ -4,6 +4,9 @@ using NojectServer.Modules.Identity.Domain;
 
 namespace NojectServer.Modules.Identity.Application.Authentication.Register;
 
+/// <summary>
+/// Validates the input for registering a new user account.
+/// </summary>
 internal sealed class RegisterInputValidator : AbstractValidator<RegisterInput>
 {
     public RegisterInputValidator()

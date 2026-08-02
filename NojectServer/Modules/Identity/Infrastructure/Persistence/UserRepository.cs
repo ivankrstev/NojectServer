@@ -1,12 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using NojectServer.Data;
 using NojectServer.Modules.Identity.Application.Users;
+using NojectServer.Modules.Identity.Application.Users.Exceptions;
 using NojectServer.Modules.Identity.Domain;
+using Npgsql;
 
 namespace NojectServer.Modules.Identity.Infrastructure.Persistence;
 
 internal sealed class UserRepository(DataContext dbContext) : IUserRepository
 {
+    private const string NormalizedEmailUniqueIndexName = "ix_users_normalized_email";
+
     private readonly DataContext _dbContext = dbContext;
 
     /// <inheritdoc />
@@ -71,9 +75,21 @@ internal sealed class UserRepository(DataContext dbContext) : IUserRepository
     }
 
     /// <inheritdoc />
-    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        return _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(
+                cancellationToken);
+        }
+        catch (DbUpdateException exception)
+            when (IsDuplicateEmailViolation(exception))
+        {
+            // SQLSTATE 23505 is PostgreSQL's unique_violation code. This handles
+            // concurrent registrations that both pass the preliminary email check
+            // before one request violates the normalized-email unique index.
+            throw new DuplicateUserEmailException(exception);
+        }
     }
 
     private static string NormalizeEmail(string email)
@@ -81,5 +97,15 @@ internal sealed class UserRepository(DataContext dbContext) : IUserRepository
         ArgumentException.ThrowIfNullOrWhiteSpace(email);
 
         return email.Trim().ToUpperInvariant();
+    }
+
+    private static bool IsDuplicateEmailViolation(
+        DbUpdateException exception)
+    {
+        return exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: NormalizedEmailUniqueIndexName
+        };
     }
 }

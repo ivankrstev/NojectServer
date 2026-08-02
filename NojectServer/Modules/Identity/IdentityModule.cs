@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.DataProtection;
 using NojectServer.Modules.Identity.Application.Authentication.EmailVerification;
 using NojectServer.Modules.Identity.Application.Authentication.Login;
 using NojectServer.Modules.Identity.Application.Authentication.PasswordReset;
+using NojectServer.Modules.Identity.Application.Authentication.Register;
 using NojectServer.Modules.Identity.Application.Authentication.TwoFactorAuthentication;
 using NojectServer.Modules.Identity.Application.Email;
 using NojectServer.Modules.Identity.Application.JwtTokens;
@@ -58,6 +59,7 @@ public static class IdentityModule
         services.AddIdentityValidators();
 
         // Application services
+        services.AddScoped<IRegistrationService, RegistrationService>();
         services.AddScoped<ILoginService, LoginService>();
         services.AddScoped<ITwoFactorAuthService, TwoFactorAuthService>();
         services.AddScoped<IEmailVerificationService, EmailVerificationService>();
@@ -73,6 +75,9 @@ public static class IdentityModule
     private static void AddIdentityValidators(
         this IServiceCollection services)
     {
+        // Register
+        services.AddTransient<IValidator<RegisterInput>, RegisterInputValidator>();
+
         // Login
         services.AddTransient<IValidator<LoginInput>, LoginInputValidator>();
         services.AddTransient<IValidator<CompleteTwoFactorLoginInput>, CompleteTwoFactorLoginInputValidator>();
