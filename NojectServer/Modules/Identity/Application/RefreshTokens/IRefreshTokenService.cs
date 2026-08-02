@@ -1,4 +1,4 @@
-﻿using NojectServer.Utils.ResultPattern;
+using NojectServer.Utils.ResultPattern;
 
 namespace NojectServer.Modules.Identity.Application.RefreshTokens;
 

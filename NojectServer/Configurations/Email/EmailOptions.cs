@@ -1,4 +1,4 @@
-﻿namespace NojectServer.Configurations.Email;
+namespace NojectServer.Configurations.Email;
 
 /// <summary>
 /// Configuration settings for email services in the application.

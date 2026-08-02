@@ -1,4 +1,4 @@
-﻿using NojectServer.Configurations.Email;
+using NojectServer.Configurations.Email;
 using NojectServer.Configurations.Tokens;
 using NojectServer.Configurations.Totp;
 

@@ -1,4 +1,4 @@
-﻿namespace NojectServer.Modules.Identity.Application.Email;
+namespace NojectServer.Modules.Identity.Application.Email;
 
 /// <summary>
 /// Defines application-level email notifications for identity workflows.

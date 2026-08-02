@@ -1,4 +1,4 @@
-﻿namespace NojectServer.Utils.ResultPattern;
+namespace NojectServer.Utils.ResultPattern;
 
 /// <summary>
 /// Contains the details describing a failed operation.

@@ -1,4 +1,4 @@
-﻿using MimeKit;
+using MimeKit;
 
 namespace NojectServer.Modules.Identity.Application.Email;
 

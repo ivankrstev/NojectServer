@@ -1,4 +1,4 @@
-﻿namespace NojectServer.Exceptions;
+namespace NojectServer.Exceptions;
 
 public class ProjectNotFoundException : Exception
 {
