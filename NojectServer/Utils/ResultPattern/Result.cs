@@ -76,7 +76,7 @@ public abstract class Result
     /// <summary>
     /// Creates a failed result containing field-specific validation errors.
     /// </summary>
-    /// <param name="validationErrors">
+    /// <param name="errors">
     /// The validation errors grouped by property name.
     /// </param>
     /// <returns>A validation failure result.</returns>
@@ -143,9 +143,6 @@ public abstract class Result
     /// Creates a failed result containing field-specific validation errors.
     /// </summary>
     /// <typeparam name="T">The successful result value type.</typeparam>
-    /// <param name="validationErrors">
-    /// The validation errors grouped by property name.
-    /// </param>
     /// <returns>A validation failure result.</returns>
     public static Result<T> ValidationFailure<T>(
         IReadOnlyDictionary<string, string[]> errors) =>

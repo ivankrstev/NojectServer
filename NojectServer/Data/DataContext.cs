@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NojectServer.Modules.Identity.Domain;
 
 namespace NojectServer.Data;
@@ -7,8 +7,8 @@ public class DataContext(
     DbContextOptions<DataContext> options)
     : DbContext(options)
 {
-    public virtual DbSet<User> Users { get; set; }
-    public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+    public virtual DbSet<User> Users { get; set; } = null!;
+    public virtual DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

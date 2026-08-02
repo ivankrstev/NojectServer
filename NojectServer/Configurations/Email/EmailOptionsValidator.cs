@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Options;
 using System.Net.Mail;
+using Microsoft.Extensions.Options;
 
 namespace NojectServer.Configurations.Email;
 
