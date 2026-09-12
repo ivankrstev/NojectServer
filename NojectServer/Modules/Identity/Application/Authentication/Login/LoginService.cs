@@ -1,8 +1,6 @@
 using System.Security.Cryptography;
 using FluentValidation;
 using FluentValidation.Results;
-using Microsoft.Extensions.Options;
-using NojectServer.Configurations.Tokens;
 using NojectServer.Modules.Identity.Application.Authentication.TwoFactorAuthentication;
 using NojectServer.Modules.Identity.Application.JwtTokens;
 using NojectServer.Modules.Identity.Application.Passwords;
@@ -26,9 +24,7 @@ internal sealed class LoginService(
     IJwtTokenService jwtTokenService,
     IRefreshTokenService refreshTokenService,
     ITwoFactorAuthService twoFactorAuthService,
-    IOptions<AccessTokenOptions> accessTokenOptions,
-    IOptions<TfaTokenOptions> tfaTokenOptions,
-    TimeProvider timeProvider) : ILoginService
+    ILogger<LoginService> logger) : ILoginService
 {
     private readonly IValidator<LoginInput> _loginInputValidator = loginInputValidator;
     private readonly IValidator<CompleteTwoFactorLoginInput> _completeTwoFactorLoginInputValidator =
@@ -38,9 +34,7 @@ internal sealed class LoginService(
     private readonly IJwtTokenService _jwtTokenService = jwtTokenService;
     private readonly IRefreshTokenService _refreshTokenService = refreshTokenService;
     private readonly ITwoFactorAuthService _twoFactorAuthService = twoFactorAuthService;
-    private readonly AccessTokenOptions _accessTokenOptions = accessTokenOptions.Value;
-    private readonly TfaTokenOptions _tfaTokenOptions = tfaTokenOptions.Value;
-    private readonly TimeProvider _timeProvider = timeProvider;
+    private readonly ILogger<LoginService> _logger = logger;
 
     /// <inheritdoc />
     public async Task<Result<LoginResult>> LoginAsync(
@@ -67,8 +61,9 @@ internal sealed class LoginService(
         if (user is null)
         {
             PerformDummyPasswordHash(input.Password!);
+
             return Result.Failure<LoginResult>(
-                AuthenticationErrors.InvalidCredentials);
+                LoginErrors.InvalidCredentials);
         }
 
         if (!_passwordHasher.Verify(
@@ -77,25 +72,23 @@ internal sealed class LoginService(
                 user.PasswordSalt))
         {
             return Result.Failure<LoginResult>(
-                AuthenticationErrors.InvalidCredentials);
+                LoginErrors.InvalidCredentials);
         }
 
         if (user.VerifiedAt is null)
         {
             return Result.Failure<LoginResult>(
-                AuthenticationErrors.EmailNotVerified);
+                LoginErrors.EmailNotVerified);
         }
-
-        DateTimeOffset issuedAt = _timeProvider.GetUtcNow();
 
         if (user.TwoFactorEnabled)
         {
-            string twoFactorToken = _jwtTokenService.CreateTfaToken(user.Id);
+            GeneratedJwtToken twoFactorToken = _jwtTokenService.CreateTfaToken(user.Id);
 
             return Result.Success<LoginResult>(
                 new TwoFactorRequiredLoginResult(
-                    TwoFactorToken: twoFactorToken,
-                    ExpiresAt: issuedAt.AddMinutes(_tfaTokenOptions.ExpirationInMinutes)));
+                    TwoFactorToken: twoFactorToken.Token,
+                    ExpiresAt: twoFactorToken.ExpiresAt));
         }
 
         Result<AuthenticatedLoginResult> authenticatedResult =
@@ -110,8 +103,7 @@ internal sealed class LoginService(
                 Result.Failure<LoginResult>(failure.Error),
 
             _ => throw new InvalidOperationException(
-            $"Unsupported result type: " +
-            $"{authenticatedResult.GetType().Name}.")
+                $"Unsupported result type: {authenticatedResult.GetType().Name}.")
         };
     }
 
@@ -136,13 +128,14 @@ internal sealed class LoginService(
         Result<TfaTokenClaims> tokenResult =
             _jwtTokenService.ValidateTfaToken(input.TfaToken!);
 
-        if (tokenResult is FailureResult<TfaTokenClaims> tokenFailure)
+        if (tokenResult is not
+            SuccessResult<TfaTokenClaims> tokenSuccess)
         {
             return Result.Failure<AuthenticatedLoginResult>(
-                tokenFailure.Error);
+                LoginErrors.InvalidOrExpiredTwoFactorChallenge);
         }
 
-        TfaTokenClaims tokenClaims = ((SuccessResult<TfaTokenClaims>)tokenResult).Value;
+        TfaTokenClaims tokenClaims = tokenSuccess.Value;
 
         Result codeValidationResult =
             await _twoFactorAuthService.ValidateCodeAsync(
@@ -150,10 +143,10 @@ internal sealed class LoginService(
                 input.Code!,
                 cancellationToken);
 
-        if (codeValidationResult is FailureResult codeFailure)
+        if (codeValidationResult.IsFailure)
         {
             return Result.Failure<AuthenticatedLoginResult>(
-                codeFailure.Error);
+                LoginErrors.TwoFactorAuthenticationFailed);
         }
 
         return await IssueAuthenticatedLoginAsync(tokenClaims.UserId, cancellationToken);
@@ -171,7 +164,6 @@ internal sealed class LoginService(
         CryptographicOperations.ZeroMemory(dummyCredentials.Salt);
     }
 
-
     /// <summary>
     /// Issues the access and refresh tokens required for an authenticated login.
     /// </summary>
@@ -184,27 +176,31 @@ internal sealed class LoginService(
         Guid userId,
         CancellationToken cancellationToken)
     {
-        string accessToken = _jwtTokenService.CreateAccessToken(userId);
+        GeneratedJwtToken accessToken =
+            _jwtTokenService.CreateAccessToken(userId);
 
         Result<IssuedRefreshToken> refreshTokenResult =
             await _refreshTokenService.IssueAsync(userId, cancellationToken);
 
-        if (refreshTokenResult is FailureResult<IssuedRefreshToken> refreshFailure)
+        if (refreshTokenResult is not
+            SuccessResult<IssuedRefreshToken> refreshTokenSuccess)
         {
+            _logger.LogError(
+                "Refresh-token issuance failed for user {UserId} with error {Error}.",
+                userId,
+                refreshTokenResult.Error?.Error ?? "Unknown");
+
             return Result.Failure<AuthenticatedLoginResult>(
-                refreshFailure.Error);
+                LoginErrors.AuthenticationCompletionFailed);
         }
 
-        IssuedRefreshToken issuedRefreshToken =
-            ((SuccessResult<IssuedRefreshToken>)refreshTokenResult).Value;
-
-        DateTimeOffset issuedAt = _timeProvider.GetUtcNow();
+        IssuedRefreshToken issuedRefreshToken = refreshTokenSuccess.Value;
 
         return Result.Success(
             new AuthenticatedLoginResult(
-                AccessToken: accessToken,
+                AccessToken: accessToken.Token,
                 RefreshToken: issuedRefreshToken.Token,
-                AccessTokenExpiresAt: issuedAt.AddMinutes(_accessTokenOptions.ExpirationInMinutes),
+                AccessTokenExpiresAt: accessToken.ExpiresAt,
                 RefreshTokenExpiresAt: issuedRefreshToken.ExpiresAt));
     }
 }
