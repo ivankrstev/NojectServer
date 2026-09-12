@@ -14,16 +14,16 @@ public interface IJwtTokenService
     /// Access tokens are short-lived tokens used for API authentication.
     /// </summary>
     /// <param name="userId">The ID of the user to create the token for</param>
-    /// <returns>A signed JWT token string</returns>
-    string CreateAccessToken(Guid userId);
+    /// <returns>The generated access token and its expiration time.</returns>
+    GeneratedJwtToken CreateAccessToken(Guid userId);
 
     /// <summary>
     /// Creates a JWT token for two-factor authentication (TFA) purposes.
     /// TFA tokens are short-lived tokens used during the two-factor authentication flow.
     /// </summary>
     /// <param name="userId">The ID of the user to create the token for</param>
-    /// <returns>A signed JWT token string</returns>
-    string CreateTfaToken(Guid userId);
+    /// <returns>The generated TFA token and its expiration time.</returns>
+    GeneratedJwtToken CreateTfaToken(Guid userId);
 
     /// <summary>
     /// Validates a JWT token for two-factor authentication and extracts its payload.

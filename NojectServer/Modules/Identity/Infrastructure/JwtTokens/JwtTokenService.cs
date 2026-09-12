@@ -39,7 +39,7 @@ public sealed class JwtTokenService(
     private const string TfaTokenPurpose = "tfa";
 
     /// <inheritdoc/>
-    public string CreateAccessToken(Guid userId)
+    public GeneratedJwtToken CreateAccessToken(Guid userId)
     {
         return CreateJwtToken(
             userId,
@@ -49,7 +49,7 @@ public sealed class JwtTokenService(
     }
 
     /// <inheritdoc/>
-    public string CreateTfaToken(Guid userId)
+    public GeneratedJwtToken CreateTfaToken(Guid userId)
     {
         return CreateJwtToken(
             userId,
@@ -142,21 +142,34 @@ public sealed class JwtTokenService(
     }
 
     /// <summary>
-    /// Creates a signed JWT token with the specified parameters.
+    /// Creates and signs a JWT for the specified user and token purpose.
     /// </summary>
-    private string CreateJwtToken(Guid userId, string secretKey, int expirationInMinutes, string tokenUse)
+    /// <returns>
+    /// The encoded JWT and its expiration time.
+    /// </returns>
+    private GeneratedJwtToken CreateJwtToken(
+        Guid userId,
+        string secretKey,
+        int expirationInMinutes,
+        string tokenUse)
     {
-        DateTime utcNow = _timeProvider
-            .GetUtcNow()
-            .UtcDateTime;
-
-        var tokenDescriptor = new SecurityTokenDescriptor
+        if (userId == Guid.Empty)
         {
-            Issuer = _options.Issuer,
-            Audience = _options.Audience,
+            throw new ArgumentException(
+                "User ID cannot be empty.",
+                nameof(userId));
+        }
 
-            Subject = new ClaimsIdentity([
-                new Claim(
+        ArgumentException.ThrowIfNullOrWhiteSpace(secretKey);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(expirationInMinutes);
+        ArgumentException.ThrowIfNullOrWhiteSpace(tokenUse);
+
+        DateTimeOffset issuedAt = _timeProvider.GetUtcNow();
+        DateTimeOffset expiresAt = issuedAt.AddMinutes(expirationInMinutes);
+
+        Claim[] claims =
+        [
+            new Claim(
                     JwtRegisteredClaimNames.Sub,
                     userId.ToString("D")),
 
@@ -167,16 +180,28 @@ public sealed class JwtTokenService(
                 new Claim(
                     TokenPurposeClaimType,
                     tokenUse)
-            ]),
+        ];
 
-            IssuedAt = utcNow,
-            NotBefore = utcNow,
-            Expires = utcNow.AddMinutes(expirationInMinutes),
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+
+            Issuer = _options.Issuer,
+            Audience = _options.Audience,
+
+            IssuedAt = issuedAt.UtcDateTime,
+            NotBefore = issuedAt.UtcDateTime,
+            Expires = expiresAt.UtcDateTime,
 
             SigningCredentials = CreateSigningCredentials(secretKey)
         };
 
-        return _tokenHandler.CreateEncodedJwt(tokenDescriptor);
+        string encodedToken =
+            _tokenHandler.CreateEncodedJwt(tokenDescriptor);
+
+        return new GeneratedJwtToken(
+            Token: encodedToken,
+            ExpiresAt: expiresAt);
     }
 
     /// <summary>
