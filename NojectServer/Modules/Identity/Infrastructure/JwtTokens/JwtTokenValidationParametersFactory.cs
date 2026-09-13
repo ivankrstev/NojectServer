@@ -7,13 +7,16 @@ namespace NojectServer.Modules.Identity.Infrastructure.JwtTokens;
 public sealed class JwtTokenValidationParametersFactory(
     IOptions<JwtOptions> jwtOptions,
     IOptions<AccessTokenOptions> accessTokenOptions,
-    IOptions<TfaTokenOptions> tfaTokenOptions)
+    IOptions<TfaTokenOptions> tfaTokenOptions,
+    IOptions<PendingEmailVerificationTokenOptions> pendingEmailVerificationTokenOptions)
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
     private readonly AccessTokenOptions _accessTokenOptions =
         accessTokenOptions.Value;
     private readonly TfaTokenOptions _tfaTokenOptions =
         tfaTokenOptions.Value;
+    private readonly PendingEmailVerificationTokenOptions _pendingEmailVerificationTokenOptions =
+        pendingEmailVerificationTokenOptions.Value;
 
     public TokenValidationParameters CreateAccessTokenParameters()
     {
@@ -23,6 +26,11 @@ public sealed class JwtTokenValidationParametersFactory(
     public TokenValidationParameters CreateTfaTokenParameters()
     {
         return Create(_tfaTokenOptions.SecretKey);
+    }
+
+    public TokenValidationParameters CreatePendingEmailVerificationTokenParameters()
+    {
+        return Create(_pendingEmailVerificationTokenOptions.SecretKey);
     }
 
     private TokenValidationParameters Create(string secretKey)

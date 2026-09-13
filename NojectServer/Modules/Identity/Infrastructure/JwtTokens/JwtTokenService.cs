@@ -19,6 +19,7 @@ public sealed class JwtTokenService(
     IOptions<JwtOptions> options,
     IOptions<AccessTokenOptions> accessTokenOptions,
     IOptions<TfaTokenOptions> tfaTokenOptions,
+    IOptions<PendingEmailVerificationTokenOptions> pendingEmailVerificationTokenOptions,
     JwtTokenValidationParametersFactory validationParametersFactory,
     TimeProvider timeProvider,
     ILogger<JwtTokenService> logger) : IJwtTokenService
@@ -26,6 +27,8 @@ public sealed class JwtTokenService(
     private readonly JwtOptions _options = options.Value;
     private readonly AccessTokenOptions _accessTokenOptions = accessTokenOptions.Value;
     private readonly TfaTokenOptions _tfaTokenOptions = tfaTokenOptions.Value;
+    private readonly PendingEmailVerificationTokenOptions _pendingEmailVerificationTokenOptions =
+        pendingEmailVerificationTokenOptions.Value;
     private readonly JwtTokenValidationParametersFactory _validationParametersFactory = validationParametersFactory;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly ILogger<JwtTokenService> _logger = logger;
@@ -34,10 +37,6 @@ public sealed class JwtTokenService(
         MapInboundClaims = false
     };
 
-    private const string TokenPurposeClaimType = "token_use";
-    private const string AccessTokenPurpose = "access";
-    private const string TfaTokenPurpose = "tfa";
-
     /// <inheritdoc/>
     public GeneratedJwtToken CreateAccessToken(Guid userId)
     {
@@ -45,7 +44,7 @@ public sealed class JwtTokenService(
             userId,
             _accessTokenOptions.SecretKey,
             _accessTokenOptions.ExpirationInMinutes,
-            AccessTokenPurpose);
+            IdentityTokenConstants.AccessTokenPurpose);
     }
 
     /// <inheritdoc/>
@@ -55,7 +54,17 @@ public sealed class JwtTokenService(
             userId,
             _tfaTokenOptions.SecretKey,
             _tfaTokenOptions.ExpirationInMinutes,
-            TfaTokenPurpose);
+            IdentityTokenConstants.TfaTokenPurpose);
+    }
+
+    /// <inheritdoc/>
+    public GeneratedJwtToken CreatePendingEmailVerificationToken(Guid userId)
+    {
+        return CreateJwtToken(
+            userId,
+            _pendingEmailVerificationTokenOptions.SecretKey,
+            _pendingEmailVerificationTokenOptions.ExpirationInMinutes,
+            IdentityTokenConstants.PendingEmailVerificationTokenPurpose);
     }
 
     /// <inheritdoc/>
@@ -76,10 +85,10 @@ public sealed class JwtTokenService(
                 out SecurityToken validatedToken);
 
             string? tokenPurpose = principal
-                .FindFirst(TokenPurposeClaimType)?
+                .FindFirst(IdentityTokenConstants.TokenPurposeClaimType)?
                 .Value;
 
-            if (tokenPurpose != TfaTokenPurpose)
+            if (tokenPurpose != IdentityTokenConstants.TfaTokenPurpose)
             {
                 _logger.LogDebug(
                     "TFA token validation failed because the token purpose claim was missing or invalid.");
@@ -178,7 +187,7 @@ public sealed class JwtTokenService(
                     Guid.NewGuid().ToString("N")),
 
                 new Claim(
-                    TokenPurposeClaimType,
+                    IdentityTokenConstants.TokenPurposeClaimType,
                     tokenUse)
         ];
 

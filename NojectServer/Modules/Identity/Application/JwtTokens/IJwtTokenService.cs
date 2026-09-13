@@ -26,6 +26,11 @@ public interface IJwtTokenService
     GeneratedJwtToken CreateTfaToken(Guid userId);
 
     /// <summary>
+    /// Creates a short-lived token that authorizes only pending email-verification operations.
+    /// </summary>
+    GeneratedJwtToken CreatePendingEmailVerificationToken(Guid userId);
+
+    /// <summary>
     /// Validates a JWT token for two-factor authentication and extracts its payload.
     /// Verifies token authenticity and extracts user claims.
     /// </summary>
