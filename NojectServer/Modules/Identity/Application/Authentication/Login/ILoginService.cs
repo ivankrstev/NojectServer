@@ -16,7 +16,9 @@ public interface ILoginService
     /// A result containing an <see cref="AuthenticatedLoginResult"/> when
     /// authentication completes immediately, or a
     /// <see cref="TwoFactorRequiredLoginResult"/> when an additional
-    /// two-factor authentication code is required.
+    /// two-factor authentication code is required, or an
+    /// <see cref="EmailVerificationRequiredLoginResult"/> when only the
+    /// restricted pending-verification workflow is available.
     /// </returns>
     Task<Result<LoginResult>> LoginAsync(
         LoginInput input,

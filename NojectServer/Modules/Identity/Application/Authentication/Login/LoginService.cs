@@ -77,8 +77,16 @@ internal sealed class LoginService(
 
         if (user.VerifiedAt is null)
         {
-            return Result.Failure<LoginResult>(
-                LoginErrors.EmailNotVerified);
+            // Valid credentials establish only a restricted pending-verification
+            // session. This token is accepted exclusively by pending-verification endpoints.
+            GeneratedJwtToken pendingVerificationToken =
+                _jwtTokenService.CreatePendingEmailVerificationToken(user.Id);
+
+            return Result.Success<LoginResult>(
+                new EmailVerificationRequiredLoginResult(
+                    PendingVerificationToken: pendingVerificationToken.Token,
+                    ExpiresAt: pendingVerificationToken.ExpiresAt,
+                    MaskedEmail: MaskEmail(user.Email)));
         }
 
         if (user.TwoFactorEnabled)
@@ -149,7 +157,38 @@ internal sealed class LoginService(
                 LoginErrors.TwoFactorAuthenticationFailed);
         }
 
+        // The challenge represents a previously valid password login. Recheck
+        // mutable account eligibility before creating a full session.
+        User? currentUser = await _userRepository.GetByIdAsync(
+            tokenClaims.UserId,
+            cancellationToken);
+
+        if (currentUser?.VerifiedAt is null || !currentUser.TwoFactorEnabled)
+        {
+            return Result.Failure<AuthenticatedLoginResult>(
+                LoginErrors.InvalidOrExpiredTwoFactorChallenge);
+        }
+
         return await IssueAuthenticatedLoginAsync(tokenClaims.UserId, cancellationToken);
+    }
+
+    private static string MaskEmail(string email)
+    {
+        int atIndex = email.IndexOf('@');
+
+        if (atIndex <= 0)
+        {
+            return "***";
+        }
+
+        string localPart = email[..atIndex];
+        string domain = email[atIndex..];
+
+        string maskedLocalPart = localPart.Length == 1
+            ? $"{localPart[0]}***"
+            : $"{localPart[0]}***{localPart[^1]}";
+
+        return maskedLocalPart + domain;
     }
 
     /// <summary>
