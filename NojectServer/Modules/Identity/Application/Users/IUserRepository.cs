@@ -41,6 +41,14 @@ public interface IUserRepository
     void Add(User user);
 
     /// <summary>
+    /// Deletes the user only when the account is still unverified.
+    /// </summary>
+    /// <returns><see langword="true"/> when a row was deleted.</returns>
+    Task<bool> DeleteUnverifiedAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Persists pending user changes.
     /// </summary>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

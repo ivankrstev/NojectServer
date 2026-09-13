@@ -75,6 +75,25 @@ internal sealed class UserRepository(DataContext dbContext) : IUserRepository
     }
 
     /// <inheritdoc />
+    public async Task<bool> DeleteUnverifiedAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            return false;
+        }
+
+        int deletedRows = await _dbContext.Users
+            .Where(user =>
+                user.Id == userId &&
+                user.VerifiedAt == null)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        return deletedRows == 1;
+    }
+
+    /// <inheritdoc />
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         try
