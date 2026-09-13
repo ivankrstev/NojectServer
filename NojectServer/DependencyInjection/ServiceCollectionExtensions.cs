@@ -31,21 +31,32 @@ public static class ServiceCollectionExtensions
             .AddOptionsWithValidateOnStart<
                 RefreshTokenOptions,
                 RefreshTokenOptionsValidator>()
-            .Bind(configuration.GetRequiredSection(RefreshTokenOptions.SectionName));
+            .Bind(configuration.GetRequiredSection(
+                RefreshTokenOptions.SectionName));
 
         // Bind and validate access-token signing and expiration settings at startup.
         services
             .AddOptionsWithValidateOnStart<
                 AccessTokenOptions,
                 AccessTokenOptionsValidator>()
-            .Bind(configuration.GetRequiredSection(AccessTokenOptions.SectionName));
+            .Bind(configuration.GetRequiredSection(
+                AccessTokenOptions.SectionName));
 
         // Bind and validate TFA-token signing and expiration settings at startup.
         services
             .AddOptionsWithValidateOnStart<
                 TfaTokenOptions,
                 TfaTokenOptionsValidator>()
-            .Bind(configuration.GetRequiredSection(TfaTokenOptions.SectionName));
+            .Bind(configuration.GetRequiredSection(
+                TfaTokenOptions.SectionName));
+
+        // Bind and validate the restricted pending-email-verification token settings.
+        services
+            .AddOptionsWithValidateOnStart<
+                PendingEmailVerificationTokenOptions,
+                PendingEmailVerificationTokenOptionsValidator>()
+            .Bind(configuration.GetRequiredSection(
+                PendingEmailVerificationTokenOptions.SectionName));
 
         // Bind and validate email settings during application startup.
         services
