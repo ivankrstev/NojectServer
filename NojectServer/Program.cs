@@ -57,9 +57,6 @@ public class Program
         // Configure the API behavior options
         builder.Services.ConfigureOptions<ApiBehaviorOptionsSetup>();
 
-        // Register the JWT bearer authentication scheme
-        // builder.Services.AddJwtAuthentication();
-
         WebApplication app = builder.Build();
 
         if (app.Environment.IsDevelopment())
