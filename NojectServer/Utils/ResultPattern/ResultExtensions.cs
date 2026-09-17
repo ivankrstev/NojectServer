@@ -130,13 +130,9 @@ public static class ResultExtensions
         ControllerBase controller,
         ErrorDetails error)
     {
-        return controller.StatusCode(
-            error.StatusCode,
-            new
-            {
-                error = error.Error,
-                message = error.Message
-            });
+        return ApiErrorResponseFactory.CreateFailure(
+            controller.HttpContext,
+            error);
     }
 
     /// <summary>
@@ -148,20 +144,9 @@ public static class ResultExtensions
         ErrorDetails error,
         IReadOnlyDictionary<string, string[]> validationErrors)
     {
-        var errors =
-            validationErrors.ToDictionary(
-                pair => pair.Key,
-                pair => pair.Value);
-
-        var problemDetails =
-            new ValidationProblemDetails(errors)
-            {
-                Status = error.StatusCode,
-                Title = error.Message
-            };
-
-        problemDetails.Extensions["error"] = error.Error;
-
-        return controller.ValidationProblem(problemDetails);
+        return ApiErrorResponseFactory.CreateValidation(
+            controller.HttpContext,
+            error,
+            validationErrors);
     }
 }

@@ -57,6 +57,11 @@ internal static class ValidationFailureData
 {
     private const int ValidationStatusCode = 400;
 
+    internal static ErrorDetails Error { get; } = new(
+        "Validation",
+        "One or more validation errors occurred.",
+        ValidationStatusCode);
+
     /// <summary>
     /// Creates general error details and a defensive copy of the
     /// field-specific validation errors.
@@ -89,11 +94,6 @@ internal static class ValidationFailureData
                         "A validation error collection cannot be null.",
                         nameof(validationErrors)));
 
-        var error = new ErrorDetails(
-            "Validation",
-            "One or more validation errors occurred.",
-            ValidationStatusCode);
-
-        return (error, copiedValidationErrors);
+        return (Error, copiedValidationErrors);
     }
 }
