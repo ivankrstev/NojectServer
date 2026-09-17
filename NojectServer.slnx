@@ -2,6 +2,10 @@
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
   </Folder>
-  <Project Path="NojectServer.Tests/NojectServer.Tests.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/NojectServer.ArchitectureTests/NojectServer.ArchitectureTests.csproj" />
+    <Project Path="tests/NojectServer.IntegrationTests/NojectServer.IntegrationTests.csproj" />
+    <Project Path="tests/NojectServer.UnitTests/NojectServer.UnitTests.csproj" />
+  </Folder>
   <Project Path="NojectServer/NojectServer.csproj" />
 </Solution>
