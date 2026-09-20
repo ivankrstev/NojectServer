@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace NojectServer.Utils;
@@ -6,7 +7,9 @@ public static class UserClaimsExtensions
 {
     public static Guid GetUserId(this ClaimsPrincipal user)
     {
-        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        string? userIdClaim =
+            user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
+            user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
         {
@@ -14,17 +17,5 @@ public static class UserClaimsExtensions
         }
 
         return userId;
-    }
-
-    public static string GetUserEmail(this ClaimsPrincipal user)
-    {
-        var emailClaim = user.FindFirst(ClaimTypes.Email)?.Value;
-
-        if (string.IsNullOrEmpty(emailClaim))
-        {
-            throw new InvalidOperationException("User email claim is missing");
-        }
-
-        return emailClaim;
     }
 }
