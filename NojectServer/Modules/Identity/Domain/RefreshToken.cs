@@ -10,6 +10,8 @@ public sealed class RefreshToken
 {
     private const int TokenHashLength = 32;
 
+    private byte[] _tokenHash = [];
+
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.None)]
     public Guid Id { get; private set; }
@@ -22,7 +24,11 @@ public sealed class RefreshToken
     /// </summary>
     [Required]
     [MaxLength(TokenHashLength)]
-    public byte[] TokenHash { get; private set; } = [];
+    public byte[] TokenHash
+    {
+        get => (byte[])_tokenHash.Clone();
+        private set => _tokenHash = (byte[])value.Clone();
+    }
 
     /// <summary>
     /// Identifies all refresh tokens belonging to the same login session.
@@ -103,7 +109,7 @@ public sealed class RefreshToken
         UserId = userId;
 
         // Prevent the caller from modifying our stored array.
-        TokenHash = (byte[])tokenHash.Clone();
+        TokenHash = tokenHash;
 
         FamilyId = familyId;
         ConcurrencyToken = Guid.NewGuid();
@@ -189,6 +195,13 @@ public sealed class RefreshToken
         {
             throw new ArgumentException(
                 "Replacement token ID cannot be empty.",
+                nameof(replacementTokenId));
+        }
+
+        if (replacementTokenId == Id)
+        {
+            throw new ArgumentException(
+                "A refresh token cannot replace itself.",
                 nameof(replacementTokenId));
         }
 
