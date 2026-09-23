@@ -9,6 +9,8 @@ namespace NojectServer.Modules.Identity.Infrastructure.Passwords;
 /// </summary>
 internal sealed class Pbkdf2PasswordHasher : IPasswordHasher
 {
+    // TODO: Persist a password-hash version with each credential so algorithm and
+    // iteration-count upgrades can support transparent rehashing after login.
     private const int SaltSizeInBytes = 32;
     private const int HashSizeInBytes = 32;
     private const int IterationCount = 210_000;
