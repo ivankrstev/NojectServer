@@ -15,6 +15,10 @@ internal sealed class OtpNetTotpService(
 {
     private const int SecretSizeInBytes = 20;
     private const int TimeStepInSeconds = 30;
+
+    // TODO: Move this shared TOTP code-length policy to
+    // Application/Authentication/TwoFactorAuthentication, then reference it
+    // from both the application validator and this infrastructure service.
     internal const int CodeSizeInDigits = 6;
 
     private readonly string _issuer = options.Value.Issuer;
