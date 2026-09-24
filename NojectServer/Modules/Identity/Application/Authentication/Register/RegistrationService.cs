@@ -58,39 +58,43 @@ internal sealed class RegistrationService(
 
         HashedPassword hashedPassword = _passwordHasher.Hash(input.Password!);
 
-        var user = User.Create(
-            email: email,
-            fullName: fullName,
-            passwordHash: hashedPassword.Hash,
-            passwordSalt: hashedPassword.Salt);
-
-        _userRepository.Add(user);
-
         try
         {
-            await _userRepository.SaveChangesAsync(cancellationToken);
-        }
-        catch (DuplicateUserEmailException exception)
-        {
-            // The preliminary email check is not authoritative because another
-            // registration can create the account before this request is persisted.
-            _logger.LogWarning(
-                exception,
-                "Registration save failed for email {Email}; concurrent duplicate registration.",
-                email);
+            var user = User.Create(
+                email: email,
+                fullName: fullName,
+                passwordHash: hashedPassword.Hash,
+                passwordSalt: hashedPassword.Salt);
 
-            return Result.Failure<RegisteredUser>(RegisterErrors.EmailAlreadyRegistered);
+            _userRepository.Add(user);
+
+            try
+            {
+                await _userRepository.SaveChangesAsync(cancellationToken);
+            }
+            catch (DuplicateUserEmailException exception)
+            {
+                // The preliminary email check is not authoritative because another
+                // registration can create the account before this request is persisted.
+                _logger.LogWarning(
+                    exception,
+                    "Registration save failed for email {Email}; concurrent duplicate registration.",
+                    email);
+
+                return Result.Failure<RegisteredUser>(
+                    RegisterErrors.EmailAlreadyRegistered);
+            }
+
+            return Result.Success(
+                new RegisteredUser(
+                    UserId: user.Id,
+                    Email: user.Email,
+                    FullName: user.FullName));
         }
         finally
         {
             CryptographicOperations.ZeroMemory(hashedPassword.Hash);
             CryptographicOperations.ZeroMemory(hashedPassword.Salt);
         }
-
-        return Result.Success(
-            new RegisteredUser(
-                UserId: user.Id,
-                Email: user.Email,
-                FullName: user.FullName));
     }
 }
