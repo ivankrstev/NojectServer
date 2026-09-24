@@ -8,7 +8,7 @@ internal static class JwtSigningKeyValidator
     private const int MinimumHs256KeySizeInBytes = 32;
 
     /// <summary>
-    /// Validates that a signing key is present, Base64 encoded, and large enough for HS512.
+    /// Validates that a signing key is present, Base64 encoded, and large enough for HS256.
     /// </summary>
     /// <param name="secretKey">The configured signing key.</param>
     /// <param name="configurationPath">The configuration path used in validation errors.</param>
