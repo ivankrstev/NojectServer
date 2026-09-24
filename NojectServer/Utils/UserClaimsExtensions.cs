@@ -7,6 +7,8 @@ public static class UserClaimsExtensions
 {
     public static Guid GetUserId(this ClaimsPrincipal user)
     {
+        ArgumentNullException.ThrowIfNull(user);
+
         string? userIdClaim =
             user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
             user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
