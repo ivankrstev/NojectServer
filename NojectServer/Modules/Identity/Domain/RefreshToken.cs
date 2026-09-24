@@ -4,13 +4,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace NojectServer.Modules.Identity.Domain;
 
-[Index(nameof(TokenHash), IsUnique = true)]
 [Index(nameof(UserId), nameof(FamilyId))]
 public sealed class RefreshToken
 {
     private const int TokenHashLength = 32;
 
-    private byte[] _tokenHash = [];
+    private readonly byte[] _tokenHash = [];
 
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.None)]
@@ -22,13 +21,7 @@ public sealed class RefreshToken
     /// <summary>
     /// SHA-256 hash of the bearer token. The raw token must never be persisted.
     /// </summary>
-    [Required]
-    [MaxLength(TokenHashLength)]
-    public byte[] TokenHash
-    {
-        get => (byte[])_tokenHash.Clone();
-        private set => _tokenHash = (byte[])value.Clone();
-    }
+    public ReadOnlyMemory<byte> TokenHash => _tokenHash;
 
     /// <summary>
     /// Identifies all refresh tokens belonging to the same login session.
@@ -109,7 +102,7 @@ public sealed class RefreshToken
         UserId = userId;
 
         // Prevent the caller from modifying our stored array.
-        TokenHash = tokenHash;
+        _tokenHash = (byte[])tokenHash.Clone();
 
         FamilyId = familyId;
         ConcurrencyToken = Guid.NewGuid();

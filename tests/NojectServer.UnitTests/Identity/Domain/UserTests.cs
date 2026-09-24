@@ -20,8 +20,8 @@ public sealed class UserTests
         Assert.Equal("Alice.Example@example.com", user.Email);
         Assert.Equal("ALICE.EXAMPLE@EXAMPLE.COM", user.NormalizedEmail);
         Assert.Equal("Alice Example", user.FullName);
-        Assert.Equal(passwordHash, user.PasswordHash);
-        Assert.Equal(passwordSalt, user.PasswordSalt);
+        Assert.Equal(passwordHash, user.PasswordHash.ToArray());
+        Assert.Equal(passwordSalt, user.PasswordSalt.ToArray());
         Assert.Null(user.VerificationTokenHash);
         Assert.Null(user.VerificationTokenExpiresAt);
         Assert.Null(user.VerifiedAt);
@@ -47,8 +47,8 @@ public sealed class UserTests
         passwordHash[0] = 99;
         passwordSalt[0] = 99;
 
-        Assert.Equal([1, 2, 3], user.PasswordHash);
-        Assert.Equal([4, 5, 6], user.PasswordSalt);
+        Assert.Equal([1, 2, 3], user.PasswordHash.ToArray());
+        Assert.Equal([4, 5, 6], user.PasswordSalt.ToArray());
     }
 
     [Theory]
@@ -177,7 +177,7 @@ public sealed class UserTests
         user.SetEmailVerificationToken(tokenHash, issuedAt, expiresAt);
         tokenHash[0] = 99;
 
-        Assert.Equal(CreateHash(10), user.VerificationTokenHash);
+        Assert.Equal(CreateHash(10), user.VerificationTokenHash?.ToArray());
         Assert.Equal(expiresAt, user.VerificationTokenExpiresAt);
     }
 
@@ -231,7 +231,7 @@ public sealed class UserTests
         user.SetPasswordResetToken(tokenHash, issuedAt, expiresAt);
         tokenHash[0] = 99;
 
-        Assert.Equal(CreateHash(20), user.PasswordResetTokenHash);
+        Assert.Equal(CreateHash(20), user.PasswordResetTokenHash?.ToArray());
         Assert.Equal(expiresAt, user.PasswordResetTokenExpiresAt);
     }
 
@@ -272,8 +272,8 @@ public sealed class UserTests
         passwordHash[0] = 99;
         passwordSalt[0] = 99;
 
-        Assert.Equal([7, 8, 9], user.PasswordHash);
-        Assert.Equal([10, 11, 12], user.PasswordSalt);
+        Assert.Equal([7, 8, 9], user.PasswordHash.ToArray());
+        Assert.Equal([10, 11, 12], user.PasswordSalt.ToArray());
         Assert.Null(user.PasswordResetTokenHash);
         Assert.Null(user.PasswordResetTokenExpiresAt);
     }
@@ -282,16 +282,16 @@ public sealed class UserTests
     public void ChangePassword_RejectsNullOrEmptyCredentialsWithoutChangingExistingState()
     {
         User user = CreateUser();
-        byte[] originalHash = user.PasswordHash;
-        byte[] originalSalt = user.PasswordSalt;
+        byte[] originalHash = user.PasswordHash.ToArray();
+        byte[] originalSalt = user.PasswordSalt.ToArray();
 
         Assert.Throws<ArgumentNullException>(() => user.ChangePassword(null!, [1]));
         Assert.Throws<ArgumentNullException>(() => user.ChangePassword([1], null!));
         Assert.Throws<ArgumentException>(() => user.ChangePassword([], [1]));
         Assert.Throws<ArgumentException>(() => user.ChangePassword([1], []));
 
-        Assert.Equal(originalHash, user.PasswordHash);
-        Assert.Equal(originalSalt, user.PasswordSalt);
+        Assert.Equal(originalHash, user.PasswordHash.ToArray());
+        Assert.Equal(originalSalt, user.PasswordSalt.ToArray());
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public sealed class UserTests
         user.SetProtectedTwoFactorSecret(replacementSecret);
         replacementSecret[0] = 99;
 
-        Assert.Equal([4, 5, 6], user.ProtectedTwoFactorSecret);
+        Assert.Equal([4, 5, 6], user.ProtectedTwoFactorSecret?.ToArray());
         Assert.False(user.TwoFactorEnabled);
         Assert.Null(user.LastAcceptedTotpTimeStep);
     }
@@ -338,7 +338,7 @@ public sealed class UserTests
         user.EnableTwoFactor();
 
         Assert.True(user.TwoFactorEnabled);
-        Assert.Equal([1, 2, 3], user.ProtectedTwoFactorSecret);
+        Assert.Equal([1, 2, 3], user.ProtectedTwoFactorSecret?.ToArray());
     }
 
     [Fact]

@@ -10,6 +10,12 @@ public sealed class User
     internal const int MaximumFullNameLength = 50;
     internal const int MaximumEmailLength = 254;
 
+    private byte[] _passwordHash = [];
+    private byte[] _passwordSalt = [];
+    private byte[]? _verificationTokenHash;
+    private byte[]? _passwordResetTokenHash;
+    private byte[]? _protectedTwoFactorSecret;
+
     [Key]
     public Guid Id { get; private set; }
 
@@ -25,21 +31,23 @@ public sealed class User
     [MaxLength(MaximumFullNameLength)]
     public string FullName { get; private set; } = string.Empty;
 
-    [Required]
-    public byte[] PasswordHash { get; private set; } = [];
+    public ReadOnlyMemory<byte> PasswordHash => _passwordHash;
 
-    [Required]
-    public byte[] PasswordSalt { get; private set; } = [];
+    public ReadOnlyMemory<byte> PasswordSalt => _passwordSalt;
 
-    [MaxLength(Sha256HashSizeInBytes)]
-    public byte[]? VerificationTokenHash { get; private set; }
+    public ReadOnlyMemory<byte>? VerificationTokenHash =>
+        _verificationTokenHash is null
+            ? (ReadOnlyMemory<byte>?)null
+            : _verificationTokenHash;
 
     public DateTimeOffset? VerificationTokenExpiresAt { get; private set; }
 
     public DateTimeOffset? VerifiedAt { get; private set; }
 
-    [MaxLength(Sha256HashSizeInBytes)]
-    public byte[]? PasswordResetTokenHash { get; private set; }
+    public ReadOnlyMemory<byte>? PasswordResetTokenHash =>
+        _passwordResetTokenHash is null
+            ? (ReadOnlyMemory<byte>?)null
+            : _passwordResetTokenHash;
 
     public DateTimeOffset? PasswordResetTokenExpiresAt { get; private set; }
 
@@ -48,7 +56,10 @@ public sealed class User
     /// <summary>
     /// The protected (encrypted) two-factor authentication secret for the user.
     /// </summary>
-    public byte[]? ProtectedTwoFactorSecret { get; private set; }
+    public ReadOnlyMemory<byte>? ProtectedTwoFactorSecret =>
+        _protectedTwoFactorSecret is null
+            ? (ReadOnlyMemory<byte>?)null
+            : _protectedTwoFactorSecret;
 
     /// <summary>
     /// The last time step for which a TOTP code was accepted for this user.
@@ -82,8 +93,8 @@ public sealed class User
         SetEmail(email);
 
         FullName = NormalizeFullName(fullName);
-        PasswordHash = (byte[])passwordHash.Clone();
-        PasswordSalt = (byte[])passwordSalt.Clone();
+        _passwordHash = (byte[])passwordHash.Clone();
+        _passwordSalt = (byte[])passwordSalt.Clone();
     }
 
     public static User Create(
@@ -108,7 +119,7 @@ public sealed class User
 
         // Changing the email normally requires verification again.
         VerifiedAt = null;
-        VerificationTokenHash = null;
+        _verificationTokenHash = null;
         VerificationTokenExpiresAt = null;
     }
 
@@ -126,14 +137,14 @@ public sealed class User
                 nameof(expiresAt));
         }
 
-        VerificationTokenHash = (byte[])tokenHash.Clone();
+        _verificationTokenHash = (byte[])tokenHash.Clone();
         VerificationTokenExpiresAt = expiresAt;
     }
 
     public void MarkAsVerified(DateTimeOffset verifiedAt)
     {
         VerifiedAt = verifiedAt;
-        VerificationTokenHash = null;
+        _verificationTokenHash = null;
         VerificationTokenExpiresAt = null;
     }
 
@@ -145,10 +156,10 @@ public sealed class User
     {
         ValidatePasswordCredentials(passwordHash, passwordSalt);
 
-        PasswordHash = (byte[])passwordHash.Clone();
-        PasswordSalt = (byte[])passwordSalt.Clone();
+        _passwordHash = (byte[])passwordHash.Clone();
+        _passwordSalt = (byte[])passwordSalt.Clone();
 
-        PasswordResetTokenHash = null;
+        _passwordResetTokenHash = null;
         PasswordResetTokenExpiresAt = null;
     }
 
@@ -166,7 +177,7 @@ public sealed class User
                 nameof(expiresAt));
         }
 
-        PasswordResetTokenHash = (byte[])tokenHash.Clone();
+        _passwordResetTokenHash = (byte[])tokenHash.Clone();
         PasswordResetTokenExpiresAt = expiresAt;
     }
 
@@ -183,14 +194,14 @@ public sealed class User
                 nameof(protectedSecret));
         }
 
-        ProtectedTwoFactorSecret = (byte[])protectedSecret.Clone();
+        _protectedTwoFactorSecret = (byte[])protectedSecret.Clone();
         TwoFactorEnabled = false;
         LastAcceptedTotpTimeStep = null;
     }
 
     public void EnableTwoFactor()
     {
-        if (ProtectedTwoFactorSecret is null)
+        if (_protectedTwoFactorSecret is null)
         {
             throw new InvalidOperationException(
                 "A two-factor secret must be configured first.");
@@ -202,7 +213,7 @@ public sealed class User
     public void DisableTwoFactor()
     {
         TwoFactorEnabled = false;
-        ProtectedTwoFactorSecret = null;
+        _protectedTwoFactorSecret = null;
         LastAcceptedTotpTimeStep = null;
     }
 

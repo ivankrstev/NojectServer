@@ -152,7 +152,7 @@ internal sealed class EmailVerificationService(
         DateTimeOffset utcNow)
     {
         if (user?.VerifiedAt is not null ||
-            user?.VerificationTokenHash is not byte[] persistedHash ||
+            user?.VerificationTokenHash is not ReadOnlyMemory<byte> persistedHash ||
             user.VerificationTokenExpiresAt is not DateTimeOffset expiresAt ||
             expiresAt <= utcNow)
         {
@@ -164,6 +164,6 @@ internal sealed class EmailVerificationService(
         return suppliedHash.Length == persistedHash.Length &&
                CryptographicOperations.FixedTimeEquals(
                    suppliedHash,
-                   persistedHash);
+                   persistedHash.Span);
     }
 }

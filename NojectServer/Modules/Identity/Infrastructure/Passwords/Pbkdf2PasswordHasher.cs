@@ -27,11 +27,9 @@ internal sealed class Pbkdf2PasswordHasher : IPasswordHasher
     }
 
     /// <inheritdoc />
-    public bool Verify(string password, byte[] hash, byte[] salt)
+    public bool Verify(string password, ReadOnlySpan<byte> hash, ReadOnlySpan<byte> salt)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(password);
-        ArgumentNullException.ThrowIfNull(hash);
-        ArgumentNullException.ThrowIfNull(salt);
 
         if (hash.Length != HashSizeInBytes || salt.Length != SaltSizeInBytes)
         {
@@ -44,7 +42,7 @@ internal sealed class Pbkdf2PasswordHasher : IPasswordHasher
     }
 
     // Derives a password hash using PBKDF2-HMAC-SHA-512.
-    private static byte[] DeriveHash(string password, byte[] salt)
+    private static byte[] DeriveHash(string password, ReadOnlySpan<byte> salt)
     {
         return Rfc2898DeriveBytes.Pbkdf2(
             password: Encoding.UTF8.GetBytes(password),

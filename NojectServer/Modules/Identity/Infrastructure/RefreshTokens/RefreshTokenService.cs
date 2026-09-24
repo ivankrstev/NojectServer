@@ -69,7 +69,7 @@ public class RefreshTokenService(
         RefreshToken? currentToken = await _dbContext.RefreshTokens
             .Include(rt => rt.User)
             .SingleOrDefaultAsync(
-                rt => rt.TokenHash == tokenHash,
+                rt => EF.Property<byte[]>(rt, "_tokenHash") == tokenHash,
                 cancellationToken);
 
         if (currentToken is null)
@@ -171,7 +171,7 @@ public class RefreshTokenService(
 
         RefreshToken? refreshToken = await _dbContext.RefreshTokens
             .SingleOrDefaultAsync(
-                rt => rt.TokenHash == tokenHash,
+                rt => EF.Property<byte[]>(rt, "_tokenHash") == tokenHash,
                 cancellationToken);
 
         // Make logout idempotent and avoid revealing whether

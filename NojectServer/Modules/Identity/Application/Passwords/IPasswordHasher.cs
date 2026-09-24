@@ -26,5 +26,5 @@ public interface IPasswordHasher
     /// <see langword="true"/> when the password produces the persisted hash;
     /// otherwise, <see langword="false"/>.
     /// </returns>
-    bool Verify(string password, byte[] hash, byte[] salt);
+    bool Verify(string password, ReadOnlySpan<byte> hash, ReadOnlySpan<byte> salt);
 }

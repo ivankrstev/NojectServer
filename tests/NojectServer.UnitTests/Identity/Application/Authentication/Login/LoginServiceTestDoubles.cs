@@ -135,12 +135,15 @@ internal sealed class RecordingPasswordHasher : IPasswordHasher
         return new HashedPassword(DummyHash, DummySalt);
     }
 
-    public bool Verify(string password, byte[] hash, byte[] salt)
+    public bool Verify(
+        string password,
+        ReadOnlySpan<byte> hash,
+        ReadOnlySpan<byte> salt)
     {
         VerifyCallCount++;
         VerifiedPassword = password;
-        VerifiedHash = hash;
-        VerifiedSalt = salt;
+        VerifiedHash = hash.ToArray();
+        VerifiedSalt = salt.ToArray();
         return VerifyResult;
     }
 }

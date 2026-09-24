@@ -73,8 +73,8 @@ public sealed class LoginServiceTests
             Assert.IsType<FailureResult<LoginResult>>(result);
         Assert.Equal("Login.InvalidCredentials", failure.Error.Error);
         Assert.Equal("wrong password", context.PasswordHasher.VerifiedPassword);
-        Assert.Same(user.PasswordHash, context.PasswordHasher.VerifiedHash);
-        Assert.Same(user.PasswordSalt, context.PasswordHasher.VerifiedSalt);
+        Assert.Equal(user.PasswordHash.ToArray(), context.PasswordHasher.VerifiedHash);
+        Assert.Equal(user.PasswordSalt.ToArray(), context.PasswordHasher.VerifiedSalt);
         Assert.Equal(0, context.PasswordHasher.HashCallCount);
         Assert.Equal(0, context.JwtTokenService.CreateAccessTokenCallCount);
         Assert.Equal(0, context.JwtTokenService.CreateTfaTokenCallCount);

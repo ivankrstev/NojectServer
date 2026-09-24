@@ -176,7 +176,7 @@ internal sealed class PasswordResetService(
         string resetToken,
         DateTimeOffset utcNow)
     {
-        if (user?.PasswordResetTokenHash is not byte[] persistedHash ||
+        if (user?.PasswordResetTokenHash is not ReadOnlyMemory<byte> persistedHash ||
             user.PasswordResetTokenExpiresAt is not DateTimeOffset expiresAt ||
             expiresAt <= utcNow)
         {
@@ -188,6 +188,6 @@ internal sealed class PasswordResetService(
         return suppliedHash.Length == persistedHash.Length &&
                CryptographicOperations.FixedTimeEquals(
                    suppliedHash,
-                   persistedHash);
+                   persistedHash.Span);
     }
 }

@@ -100,8 +100,8 @@ public sealed class RegistrationServiceTests
         Assert.Equal("person@example.com", addedUser.Email);
         Assert.Equal("PERSON@EXAMPLE.COM", addedUser.NormalizedEmail);
         Assert.Equal("Person Example", addedUser.FullName);
-        Assert.Equal([11, 12, 13], addedUser.PasswordHash);
-        Assert.Equal([21, 22, 23], addedUser.PasswordSalt);
+        Assert.Equal([11, 12, 13], addedUser.PasswordHash.ToArray());
+        Assert.Equal([21, 22, 23], addedUser.PasswordSalt.ToArray());
         Assert.Equal("correct password", passwordHasher.Password);
         Assert.Equal(
             cancellationToken,
@@ -309,7 +309,10 @@ public sealed class RegistrationServiceTests
             return new HashedPassword(HashBytes, SaltBytes);
         }
 
-        public bool Verify(string password, byte[] hash, byte[] salt)
+        public bool Verify(
+            string password,
+            ReadOnlySpan<byte> hash,
+            ReadOnlySpan<byte> salt)
         {
             throw new NotSupportedException();
         }

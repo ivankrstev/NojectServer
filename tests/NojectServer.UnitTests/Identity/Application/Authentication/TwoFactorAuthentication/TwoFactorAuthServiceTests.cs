@@ -91,10 +91,9 @@ public sealed class TwoFactorAuthServiceTests
         Assert.Equal(
             context.TotpService.GeneratedSecretBeforeCleanup,
             context.TotpService.ProvisioningSecret);
-        Assert.Equal([91, 92, 93], user.ProtectedTwoFactorSecret);
-        Assert.NotSame(
-            context.SecretProtector.ProtectedSecret,
-            user.ProtectedTwoFactorSecret);
+        Assert.Equal([91, 92, 93], user.ProtectedTwoFactorSecret?.ToArray());
+        Array.Clear(context.SecretProtector.ProtectedSecret);
+        Assert.Equal([91, 92, 93], user.ProtectedTwoFactorSecret?.ToArray());
         Assert.False(user.TwoFactorEnabled);
         Assert.Null(user.LastAcceptedTotpTimeStep);
         Assert.Equal(1, context.UserRepository.SaveCallCount);
@@ -213,7 +212,7 @@ public sealed class TwoFactorAuthServiceTests
         Assert.Equal(1, context.TotpService.TryValidateCodeCallCount);
         Assert.False(user.TwoFactorEnabled);
         Assert.Null(user.LastAcceptedTotpTimeStep);
-        Assert.Equal([7, 8, 9], user.ProtectedTwoFactorSecret);
+        Assert.Equal([7, 8, 9], user.ProtectedTwoFactorSecret?.ToArray());
         Assert.Equal(0, context.UserRepository.SaveCallCount);
         Assert.All(
             context.SecretProtector.UnprotectedSecret,
@@ -263,7 +262,7 @@ public sealed class TwoFactorAuthServiceTests
         Assert.IsType<SuccessResult>(result);
         Assert.True(user.TwoFactorEnabled);
         Assert.Equal(42, user.LastAcceptedTotpTimeStep);
-        Assert.Equal([7, 8, 9], user.ProtectedTwoFactorSecret);
+        Assert.Equal([7, 8, 9], user.ProtectedTwoFactorSecret?.ToArray());
         Assert.Equal(1, context.UserRepository.SaveCallCount);
         Assert.Equal(cancellationToken, context.UserRepository.SaveCancellationToken);
         Assert.All(
@@ -375,7 +374,7 @@ public sealed class TwoFactorAuthServiceTests
 
         AssertFailure(result, TwoFactorAuthErrors.InvalidCode);
         Assert.True(user.TwoFactorEnabled);
-        Assert.Equal([7, 8, 9], user.ProtectedTwoFactorSecret);
+        Assert.Equal([7, 8, 9], user.ProtectedTwoFactorSecret?.ToArray());
         Assert.Equal(10, user.LastAcceptedTotpTimeStep);
         Assert.Equal(0, context.UserRepository.SaveCallCount);
         Assert.All(
@@ -492,7 +491,7 @@ public sealed class TwoFactorAuthServiceTests
 
         AssertFailure(result, TwoFactorAuthErrors.InvalidCode);
         Assert.True(user.TwoFactorEnabled);
-        Assert.Equal([7, 8, 9], user.ProtectedTwoFactorSecret);
+        Assert.Equal([7, 8, 9], user.ProtectedTwoFactorSecret?.ToArray());
         Assert.Equal(10, user.LastAcceptedTotpTimeStep);
         Assert.Equal(0, context.UserRepository.SaveCallCount);
         Assert.All(
@@ -543,7 +542,7 @@ public sealed class TwoFactorAuthServiceTests
         Assert.IsType<SuccessResult>(result);
         Assert.True(user.TwoFactorEnabled);
         Assert.Equal(11, user.LastAcceptedTotpTimeStep);
-        Assert.Equal([7, 8, 9], user.ProtectedTwoFactorSecret);
+        Assert.Equal([7, 8, 9], user.ProtectedTwoFactorSecret?.ToArray());
         Assert.Equal(1, context.UserRepository.SaveCallCount);
         Assert.Equal(cancellationToken, context.UserRepository.SaveCancellationToken);
         Assert.All(

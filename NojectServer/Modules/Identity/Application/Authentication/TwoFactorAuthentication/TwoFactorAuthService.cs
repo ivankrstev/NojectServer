@@ -171,7 +171,7 @@ internal sealed class TwoFactorAuthService(
     {
         byte[] secret = _secretProtector.Unprotect(
             user.Id,
-            user.ProtectedTwoFactorSecret!);
+            user.ProtectedTwoFactorSecret!.Value.ToArray());
 
         bool codeConsumed;
         try

@@ -143,20 +143,28 @@ public sealed class Pbkdf2PasswordHasherTests
     }
 
     [Fact]
-    public void Verify_WithNullHash_ThrowsArgumentNullException()
+    public void Verify_WithNullHashArray_ReturnsFalse()
     {
-        Assert.Throws<ArgumentNullException>(() => _hasher.Verify(
+        byte[]? hash = null;
+
+        bool result = _hasher.Verify(
             "correct-password",
-            null!,
-            new byte[ExpectedSaltLength]));
+            hash,
+            new byte[ExpectedSaltLength]);
+
+        Assert.False(result);
     }
 
     [Fact]
-    public void Verify_WithNullSalt_ThrowsArgumentNullException()
+    public void Verify_WithNullSaltArray_ReturnsFalse()
     {
-        Assert.Throws<ArgumentNullException>(() => _hasher.Verify(
+        byte[]? salt = null;
+
+        bool result = _hasher.Verify(
             "correct-password",
             new byte[ExpectedHashLength],
-            null!));
+            salt);
+
+        Assert.False(result);
     }
 }

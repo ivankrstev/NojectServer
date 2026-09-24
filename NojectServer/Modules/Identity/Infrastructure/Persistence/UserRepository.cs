@@ -62,7 +62,7 @@ internal sealed class UserRepository(DataContext dbContext) : IUserRepository
         }
 
         return _dbContext.Users.SingleOrDefaultAsync(
-            user => user.PasswordResetTokenHash == tokenHash,
+            user => EF.Property<byte[]?>(user, "_passwordResetTokenHash") == tokenHash,
             cancellationToken);
     }
 

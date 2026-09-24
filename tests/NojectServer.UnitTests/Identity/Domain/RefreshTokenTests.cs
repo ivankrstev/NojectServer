@@ -24,7 +24,7 @@ public sealed class RefreshTokenTests
 
         Assert.NotEqual(Guid.Empty, token.Id);
         Assert.Equal(userId, token.UserId);
-        Assert.Equal(tokenHash, token.TokenHash);
+        Assert.Equal(tokenHash, token.TokenHash.ToArray());
         Assert.NotEqual(Guid.Empty, token.FamilyId);
         Assert.Equal(CreatedAt, token.CreatedAt);
         Assert.Equal(ExpiresAt, token.ExpiresAt);
@@ -56,7 +56,7 @@ public sealed class RefreshTokenTests
     }
 
     [Fact]
-    public void TokenHash_ClonesInputAndProtectsStoredValueFromCallerMutation()
+    public void CreateNewSession_ClonesTokenHash()
     {
         byte[] tokenHash = CreateHash(1);
         RefreshToken token = RefreshToken.CreateNewSession(
@@ -66,10 +66,8 @@ public sealed class RefreshTokenTests
             ExpiresAt);
 
         tokenHash[0] = 99;
-        byte[] exposedHash = token.TokenHash;
-        exposedHash[0] = 98;
 
-        Assert.Equal(CreateHash(1), token.TokenHash);
+        Assert.Equal(CreateHash(1), token.TokenHash.ToArray());
     }
 
     [Fact]
@@ -155,7 +153,7 @@ public sealed class RefreshTokenTests
         Assert.NotEqual(currentToken.Id, replacementToken.Id);
         Assert.Equal(currentToken.UserId, replacementToken.UserId);
         Assert.Equal(currentToken.FamilyId, replacementToken.FamilyId);
-        Assert.Equal(replacementHash, replacementToken.TokenHash);
+        Assert.Equal(replacementHash, replacementToken.TokenHash.ToArray());
         Assert.Equal(replacementCreatedAt, replacementToken.CreatedAt);
         Assert.Equal(currentToken.ExpiresAt, replacementToken.ExpiresAt);
         Assert.Null(replacementToken.RevokedAt);

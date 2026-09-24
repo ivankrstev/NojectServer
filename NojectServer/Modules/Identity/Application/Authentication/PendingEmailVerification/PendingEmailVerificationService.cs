@@ -144,8 +144,8 @@ internal sealed class PendingEmailVerificationService(
 
         if (!_passwordHasher.Verify(
                 input.Password!,
-                user.PasswordHash,
-                user.PasswordSalt))
+                user.PasswordHash.Span,
+                user.PasswordSalt.Span))
         {
             return Result.Failure(
                 PendingEmailVerificationErrors.InvalidPassword);

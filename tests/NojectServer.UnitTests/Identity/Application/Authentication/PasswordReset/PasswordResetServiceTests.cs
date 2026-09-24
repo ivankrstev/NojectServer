@@ -81,12 +81,10 @@ public sealed class PasswordResetServiceTests
         Assert.IsType<SuccessResult>(result);
         Assert.Equal(1, context.TokenGenerator.GenerateCallCount);
         Assert.Equal(32, context.TokenGenerator.GeneratedSizeInBytes);
-        Assert.Equal(
-            context.TokenGenerator.GeneratedToken.Hash,
-            user.PasswordResetTokenHash);
-        Assert.NotSame(
-            context.TokenGenerator.GeneratedToken.Hash,
-            user.PasswordResetTokenHash);
+        byte[] expectedTokenHash = context.TokenGenerator.GeneratedToken.Hash.ToArray();
+        Assert.Equal(expectedTokenHash, user.PasswordResetTokenHash?.ToArray());
+        Array.Clear(context.TokenGenerator.GeneratedToken.Hash);
+        Assert.Equal(expectedTokenHash, user.PasswordResetTokenHash?.ToArray());
         Assert.Equal(
             context.TimeProvider.UtcNow.AddHours(1),
             user.PasswordResetTokenExpiresAt);
@@ -235,8 +233,8 @@ public sealed class PasswordResetServiceTests
             cancellationToken);
 
         Assert.IsType<SuccessResult>(result);
-        Assert.Equal([71, 72, 73], user.PasswordHash);
-        Assert.Equal([81, 82, 83], user.PasswordSalt);
+        Assert.Equal([71, 72, 73], user.PasswordHash.ToArray());
+        Assert.Equal([81, 82, 83], user.PasswordSalt.ToArray());
         Assert.Null(user.PasswordResetTokenHash);
         Assert.Null(user.PasswordResetTokenExpiresAt);
         Assert.Equal("New secure password", context.PasswordHasher.Password);
@@ -509,7 +507,10 @@ public sealed class PasswordResetServiceTests
             return new HashedPassword(HashBytes, SaltBytes);
         }
 
-        public bool Verify(string password, byte[] hash, byte[] salt)
+        public bool Verify(
+            string password,
+            ReadOnlySpan<byte> hash,
+            ReadOnlySpan<byte> salt)
         {
             throw new NotSupportedException();
         }
