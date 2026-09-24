@@ -26,8 +26,12 @@ namespace NojectServer.Modules.Identity;
 
 public static class IdentityModule
 {
-    public static IServiceCollection AddIdentityModule(this IServiceCollection services)
+    public static IServiceCollection AddIdentityModule(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
+        services.AddIdentityPersistence(configuration);
+
         // Shared infrastructure services
         services.AddSingleton(TimeProvider.System);
         services

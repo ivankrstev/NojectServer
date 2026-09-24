@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using NojectServer.Data;
 using NojectServer.DependencyInjection;
 using NojectServer.Modules.Identity;
+using NojectServer.Modules.Identity.Infrastructure.Persistence;
 
 namespace NojectServer;
 
@@ -11,11 +11,10 @@ public class Program
     {
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddPersistence(builder.Configuration);
         builder.Services.AddAppOptions(builder.Configuration);
 
-        // Feature modules own their services and authentication/authorization policies.
-        builder.Services.AddIdentityModule();
+        // Feature modules own their services and are responsible for registering them.
+        builder.Services.AddIdentityModule(builder.Configuration);
 
         builder.Services.AddApi();
 
@@ -31,7 +30,7 @@ public class Program
         {
             // Keep automatic migrations limited to Production, including exclusion of Staging.
             using IServiceScope scope = app.Services.CreateScope();
-            DataContext database = scope.ServiceProvider.GetRequiredService<DataContext>();
+            IdentityDataContext database = scope.ServiceProvider.GetRequiredService<IdentityDataContext>();
             database.Database.Migrate();
         }
 

@@ -1,13 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using NojectServer.Data;
-using NojectServer.Shared.Application.Persistence;
-using NojectServer.Shared.Infrastructure.Persistence;
 
-namespace NojectServer.DependencyInjection;
+namespace NojectServer.Modules.Identity.Infrastructure.Persistence;
 
-public static class PersistenceServiceCollectionExtensions
+internal static class IdentityPersistenceServiceCollectionExtensions
 {
-    public static IServiceCollection AddPersistence(
+    public static IServiceCollection AddIdentityPersistence(
         this IServiceCollection services,
         IConfiguration configuration)
     {
@@ -16,12 +13,10 @@ public static class PersistenceServiceCollectionExtensions
             ?? throw new InvalidOperationException(
                 "Database connection string is not configured.");
 
-        services.AddDbContext<DataContext>(options =>
+        services.AddDbContext<IdentityDataContext>(options =>
             options
                 .UseNpgsql(connectionString)
                 .UseSnakeCaseNamingConvention());
-
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
     }

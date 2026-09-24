@@ -1,21 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NojectServer.Configurations.Tokens;
-using NojectServer.Data;
 using NojectServer.Modules.Identity.Application.RefreshTokens;
 using NojectServer.Modules.Identity.Domain;
+using NojectServer.Modules.Identity.Infrastructure.Persistence;
 using NojectServer.Utils.ResultPattern;
 
 namespace NojectServer.Modules.Identity.Infrastructure.RefreshTokens;
 
-public class RefreshTokenService(
-    DataContext dbContext,
+internal class RefreshTokenService(
+    IdentityDataContext dbContext,
     IOptions<RefreshTokenOptions> options,
     IRefreshTokenGenerator refreshTokenGenerator,
     TimeProvider timeProvider,
     ILogger<RefreshTokenService> logger) : IRefreshTokenService
 {
-    private readonly DataContext _dbContext = dbContext;
+    private readonly IdentityDataContext _dbContext = dbContext;
     private readonly RefreshTokenOptions _options = options.Value;
     private readonly IRefreshTokenGenerator _refreshTokenGenerator = refreshTokenGenerator;
     private readonly TimeProvider _timeProvider = timeProvider;

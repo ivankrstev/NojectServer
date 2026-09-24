@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore.Storage;
-using NojectServer.Data;
 using NojectServer.Modules.Identity.Application.Persistence;
 using NojectServer.Utils.ResultPattern;
 
@@ -10,9 +9,9 @@ namespace NojectServer.Modules.Identity.Infrastructure.Persistence;
 /// successful results and rolling back failures or exceptions.
 /// </summary>
 internal sealed class IdentityTransaction(
-    DataContext dbContext) : IIdentityTransaction
+    IdentityDataContext dbContext) : IIdentityTransaction
 {
-    private readonly DataContext _dbContext = dbContext;
+    private readonly IdentityDataContext _dbContext = dbContext;
 
     /// <inheritdoc />
     public async Task<Result> ExecuteAsync(

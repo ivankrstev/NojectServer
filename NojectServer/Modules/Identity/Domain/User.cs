@@ -6,7 +6,7 @@ namespace NojectServer.Modules.Identity.Domain;
 [Index(nameof(NormalizedEmail), IsUnique = true)]
 public sealed class User
 {
-    private const int Sha256HashSizeInBytes = 32;
+    internal const int Sha256HashSizeInBytes = 32;
     internal const int MaximumFullNameLength = 50;
     internal const int MaximumEmailLength = 254;
 

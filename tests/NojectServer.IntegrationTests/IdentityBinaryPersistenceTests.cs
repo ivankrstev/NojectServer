@@ -1,9 +1,10 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NojectServer.Configurations.Tokens;
-using NojectServer.Data;
 using NojectServer.IntegrationTests.Database;
 using NojectServer.Modules.Identity.Application.RefreshTokens;
 using NojectServer.Modules.Identity.Domain;
@@ -23,8 +24,8 @@ public sealed class IdentityBinaryPersistenceTests(PostgreSqlFixture postgres)
     {
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
 
-        await using DataContext context = _postgres.CreateContext();
-        await using var transaction =
+        await using IdentityDataContext context = _postgres.CreateContext();
+        await using IDbContextTransaction transaction =
             await context.Database.BeginTransactionAsync(cancellationToken);
 
         byte[] passwordHash = RandomNumberGenerator.GetBytes(32);
@@ -34,7 +35,7 @@ public sealed class IdentityBinaryPersistenceTests(PostgreSqlFixture postgres)
         byte[] protectedSecret = RandomNumberGenerator.GetBytes(64);
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
-        User user = User.Create(
+        var user = User.Create(
             $"binary-{Guid.NewGuid():N}@example.com", "Persistence Test",
             passwordHash, passwordSalt);
         user.SetEmailVerificationToken(verificationHash, now, now.AddHours(1));
@@ -134,12 +135,12 @@ public sealed class IdentityModelMappingTests
     [Fact]
     public void ReadOnlyBinaryProperties_PreserveTheExistingDatabaseSchema()
     {
-        using DataContext context = TestDataContextFactory.Create(
+        using IdentityDataContext context = TestDataContextFactory.Create(
             "Host=localhost;Database=noject_model;Username=unused;Password=unused");
 
         Assert.False(context.Database.HasPendingModelChanges());
 
-        var userType = context.Model.FindEntityType(typeof(User))!;
+        IEntityType userType = context.Model.FindEntityType(typeof(User))!;
         string[] fields =
         [
             "_passwordHash", "_passwordSalt", "_verificationTokenHash",
@@ -148,14 +149,14 @@ public sealed class IdentityModelMappingTests
 
         foreach (string field in fields)
         {
-            var property = userType.FindProperty(field);
+            IProperty? property = userType.FindProperty(field);
 
             Assert.NotNull(property);
             Assert.NotNull(property.FieldInfo);
         }
 
-        var refreshTokenType = context.Model.FindEntityType(typeof(RefreshToken))!;
-        var tokenHashProperty = refreshTokenType.FindProperty("_tokenHash");
+        IEntityType refreshTokenType = context.Model.FindEntityType(typeof(RefreshToken))!;
+        IProperty? tokenHashProperty = refreshTokenType.FindProperty("_tokenHash");
         Assert.NotNull(tokenHashProperty);
         Assert.NotNull(tokenHashProperty.FieldInfo);
         Assert.Contains(refreshTokenType.GetIndexes(), index =>

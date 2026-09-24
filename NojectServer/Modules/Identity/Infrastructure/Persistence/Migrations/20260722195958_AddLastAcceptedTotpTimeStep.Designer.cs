@@ -4,14 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using NojectServer.Data;
+using NojectServer.Modules.Identity.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace NojectServer.Migrations
+namespace NojectServer.Modules.Identity.Infrastructure.Persistence.Migrations
 {
-    [DbContext(typeof(DataContext))]
+    [DbContext(typeof(IdentityDataContext))]
     [Migration("20260722195958_AddLastAcceptedTotpTimeStep")]
     partial class AddLastAcceptedTotpTimeStep
     {

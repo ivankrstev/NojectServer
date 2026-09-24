@@ -7,7 +7,7 @@ namespace NojectServer.Modules.Identity.Domain;
 [Index(nameof(UserId), nameof(FamilyId))]
 public sealed class RefreshToken
 {
-    private const int TokenHashLength = 32;
+    internal const int TokenHashLength = 32;
 
     private readonly byte[] _tokenHash = [];
 

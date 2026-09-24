@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using NojectServer.Data;
 using NojectServer.Modules.Identity.Application.Users;
 using NojectServer.Modules.Identity.Application.Users.Exceptions;
 using NojectServer.Modules.Identity.Domain;
@@ -7,11 +6,11 @@ using Npgsql;
 
 namespace NojectServer.Modules.Identity.Infrastructure.Persistence;
 
-internal sealed class UserRepository(DataContext dbContext) : IUserRepository
+internal sealed class UserRepository(IdentityDataContext dbContext) : IUserRepository
 {
     private const string NormalizedEmailUniqueIndexName = "ix_users_normalized_email";
 
-    private readonly DataContext _dbContext = dbContext;
+    private readonly IdentityDataContext _dbContext = dbContext;
 
     /// <inheritdoc />
     public Task<User?> GetByIdAsync(

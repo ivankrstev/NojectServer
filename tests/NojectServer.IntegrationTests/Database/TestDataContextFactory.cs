@@ -1,14 +1,14 @@
 using Microsoft.EntityFrameworkCore;
-using NojectServer.Data;
+using NojectServer.Modules.Identity.Infrastructure.Persistence;
 
 namespace NojectServer.IntegrationTests.Database;
 
-public static class TestDataContextFactory
+internal static class TestDataContextFactory
 {
-    public static DataContext Create(string connectionString)
+    public static IdentityDataContext Create(string connectionString)
     {
-        return new DataContext(
-            new DbContextOptionsBuilder<DataContext>()
+        return new IdentityDataContext(
+            new DbContextOptionsBuilder<IdentityDataContext>()
                 .UseNpgsql(connectionString)
                 .UseSnakeCaseNamingConvention()
                 .Options);

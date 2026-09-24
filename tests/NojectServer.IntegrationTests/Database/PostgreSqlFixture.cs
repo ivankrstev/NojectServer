@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using NojectServer.Data;
+using NojectServer.Modules.Identity.Infrastructure.Persistence;
 using Testcontainers.PostgreSql;
 
 namespace NojectServer.IntegrationTests.Database;
@@ -15,7 +15,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
 
     public string ConnectionString => _container.GetConnectionString();
 
-    public DataContext CreateContext()
+    internal IdentityDataContext CreateContext()
     {
         return TestDataContextFactory.Create(ConnectionString);
     }
@@ -24,7 +24,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
     {
         await _container.StartAsync();
 
-        await using DataContext context = CreateContext();
+        await using IdentityDataContext context = CreateContext();
         await context.Database.MigrateAsync();
     }
 

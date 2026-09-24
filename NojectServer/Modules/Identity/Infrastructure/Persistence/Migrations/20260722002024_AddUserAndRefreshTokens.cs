@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace NojectServer.Migrations;
+namespace NojectServer.Modules.Identity.Infrastructure.Persistence.Migrations;
 
 /// <inheritdoc />
 public partial class AddUserAndRefreshTokens : Migration
