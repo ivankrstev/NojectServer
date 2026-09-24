@@ -78,8 +78,7 @@ internal sealed class RegistrationService(
                 // registration can create the account before this request is persisted.
                 _logger.LogWarning(
                     exception,
-                    "Registration save failed for email {Email}; concurrent duplicate registration.",
-                    email);
+                    "Registration save failed due to concurrent duplicate registration.");
 
                 return Result.Failure<RegisteredUser>(
                     RegisterErrors.EmailAlreadyRegistered);
