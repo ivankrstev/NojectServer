@@ -42,7 +42,7 @@ public sealed class EmailCompositionTests
         TextPart plainPart = Assert.IsType<TextPart>(body[0]);
         Assert.Equal(
             $"Dear {fullName},{Environment.NewLine}{Environment.NewLine}"
-            + $"Please use the following link to verify your email:"
+            + "Please use the following link to verify your email:"
             + $"{Environment.NewLine}{verificationLink}",
             plainPart.Text);
 

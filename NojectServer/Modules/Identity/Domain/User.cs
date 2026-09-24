@@ -289,8 +289,7 @@ public sealed class User
         if (hash.Length != Sha256HashSizeInBytes)
         {
             throw new ArgumentException(
-                $"A SHA-256 hash must contain exactly " +
-                $"{Sha256HashSizeInBytes} bytes.",
+                $"A SHA-256 hash must contain exactly {Sha256HashSizeInBytes} bytes.",
                 parameterName);
         }
     }
