@@ -1,25 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using NojectServer.Utils.ResultPattern;
 
 namespace NojectServer.OptionsSetup;
 
 public class ApiBehaviorOptionsSetup : IConfigureOptions<ApiBehaviorOptions>
 {
+    /// <summary>
+    /// Configures the API behavior options to use the custom error response factory for validation errors.
+    /// </summary>
     public void Configure(ApiBehaviorOptions options)
     {
         options.InvalidModelStateResponseFactory = actionContext =>
-        {
-            if (actionContext.ModelState.ErrorCount <= 0) return new BadRequestResult();
-
-            var errorMessages = actionContext.ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => e.ErrorMessage)
-                .ToArray();
-            return new BadRequestObjectResult(new
-            {
-                error = "Validation Failed",
-                message = errorMessages[0]
-            });
-        };
+            ApiErrorResponseFactory.CreateValidation(
+                actionContext.HttpContext,
+                actionContext.ModelState);
     }
 }

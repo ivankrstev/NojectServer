@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Options;
 
 namespace NojectServer.OptionsSetup;
@@ -11,6 +11,7 @@ public class ConfigureCorsOptions(IConfiguration configuration) : IConfigureOpti
     {
         // Retrieve the allowed origins from configuration
         var origins = _configuration["Cors:Origins"]?.Split(",") ?? [];
+
         options.AddPolicy("CorsPolicy", builder =>
         {
             builder.AllowAnyHeader()

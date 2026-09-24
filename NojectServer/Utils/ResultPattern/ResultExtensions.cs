@@ -1,47 +1,152 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace NojectServer.Utils.ResultPattern;
 
 /// <summary>
-/// Extension methods for the Result pattern to simplify result handling in controllers.
+/// Converts application results to ASP.NET Core action results.
 /// </summary>
 public static class ResultExtensions
 {
     /// <summary>
-    /// Converts a Result object to an appropriate ActionResult by handling success and failure cases.
+    /// Converts a non-generic result to an action result,
+    /// using the provided function to map a success result.
     /// </summary>
-    /// <typeparam name="T">The type of data in the result</typeparam>
-    /// <param name="result">The Result object to handle</param>
-    /// <param name="controller">The controller instance</param>
-    /// <param name="successFunc">A function that processes the successful result value</param>
-    /// <returns>An appropriate ActionResult based on the Result</returns>
+    public static ActionResult ToActionResult(
+        this Result result,
+        ControllerBase controller,
+        Func<ActionResult> successFunc)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(controller);
+        ArgumentNullException.ThrowIfNull(successFunc);
+
+        return result switch
+        {
+            SuccessResult =>
+                successFunc(),
+
+            ValidationFailureResult validationFailure =>
+                ToValidationProblem(
+                    controller,
+                    validationFailure.Error,
+                    validationFailure.ValidationErrors),
+
+            FailureResult failure =>
+                ToFailureActionResult(controller, failure.Error),
+
+            _ => throw new InvalidOperationException(
+                $"Unsupported result type: {result.GetType().Name}.")
+        };
+    }
+
+    /// <summary>
+    /// Maps a payload-free success to 204 No Content.
+    /// </summary>
+    public static ActionResult ToActionResult(
+        this Result result,
+        ControllerBase controller)
+    {
+        return result.ToActionResult(
+            controller,
+            controller.NoContent);
+    }
+
+    /// <summary>
+    /// Maps a payload-free success to the specified status code.
+    /// </summary>
+    public static ActionResult ToActionResult(
+        this Result result,
+        ControllerBase controller,
+        int successStatusCode)
+    {
+        return result.ToActionResult(
+            controller,
+            () => controller.StatusCode(successStatusCode));
+    }
+
+    /// <summary>
+    /// Converts a generic result to an action result,
+    /// using the provided function to map the successful value.
+    /// </summary>
     public static ActionResult ToActionResult<T>(
         this Result<T> result,
         ControllerBase controller,
         Func<T, ActionResult> successFunc)
     {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(controller);
+        ArgumentNullException.ThrowIfNull(successFunc);
+
         return result switch
         {
-            SuccessResult<T> success => successFunc(success.Value),
-            FailureResult<T> failure => controller.StatusCode(
-                failure.Error.StatusCode,
-                new { error = failure.Error.Error, message = failure.Error.Message }),
-            _ => throw new InvalidOperationException("Unknown result type")
+            SuccessResult<T> success =>
+                successFunc(success.Value),
+
+            ValidationFailureResult<T> validationFailure =>
+                ToValidationProblem(
+                    controller,
+                    validationFailure.Error,
+                    validationFailure.ValidationErrors),
+
+            FailureResult<T> failure =>
+                ToFailureActionResult(controller, failure.Error),
+
+            _ => throw new InvalidOperationException(
+                "Unknown generic result type.")
         };
     }
 
     /// <summary>
-    /// Converts a Result object to an OK ActionResult with the result value.
-    /// Simplified version of ToActionResult that returns a 200 OK response with the result value.
+    /// Maps a value-returning success to 200 OK.
     /// </summary>
-    /// <typeparam name="T">The type of data in the result</typeparam>
-    /// <param name="result">The Result object to convert</param>
-    /// <param name="controller">The controller instance</param>
-    /// <returns>An appropriate ActionResult based on the Result</returns>
     public static ActionResult ToActionResult<T>(
         this Result<T> result,
         ControllerBase controller)
     {
-        return result.ToActionResult(controller, value => controller.Ok(value));
+        return result.ToActionResult(
+            controller,
+            value => controller.Ok(value));
+    }
+
+    /// <summary>
+    /// Maps a value-returning success to the specified status code.
+    /// </summary>
+    public static ActionResult ToActionResult<T>(
+        this Result<T> result,
+        ControllerBase controller,
+        int successStatusCode)
+    {
+        return result.ToActionResult(
+            controller,
+            value => controller.StatusCode(
+                successStatusCode,
+                value));
+    }
+
+    /// <summary>
+    /// Converts general error details to an HTTP error response.
+    /// </summary>
+    private static ActionResult ToFailureActionResult(
+        ControllerBase controller,
+        ErrorDetails error)
+    {
+        return ApiErrorResponseFactory.CreateFailure(
+            controller.HttpContext,
+            error);
+    }
+
+    /// <summary>
+    /// Converts field-specific validation errors to an HTTP validation
+    /// problem response.
+    /// </summary>
+    private static ActionResult ToValidationProblem(
+        ControllerBase controller,
+        ErrorDetails error,
+        IReadOnlyDictionary<string, string[]> validationErrors)
+    {
+        return ApiErrorResponseFactory.CreateValidation(
+            controller.HttpContext,
+            error,
+            validationErrors);
     }
 }
